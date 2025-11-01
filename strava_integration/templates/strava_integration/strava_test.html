@@ -1,0 +1,35 @@
+<!-- strava_integration/templates/strava_integration/strava_test.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Strava Test Output</title>
+  <style>
+    /* simple dark theme, monospace JSON */
+    body {
+      background-color: #0f1720;
+      color: #e6eef6;
+      font-family: "Source Code Pro", Menlo, monospace;
+      padding: 24px;
+    }
+    h1 { color: #ff6600; margin-bottom: 12px; }
+    pre {
+      background: linear-gradient(180deg,#0b1220,#0f1726);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 16px;
+      border-radius: 8px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .meta { color: #9fb3c8; margin-bottom: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Strava API Response</h1>
+  <div class="meta">Endpoint: <strong>/api/v3/athlete</strong></div>
+  <pre>{{ json_data }}</pre>
+</body>
+</html>

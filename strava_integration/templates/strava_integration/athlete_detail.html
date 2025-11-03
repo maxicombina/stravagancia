@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Athlete Detail</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #d33; }
+        .field { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    {% if athlete %}
+        <h1>{{ athlete.firstname }} {{ athlete.lastname }}</h1>
+        <div class="field"><strong>ID:</strong> {{ athlete.strava_id }}</div>
+        <div class="field"><strong>Name:</strong> {{ athlete.first_name }}</div>
+        <div class="field"><strong>Last Name:</strong> {{ athlete.last_name }}</div>
+        <div class="field"><strong>City:</strong> {{ athlete.city }}</div>
+        <div class="field"><strong>Country:</strong> {{ athlete.country }}</div>
+        <div class="field"><strong>Sex:</strong> {{ athlete.sex }}</div>
+        <div class="field"><strong>Profile:</strong> <img src="{{ athlete.profile }}" width="100"></div>
+    {% else %}
+        <p>No athlete found in the database.</p>
+    {% endif %}
+</body>
+</html>

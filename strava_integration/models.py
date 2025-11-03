@@ -18,3 +18,27 @@ class Athlete(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.strava_id})"
+
+
+class Activity(models.Model):
+    """
+    Represents a Strava activity.
+    """
+    athlete = models.ForeignKey('Athlete', on_delete=models.CASCADE, related_name='activities')
+    strava_id = models.BigIntegerField(unique=True)
+    name = models.CharField(max_length=255)
+    distance = models.FloatField()  # meters
+    moving_time = models.IntegerField()  # seconds
+    elapsed_time = models.IntegerField()  # seconds
+    total_elevation_gain = models.FloatField()  # meters
+    activity_type = models.CharField(max_length=50) #field 'type'
+    sport_type = models.CharField(max_length=50, blank=True, null=True)
+    start_date = models.DateTimeField()
+    timezone = models.CharField(max_length=100, blank=True, null=True)
+    utc_offset = models.FloatField(blank=True, null=True)
+    average_speed = models.FloatField(null=True, blank=True)
+    max_speed = models.FloatField(null=True, blank=True)
+    calories = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.activity_type}) - {self.start_date.date()}"

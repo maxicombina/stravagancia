@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Strava Integration{% endblock %}</title>
+</head>
+<body style="font-family: sans-serif; margin: 2em;">
+  <header style="margin-bottom: 2em;">
+    <h1>Strava Tools</h1>
+    <nav>
+      <a href="/strava/dashboard/">Dashboard</a>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer style="margin-top: 3em; font-size: 0.9em; color: #777;">
+    <p>© 2025 Maxi Combina — Strava Integration</p>
+  </footer>
+</body>
+</html>

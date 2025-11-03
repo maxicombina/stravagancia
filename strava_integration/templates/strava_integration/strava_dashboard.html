@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Strava Integration Dashboard</h1>
+
+<!-- ================= -->
+<!-- Step 1: Load Athlete -->
+<!-- ================= -->
+<section style="margin-bottom: 2em;">
+  <h2>1️⃣ Load Athlete</h2>
+  <p>This step fetches your athlete profile from Strava and stores or updates it in the database.</p>
+  <button id="loadAthleteBtn">Load Athlete</button>
+
+  <div id="athleteResult" style="margin-top: 1em; padding: 1em; background: #f8f8f8; border-radius: 6px;">
+    <!-- The result will appear here -->
+  </div>
+</section>
+
+<!-- ================= -->
+<!-- Future steps -->
+<!-- ================= -->
+<section style="margin-bottom: 2em;">
+  <h2>2️⃣ Detect Missing Activities</h2>
+  <p>(Coming soon)</p>
+</section>
+
+<section>
+  <h2>3️⃣ Load Activities</h2>
+  <p>(Coming soon)</p>
+</section>
+
+<script>
+document.getElementById("loadAthleteBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("loadAthleteBtn");
+  const result = document.getElementById("athleteResult");
+
+  btn.disabled = true;
+  btn.textContent = "Loading athlete...";
+  result.innerHTML = "";
+
+  try {
+    const response = await fetch("/strava/load-athlete/");
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    const data = await response.json();
+
+    result.innerHTML = `
+      <strong>${data.message}</strong><br>
+      <ul>
+        <li>ID: ${data.athlete.strava_id}</li>
+        <li>Name: ${data.athlete.first_name || ""} ${data.athlete.last_name || ""}</li>
+        <li>Username: ${data.athlete.username || "-"}</li>
+        <li>City: ${data.athlete.city || "-"}</li>
+        <li>Country: ${data.athlete.country || "-"}</li>
+      </ul>
+    `;
+  } catch (err) {
+    result.innerHTML = `<span style="color:red;">Failed to load athlete: ${err.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Load Athlete";
+  }
+});
+</script>
+
+{% endblock %}

@@ -5,6 +5,7 @@ from .services import (
     get_strava_athlete,
     fetch_and_store_athlete,
     get_activities,
+    get_missing_ride_activity_ids,
     fetch_activity_detail,
     store_activity_from_strava_data,
 )
@@ -86,3 +87,6 @@ def load_activity(request, activity_id):
     }
     return JsonResponse(msg)
 
+def missing_activities_view(request):
+    missing = get_missing_ride_activity_ids()
+    return JsonResponse({"missing_activity_ids": missing, "count": len(missing)})

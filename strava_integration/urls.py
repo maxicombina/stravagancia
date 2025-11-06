@@ -8,4 +8,5 @@ urlpatterns = [
     path("activities/load/<int:activity_id>/", views.load_activity, name="load_activity"),
     path("dashboard/", views.strava_dashboard, name="strava_dashboard"),
     path("load-athlete/", views.load_athlete, name="load_athlete"),
+    path("missing_activities/", views.missing_activities_view, name="missing_activities"),
 ]

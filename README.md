@@ -23,3 +23,7 @@ The plan is to have
 
 Extra features:
 - Get this project to live in the Cloud
+
+- Resources:
+  - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
+  - https://neon.com/ database

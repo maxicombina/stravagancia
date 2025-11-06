@@ -113,3 +113,26 @@ def store_activity_from_strava_data(data):
     )
 
     return activity, created
+
+def get_missing_ride_activity_ids():
+    """
+    Compare the list of Strava activities with those stored in the database,
+    and return the list of IDs that are missing locally, and are Ride type
+    """
+    # Fetch all activities from Strava API
+    strava_activities = get_activities(per_page=200)
+    rides = [a for a in strava_activities if a.get("type") == "Ride"]
+    strava_ride_ids = {a["id"] for a in rides}
+
+    # Fetch all stored activity IDs from DB
+    db_ids = set(Activity.objects.values_list("strava_id", flat=True))
+
+    # Determine which IDs are missing
+    missing_ids = sorted(list(strava_ride_ids - db_ids))
+
+    return {
+        "strava_total": len(strava_ride_ids),
+        "db_total": len(db_ids),
+        "missing_total": len(missing_ids),
+        "missing_ids": missing_ids,
+    }

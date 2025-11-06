@@ -40,5 +40,8 @@ class Activity(models.Model):
     max_speed = models.FloatField(null=True, blank=True)
     calories = models.FloatField(null=True, blank=True)
 
+    class Meta:
+        ordering = ['-start_date']  # el "-" make it descending
+
     def __str__(self):
         return f"{self.name} ({self.activity_type}) - {self.start_date.date()}"

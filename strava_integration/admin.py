@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Athlete, Activity
+from .models import Athlete, Activity, MissingActivity
 
 @admin.register(Athlete)
 class AthleteAdmin(admin.ModelAdmin):
@@ -10,3 +10,8 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ("id", "strava_id", "name", "calories", "distance", "start_date", "athlete")
     list_filter = ("activity_type", "start_date")
     search_fields = ("name",)
+
+@admin.register(MissingActivity)
+class MissingActivityAdmin(admin.ModelAdmin):
+    list_display = ("strava_id", "detected_at", "loaded")
+    list_filter = ("loaded",)

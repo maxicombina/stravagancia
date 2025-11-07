@@ -114,7 +114,7 @@ def store_activity_from_strava_data(data):
 
     return activity, created
 
-def get_missing_ride_activity_ids():
+def get_missing_ride_activities():
     """
     Compare the list of Strava activities with those stored in the database,
     and return the list of IDs that are missing locally, and are Ride type

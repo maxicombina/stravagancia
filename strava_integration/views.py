@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Athlete
+from django.views.decorators.csrf import csrf_exempt
+from .models import Athlete, Activity, MissingActivity
 from .services import (
     get_strava_athlete,
     fetch_and_store_athlete,
     get_activities,
-    get_missing_ride_activity_ids,
+    get_missing_ride_activities,
     fetch_activity_detail,
     store_activity_from_strava_data,
 )
@@ -88,5 +89,46 @@ def load_activity(request, activity_id):
     return JsonResponse(msg)
 
 def missing_activities_view(request):
-    missing = get_missing_ride_activity_ids()
-    return JsonResponse({"missing_activity_ids": missing, "count": len(missing)})
+    missing_ids = get_missing_ride_activities()
+    return JsonResponse({"missing_activity_ids": missing_ids, "count": len(missing_ids)})
+
+def detect_missing_activities(request):
+    """
+    Detect activities present in Strava but not in the local DB,
+    save any new ones into MissingActivity (loaded=False by default),
+    and return a JSON summary.
+    """
+    try:
+        missing_ids = get_missing_ride_activities() ["missing_ids"]
+
+        new_added = 0
+        already_present_unloaded = 0
+        already_present_loaded = 0
+
+        for strava_id in missing_ids:
+            obj, created = MissingActivity.objects.get_or_create(
+                strava_id=strava_id,
+                defaults={"loaded": False},
+            )
+            if created:
+                new_added += 1
+            else:
+                if obj.loaded:
+                    already_present_loaded += 1
+                else:
+                    already_present_unloaded += 1
+
+        total_missing = len(missing_ids)
+
+        return JsonResponse({
+            "status": "ok",
+            "total_missing_detected": total_missing,
+            "new_missing_added": new_added,
+            "already_present_unloaded": already_present_unloaded,
+            "already_present_loaded": already_present_loaded,
+        })
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+        }, status=500)

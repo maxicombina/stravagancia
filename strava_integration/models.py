@@ -45,3 +45,14 @@ class Activity(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.activity_type}) - {self.start_date.date()}"
+
+class MissingActivity(models.Model):
+    """
+    Stores Strava activity IDs that exist in Strava but are not yet loaded locally.
+    """
+    strava_id = models.BigIntegerField(unique=True)
+    detected_at = models.DateTimeField(auto_now_add=True)
+    loaded = models.BooleanField(default=False)  # loaded locally in DB
+
+    def __str__(self):
+        return str(self.strava_id)

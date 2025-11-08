@@ -9,8 +9,8 @@ class Command(BaseCommand):
 
         try:
             response = detect_and_save_missing_activities()
-        except Exception:
-            self.stdout.write(self.style.ERROR("Error detecting and saveing missing activities"))
+        except Exception as e:
+            self.stderr.write(self.style.ERROR(f"Error detecting and saving missing activities: {e}"))
             return
 
         self.stdout.write(self.style.SUCCESS("✅ Missing activities detected successfully."))

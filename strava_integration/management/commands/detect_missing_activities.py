@@ -1,23 +1,18 @@
 # strava_integration/management/commands/detect_missing_activities.py
 from django.core.management.base import BaseCommand
-from django.test import RequestFactory
-from strava_integration.views import detect_missing_activities
+from strava_integration.services import detect_and_save_missing_activities
 import json
 
 class Command(BaseCommand):
     help = "Detect missing Strava activities, store them in MissingActivity, and show a summary."
 
     def handle(self, *args, **options):
-        rf = RequestFactory()
-        request = rf.get("/strava/detect_missing_activities/")
-
-        response = detect_missing_activities(request)
-
+        response = detect_and_save_missing_activities()
         try:
-            data = json.loads(response.content)
+            data = json.loads(response)
         except Exception:
             self.stdout.write(self.style.ERROR("Could not parse response JSON."))
-            self.stdout.write(str(response.content))
+            self.stdout.write(str(response))
             return
 
         if data.get("status") == "ok":

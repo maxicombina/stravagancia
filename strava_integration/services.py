@@ -5,7 +5,7 @@
 import os
 import requests
 from django.utils.dateparse import parse_datetime
-from .models import Athlete, Activity
+from .models import Athlete, Activity, MissingActivity
 from .utils import refresh_access_token
 
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
@@ -148,4 +148,42 @@ def get_missing_ride_activities():
         "db_total": len(db_ids),
         "missing_total": len(missing_activities),
         "missing_activities": missing_activities,
+    }
+
+# strava_integration/services.py
+from .models import MissingActivity
+
+def detect_and_save_missing_activities():
+    """
+    Detect activities present in Strava but not in the local DB,
+    save any new ones into MissingActivity (loaded=False by default),
+    and return a summary dict.
+    """
+    missing_activities = get_missing_ride_activities()["missing_activities"]
+
+    new_added = 0
+    already_present_unloaded = 0
+    already_present_loaded = 0
+
+    for missing_activity in missing_activities:
+        obj, created = MissingActivity.objects.get_or_create(
+            strava_id=missing_activity["id"],
+            start_date_local=missing_activity["start_date_local"],
+            defaults={"loaded": False},
+        )
+        if created:
+            new_added += 1
+        else:
+            if obj.loaded:
+                already_present_loaded += 1
+            else:
+                already_present_unloaded += 1
+
+    total_missing = len(missing_activities)
+
+    return {
+        "total_missing_detected": total_missing,
+        "new_missing_added": new_added,
+        "already_present_unloaded": already_present_unloaded,
+        "already_present_loaded": already_present_loaded,
     }

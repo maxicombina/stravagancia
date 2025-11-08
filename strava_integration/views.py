@@ -89,8 +89,8 @@ def load_activity(request, activity_id):
     return JsonResponse(msg)
 
 def missing_activities_view(request):
-    missing_ids = get_missing_ride_activities()
-    return JsonResponse({"missing_activity_ids": missing_ids, "count": len(missing_ids)})
+    missing_activities = get_missing_ride_activities()
+    return JsonResponse({"missing_activities": missing_activities, "count": len(missing_activities)})
 
 def detect_missing_activities(request):
     """
@@ -99,15 +99,16 @@ def detect_missing_activities(request):
     and return a JSON summary.
     """
     try:
-        missing_ids = get_missing_ride_activities() ["missing_ids"]
+        missing_activities = get_missing_ride_activities() ["missing_activities"]
 
         new_added = 0
         already_present_unloaded = 0
         already_present_loaded = 0
 
-        for strava_id in missing_ids:
+        for missing_activity in missing_activities:
             obj, created = MissingActivity.objects.get_or_create(
-                strava_id=strava_id,
+                strava_id=missing_activity["id"],
+                start_date_local=missing_activity["start_date_local"],
                 defaults={"loaded": False},
             )
             if created:
@@ -118,7 +119,7 @@ def detect_missing_activities(request):
                 else:
                     already_present_unloaded += 1
 
-        total_missing = len(missing_ids)
+        total_missing = len(missing_activities)
 
         return JsonResponse({
             "status": "ok",

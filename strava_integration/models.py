@@ -36,6 +36,7 @@ class Activity(models.Model):
     start_date = models.DateTimeField()
     timezone = models.CharField(max_length=100, blank=True, null=True)
     utc_offset = models.FloatField(blank=True, null=True)
+    start_date_local = models.DateTimeField(null=True, blank=True)
     average_speed = models.FloatField(null=True, blank=True)
     max_speed = models.FloatField(null=True, blank=True)
     calories = models.FloatField(null=True, blank=True)
@@ -53,6 +54,7 @@ class MissingActivity(models.Model):
     strava_id = models.BigIntegerField(unique=True)
     detected_at = models.DateTimeField(auto_now_add=True)
     loaded = models.BooleanField(default=False)  # loaded locally in DB
+    start_date_local = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return str(self.strava_id)

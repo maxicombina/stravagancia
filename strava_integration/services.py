@@ -102,6 +102,7 @@ def store_activity_from_strava_data(data):
         "start_date": parse_datetime(data.get("start_date")),
         "timezone": data.get("timezone"),
         "utc_offset": data.get("utc_offset"),
+        "start_date_local": parse_datetime(data.get("start_date_local")),
         "average_speed": data.get("average_speed"),
         "max_speed": data.get("max_speed"),
         "calories": data.get("calories"),
@@ -117,22 +118,34 @@ def store_activity_from_strava_data(data):
 def get_missing_ride_activities():
     """
     Compare the list of Strava activities with those stored in the database,
-    and return the list of IDs that are missing locally, and are Ride type
+    and return the list of IDs that are missing locally, and are Ride type,
+    including their start_date_local.
     """
     # Fetch all activities from Strava API
-    strava_activities = get_activities(per_page=200)
+    strava_activities = get_activities(per_page=150)
     rides = [a for a in strava_activities if a.get("type") == "Ride"]
-    strava_ride_ids = {a["id"] for a in rides}
+
+    # Convert to dict {id: start_date_local}
+    strava_ride_map = {
+        a["id"]: a.get("start_date_local")
+        for a in rides
+    }
 
     # Fetch all stored activity IDs from DB
     db_ids = set(Activity.objects.values_list("strava_id", flat=True))
 
     # Determine which IDs are missing
-    missing_ids = sorted(list(strava_ride_ids - db_ids))
+    missing_ids = sorted(list(set(strava_ride_map.keys()) - db_ids))
+
+    # Build detailed list for missing rides
+    missing_activities = [
+        {"id": missing_id, "start_date_local": strava_ride_map[missing_id]}
+        for missing_id in missing_ids
+    ]
 
     return {
-        "strava_total": len(strava_ride_ids),
+        "strava_total": len(strava_ride_map),
         "db_total": len(db_ids),
-        "missing_total": len(missing_ids),
-        "missing_ids": missing_ids,
+        "missing_total": len(missing_activities),
+        "missing_activities": missing_activities,
     }

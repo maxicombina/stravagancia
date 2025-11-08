@@ -7,8 +7,8 @@ class AthleteAdmin(admin.ModelAdmin):
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ("id", "strava_id", "name", "calories", "distance", "start_date", "athlete")
-    list_filter = ("activity_type", "start_date")
+    list_display = ("id", "strava_id", "name", "calories", "distance", "start_date_local", "athlete")
+    list_filter = ("activity_type", "start_date_local")
     search_fields = ("name",)
 
 @admin.register(MissingActivity)

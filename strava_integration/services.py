@@ -5,7 +5,7 @@
 import os
 import requests
 from django.utils.dateparse import parse_datetime
-from .models import Athlete, Activity, MissingActivity
+from .models import Athlete, Activity
 from .utils import refresh_access_token
 
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
@@ -21,7 +21,6 @@ def get_strava_athlete():
      if response.status_code == 401:
          # Token expired or invalid
          raise PermissionError("Access token expired")
-         response.raise_for_status()
      return response.json()
 
 
@@ -53,7 +52,7 @@ def fetch_and_store_athlete():
     return athlete, created
 
 
-def get_activities(per_page=50):
+def get_activities(per_page=50, after=0):
     """Fetch all activities from Strava."""
     access_token = refresh_access_token()
     all_activities = []
@@ -62,14 +61,19 @@ def get_activities(per_page=50):
     headers = {"Authorization": f"Bearer {access_token}"}
 
     while True:
-        params = {"page": page, "per_page": per_page}
+        #print(f"Fetching {per_page} activities from Strava, page: {page}")
+        params = {"page": page, "per_page": per_page, "after": after}
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         activities = response.json()
+        #print(f"Fetched {len(activities)} activities from Strava.")
+
         if not activities:
             break
         all_activities.extend(activities)
         page += 1
+
+    #print(f"Fetched {len(all_activities)} activities from Strava.")
     return all_activities
 
 
@@ -121,8 +125,13 @@ def get_missing_ride_activities():
     and return the list of IDs that are missing locally, and are Ride type,
     including their start_date_local.
     """
-    # Fetch all activities from Strava API
-    strava_activities = get_activities(per_page=150)
+    # Fetch laters activities from Strava API
+    latest = MissingActivity.objects.order_by('-start_date_local').first()
+    after_ts = int(latest.start_date_local.timestamp()) if latest else 0
+    #print(f"after_ts: {after_ts}")
+    # Only get latest activities after the latest missing one
+    strava_activities = get_activities(per_page=150, after=after_ts)
+    # Filter to only "Ride" type
     rides = [a for a in strava_activities if a.get("type") == "Ride"]
 
     # Convert to dict {id: start_date_local}
@@ -153,11 +162,12 @@ def get_missing_ride_activities():
 # strava_integration/services.py
 from .models import MissingActivity
 
-def detect_and_save_missing_activities():
+def detect_and_save_missing_activities(dry_run=False):
     """
-    Detect activities present in Strava but not in the local DB,
-    save any new ones into MissingActivity (loaded=False by default),
-    and return a summary dict.
+    Detect activities present in Strava but not in the local DB.
+    If dry_run=True, only detect without saving to MissingActivity.
+    Otherwise, save new ones with loaded=False.
+    Returns a summary dict.
     """
     missing_activities = get_missing_ride_activities()["missing_activities"]
 
@@ -166,18 +176,35 @@ def detect_and_save_missing_activities():
     already_present_loaded = 0
 
     for missing_activity in missing_activities:
-        obj, created = MissingActivity.objects.get_or_create(
-            strava_id=missing_activity["id"],
-            start_date_local=missing_activity["start_date_local"],
-            defaults={"loaded": False},
-        )
-        if created:
-            new_added += 1
-        else:
-            if obj.loaded:
-                already_present_loaded += 1
+        strava_id = missing_activity["id"]
+        start_date_local = missing_activity["start_date_local"]
+        if dry_run:
+            # Only check if present
+            obj = MissingActivity.objects.filter(
+                strava_id=strava_id,
+                start_date_local=start_date_local
+            ).first()
+            if obj:
+                if obj.loaded:
+                    already_present_loaded += 1
+                else:
+                    already_present_unloaded += 1
             else:
-                already_present_unloaded += 1
+                new_added += 1
+        else:
+            # Get/create the MissingActivity
+            obj, created = MissingActivity.objects.get_or_create(
+                strava_id=strava_id,
+                start_date_local=start_date_local,
+                defaults={"loaded": False},
+            )
+            if created:
+                new_added += 1
+            else:
+                if obj.loaded:
+                    already_present_loaded += 1
+                else:
+                    already_present_unloaded += 1
 
     total_missing = len(missing_activities)
 

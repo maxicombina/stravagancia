@@ -41,8 +41,19 @@ class Activity(models.Model):
     max_speed = models.FloatField(null=True, blank=True)
     calories = models.FloatField(null=True, blank=True)
 
+    @property
+    def activity_url(self):
+        """Return the Strava web URL for this activity."""
+        return f"https://www.strava.com/activities/{self.strava_id}"
+
+    @property
+    def distance_km(self):
+        """Return distance in kilometers."""
+        return round(self.distance / 1000.0, 2)
+
     class Meta:
-        ordering = ['-start_date']  # el "-" make it descending
+        ordering = ['-start_date']  # "-": make it descending
+        verbose_name_plural = "Activities"
 
     def __str__(self):
         return f"{self.name} ({self.activity_type}) - {self.start_date.date()}"
@@ -54,7 +65,7 @@ class MissingActivity(models.Model):
     strava_id = models.BigIntegerField(unique=True)
     detected_at = models.DateTimeField(auto_now_add=True)
     loaded = models.BooleanField(default=False)  # loaded locally in DB
-    start_date_local = models.DateTimeField(null=True, blank=True)
+    start_date_local = models.DateTimeField(null=True, blank=True) # start date local from Strava
 
     def __str__(self):
         return str(self.strava_id)

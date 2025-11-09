@@ -33,12 +33,12 @@ class Command(BaseCommand):
         if limit:
             queryset = queryset[:limit]
 
-        # If loading more than 90 activities, apply delay -- Currently set to 100 every 15 minutes
-        auto_apply_delay = len(queryset) > 100
+        # If loading 100 or more activities, apply delay as API rate limit is currently set to 100 every 15 minutes
+        auto_apply_delay = len(queryset) >= 100
         if auto_apply_delay and delay < 9:
             delay = delay + 9
             self.stdout.write(
-                self.style.NOTICE("⚠️ More than 100 activities. Will apply extra delay between requests to avoid rate limits."))
+                self.style.NOTICE("⚠️ 100 or more activities. Will apply extra delay between requests to avoid rate limits."))
 
         if total_to_load == 0:
             self.stdout.write(self.style.WARNING("No missing activities to load."))

@@ -12,8 +12,8 @@ It's a good excuse to learn something new and useful, while being able to view m
 # What does it do?
 - Loads one Strava athlete
 - Stores all the Ride activities
-- Detect missing activities, and ability to load only those
-- Leverages the Djando admin interface to manage models
+- Detects missing activities, and ability to load only those
+- Leverages the Django admin interface to manage models
 - Using docker (with the provided `docker-compose.yml`, a Metabase instance can be launched to visualize the data
 
 # Known issues and limitations
@@ -26,7 +26,8 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Have a simple web interface to view and potentially manipulate some of the data
 - Get this project to live in the Cloud
 - Use Strava webhooks to get notified of new activities
-- Use a real DB (PostgreSQL?) instead of SQLite
+- Use a real DB (PostgreSQL?) instead of SQLite for Strava data
+  - And maybe for Metabase too
 - Resources:
   - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
   - https://neon.com/ database
@@ -40,24 +41,24 @@ It's a good excuse to learn something new and useful, while being able to view m
   - And docker and docker for Metabase
 - Clone this repo
 - `cd` into the project folder and run the following commands:
-  - uv venv --seed
-  - source .venv/bin/activate
-  - uv sync
+  - `uv venv --seed`
+  - `source .venv/bin/activate`
+  - `uv sync`
 - Initialize the environment variables. Create a `.env` file in the project root with the following variables:
-  - STRAVA_ACCESS_TOKEN=your_strava_access_token
-  - STRAVA_CLIENT_ID=your_strava_client_id
-  - STRAVA_CLIENT_SECRET=your_strava_client_secret
-  - STRAVA_REFRESH_TOKEN=your_strava_refresh_token
+  - `STRAVA_ACCESS_TOKEN=your_strava_access_token`
+  - `STRAVA_CLIENT_ID=your_strava_client_id`
+  - `STRAVA_CLIENT_SECRET=your_strava_client_secret`
+  - `STRAVA_REFRESH_TOKEN=your_strava_refresh_token`
 - Initialize the database and load data:
-  - python manage.py migrate
-  - python manage.py createsuperuser
-  - python test_strava.py (to verify Strava API access)
-  - python manage.py load_athlete
-  - python manage.py detect_missing_activities
-  - python manage.py load_missing_activities
+  - `python manage.py migrate`
+  - `python manage.py createsuperuser`
+  - `python test_strava.py (to verify Strava API access)`
+  - `python manage.py load_athlete`
+  - `python manage.py detect_missing_activities`
+  - `python manage.py load_missing_activities`: may take a while depending on how many activities you have
 - Optionally: Run metabase using docker-compose:
-  - docker-compose up -d (Will launch Metabase on port 3000)
+  - `docker-compose up` (Will launch Metabase on port 3000)
 - Optionally: run the Django development server:
-  - python manage.py runserver
+  - `python manage.py runserver`
   - Access the admin interface at http://localhost:8000/admin using the superuser credentials created before.
   - Some basic URLs are already wired up in strava_integration/urls.py for exploration.

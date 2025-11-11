@@ -40,6 +40,8 @@ class Activity(models.Model):
     average_speed = models.FloatField(null=True, blank=True)
     max_speed = models.FloatField(null=True, blank=True)
     calories = models.FloatField(null=True, blank=True)
+    average_heartrate = models.FloatField(blank=True, null=True)
+    max_heartrate = models.FloatField(blank=True, null=True)
 
     @property
     def activity_url(self):

@@ -3,7 +3,7 @@ import time
 from django.core.management.base import BaseCommand
 from django.test import RequestFactory
 from strava_integration.models import MissingActivity
-from strava_integration.views import load_activity
+from strava_integration.services import fetch_activity_detail, store_activity_from_strava_data
 
 class Command(BaseCommand):
     help = "Load all missing Strava activities into the database (only those not marked as loaded)."
@@ -57,25 +57,15 @@ class Command(BaseCommand):
             self.stdout.write(f"▶ Loading activity {activity_id} - {idx}/{total_to_load} ...")
 
             try:
-                request = rf.get(f"/strava/load/{activity_id}/")
-                response = load_activity(request, activity_id)
 
-                # Try to parse JSON in the response
-                try:
-                    content = response.content.decode("utf-8")
-                    data = json.loads(content)
-                    status = data.get("status")
-                except Exception:
-                    status = None
+                data = fetch_activity_detail(activity_id)
+                activity, created = store_activity_from_strava_data(data)
 
-                # If successful, mark as loaded
-                if status in ["created", "updated"]:
-                    missing.loaded = True
-                    missing.save()
-                    loaded_count += 1
-                    self.stdout.write(self.style.SUCCESS(f"✅ Loaded {activity_id} ({status})"))
-                else:
-                    self.stdout.write(self.style.WARNING(f"⚠ Unexpected response for {activity_id}: {content[:120]}"))
+                # Mark as loaded
+                missing.loaded = True
+                missing.save()
+                loaded_count += 1
+                self.stdout.write(self.style.SUCCESS(f"Activity {activity} loaded successfully."))
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"❌ Error loading {activity_id}: {e}"))
@@ -84,4 +74,4 @@ class Command(BaseCommand):
                 # Wait before next call
                 time.sleep(delay)
 
-        self.stdout.write(self.style.SUCCESS(f"\nDone! {loaded_count} of {total_to_load} missing activities loaded."))
+        self.std    out.write(self.style.SUCCESS(f"\nDone! {loaded_count} of {total_to_load} missing activities loaded."))

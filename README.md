@@ -62,3 +62,7 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `python manage.py runserver`
   - Access the admin interface at http://localhost:8000/admin using the superuser credentials created before.
   - Some basic URLs are already wired up in strava_integration/urls.py for exploration.
+
+Auth in metabase:
+- email: admin@admin.com  
+- password: django-strava-01

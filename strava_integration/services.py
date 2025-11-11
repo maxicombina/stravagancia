@@ -110,13 +110,14 @@ def store_activity_from_strava_data(data):
         "average_speed": data.get("average_speed"),
         "max_speed": data.get("max_speed"),
         "calories": data.get("calories"),
+        "average_heartrate": data.get("average_heartrate"),
+        "max_heartrate": data.get("max_heartrate"),
     }
 
     activity, created = Activity.objects.update_or_create(
         strava_id=data["id"],
         defaults=defaults,
     )
-
     return activity, created
 
 def get_missing_ride_activities():

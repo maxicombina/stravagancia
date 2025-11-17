@@ -74,4 +74,4 @@ class Command(BaseCommand):
                 # Wait before next call
                 time.sleep(delay)
 
-        self.std    out.write(self.style.SUCCESS(f"\nDone! {loaded_count} of {total_to_load} missing activities loaded."))
+        self.stdout.write(self.style.SUCCESS(f"\nDone! {loaded_count} of {total_to_load} missing activities loaded."))

@@ -32,13 +32,23 @@ It's a good excuse to learn something new and useful, while being able to view m
   - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
   - https://neon.com/ database
 
+## Further improvements
+- Tests
+- `@make_as_endpoint("/activity")` -> new decorator to automatically add endpoints
+- `@store_in_db(Activity)` # Or any model -> store in DB
+- Used to decorate functions such as:
+    ```
+    def fetch_activity(id):
+        return request.get(....)
+    ```
+
 # How to use this project
 ## On Strava
 - Enable the Strava API. As of this writing, go to https://www.strava.com/settings/api and create an app.
 
 ## Locally
 - Make sure you have Python and uv installed (https://github.com/astral-sh/uv))
-  - And docker and docker for Metabase
+  - And docker for Metabase
 - Clone this repo
 - `cd` into the project folder and run the following commands:
   - `uv venv --seed`

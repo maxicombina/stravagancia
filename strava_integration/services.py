@@ -104,7 +104,7 @@ def store_activity_from_strava_data(data):
         "activity_type": data.get("type", ""),
         "sport_type": data.get("sport_type"),
         "start_date": parse_datetime(data.get("start_date")),
-        "timezone": data.get("timezone"),
+        #"timezone": data.get("timezone"),
         "utc_offset": data.get("utc_offset"),
         "start_date_local": parse_datetime(data.get("start_date_local")),
         "average_speed": data.get("average_speed"),

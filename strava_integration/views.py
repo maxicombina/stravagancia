@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Athlete
+from django.views.generic import ListView
+from .models import Athlete, MissingActivity, Activity
+import json
 from .services import (
     get_strava_athlete,
     fetch_and_store_athlete,
@@ -10,8 +12,19 @@ from .services import (
     store_activity_from_strava_data,
     detect_and_save_missing_activities
 )
-import json
 
+class MissingActivityListView(ListView):
+    model = MissingActivity
+    template_name = "strava_integration/missingactivities_list.html"
+    context_object_name = "missingactivities"
+    ordering = ["-detected_at"]
+
+
+class ActivityListView(ListView):
+    model = Activity
+    template_name = "strava_integration/activities_list.html"
+    context_object_name = "activities"
+    ordering = ["-start_date_local"]
 
 def strava_test(request):
     """Render a pretty HTML page showing athlete JSON."""

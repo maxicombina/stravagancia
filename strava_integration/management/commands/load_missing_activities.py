@@ -59,6 +59,7 @@ class Command(BaseCommand):
             try:
 
                 data = fetch_activity_detail(activity_id)
+                #print(data)
                 activity, created = store_activity_from_strava_data(data)
 
                 # Mark as loaded

@@ -34,7 +34,6 @@ class Activity(models.Model):
     activity_type = models.CharField(max_length=50) #field 'type'
     sport_type = models.CharField(max_length=50, blank=True, null=True)
     start_date = models.DateTimeField()
-    timezone = models.CharField(max_length=100, blank=True, null=True)
     utc_offset = models.FloatField(blank=True, null=True)
     start_date_local = models.DateTimeField(null=True, blank=True)
     average_speed = models.FloatField(null=True, blank=True)

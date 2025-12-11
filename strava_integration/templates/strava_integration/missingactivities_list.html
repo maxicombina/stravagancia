@@ -1,0 +1,26 @@
+<h1>Missing Activities</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Detected At</th>
+      <th>Loaded</th>
+      <th>Start time</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in missingactivities %}
+    <tr>
+      <td>{{ m.strava_id }}</td>
+      <td>{{ m.detected_at }}</td>
+      <td>{{ m.loaded }}</td>
+      <td>{{ m.start_date_local }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="3">No missing activities 🎉</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

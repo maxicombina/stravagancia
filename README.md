@@ -62,7 +62,7 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Initialize the database and load data:
   - `python manage.py migrate`
   - `python manage.py createsuperuser`
-  - `python test_strava.py (to verify Strava API access)`
+  - `python test_strava_connection.py (to verify Strava API access)`
   - `python manage.py load_athlete`
   - `python manage.py detect_missing_activities`
   - `python manage.py load_missing_activities`: may take a while depending on how many activities you have

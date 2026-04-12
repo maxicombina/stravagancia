@@ -57,6 +57,11 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `STRAVA_CLIENT_ID=your_strava_client_id`
   - `STRAVA_CLIENT_SECRET=your_strava_client_secret`
   - `STRAVA_REFRESH_TOKEN=your_strava_refresh_token`
+  - `DB_NAME`=stravagancia 
+  - `DB_USER`=strava 
+  - `DB_PASSWORD`=strava 
+  - `DB_HOST`=localhost 
+  - `DB_PORT`=5432
 - Initialize the database and load data:
   - `docker compose up -d postgres`
   - `python manage.py migrate`

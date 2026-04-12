@@ -18,3 +18,12 @@ media/
 
 # macOS
 .DS_Store
+
+# Emacs backup files
+*#
+
+# IDE
+.idea/
+
+# Metabase
+metabase-data/metabase.db/metabase.db.trace.db

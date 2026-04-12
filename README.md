@@ -26,8 +26,6 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Have a simple web interface to view and potentially manipulate some of the data
 - Get this project to live in the Cloud (check: Heroku)
 - Use Strava webhooks to get notified of new activities
-- Use a real DB (PostgreSQL?) instead of SQLite for Strava data
-  - And maybe for Metabase too
 - Resources:
   - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
   - https://neon.com/ database

@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: stravagancia_db
+    environment:
+      POSTGRES_DB: stravagancia
+      POSTGRES_USER: strava
+      POSTGRES_PASSWORD: strava
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   metabase:
     image: metabase/metabase:latest
     container_name: metabase_strava
@@ -10,5 +23,9 @@ services:
       MB_JETTY_PORT: 3000
     volumes:
       - ./metabase-data:/metabase-data
-      - ./db.sqlite3:/app/db.sqlite3:ro
     restart: unless-stopped
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

@@ -18,14 +18,14 @@ It's a good excuse to learn something new and useful, while being able to view m
 
 # Known issues and limitations
 - Only one user supported
-- Docker not used for Django, only for Metabase
-- Uses the default `db.sqlite3`. No need for a real DB, but may not be your case.
+- Docker not used for Django, only for Metabase and Postgres. This is to keep things simple and avoid the overhead of managing multiple containers. The Django app can be run locally without Docker, and it will connect to the Postgres database running in Docker.
 
 # Next steps
 - Improve some basic visualizations of the data (e.g., total distance per month, average speed, calories per month)
 - Have a simple web interface to view and potentially manipulate some of the data
 - Get this project to live in the Cloud (check: Heroku)
 - Use Strava webhooks to get notified of new activities
+- Use Grafana instead of Metabase for visualization, and connect it to the Postgres database
 - Resources:
   - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
   - https://neon.com/ database

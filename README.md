@@ -58,9 +58,10 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `STRAVA_CLIENT_SECRET=your_strava_client_secret`
   - `STRAVA_REFRESH_TOKEN=your_strava_refresh_token`
 - Initialize the database and load data:
+  - `docker compose up -d postgres`
   - `python manage.py migrate`
   - `python manage.py createsuperuser`
-  - `python test_strava_connection.py (to verify Strava API access)`
+  - `python test_strava_connection.py` (to verify Strava API access)
   - `python manage.py load_athlete`
   - `python manage.py detect_missing_activities`
   - `python manage.py load_missing_activities`: may take a while depending on how many activities you have

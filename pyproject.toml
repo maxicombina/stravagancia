@@ -1,5 +1,5 @@
 [project]
-name = "django-strava"
+name = "stravagancia"
 version = "0.1.0"
 description = "Django app to extract and display Strava activities."
 readme = "README.md"

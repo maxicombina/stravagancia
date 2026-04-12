@@ -16,6 +16,9 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Leverages the Django admin interface to manage models
 - Using docker (with the provided `docker-compose.yml`, a Metabase instance can be launched to visualize the data
 
+# How does it look like?
+![Example Dashboard](assets/dashboard_preview.png)
+
 # Known issues and limitations
 - Only one user supported
 - Docker not used for Django, only for Metabase and Postgres. This is to keep things simple and avoid the overhead of managing multiple containers. The Django app can be run locally without Docker, and it will connect to the Postgres database running in Docker.

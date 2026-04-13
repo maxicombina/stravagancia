@@ -12,6 +12,23 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  django:
+    build: .
+    container_name: stravagancia_django
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override DB_HOST to use the postgres service name instead of localhost
+      DB_HOST: postgres
+    volumes:
+      # Mount source code for hot reload during development
+      - .:/app
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   metabase:
     image: metabase/metabase:latest
     container_name: metabase_strava

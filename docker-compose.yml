@@ -22,6 +22,10 @@ services:
     environment:
       # Override DB_HOST to use the postgres service name instead of localhost
       DB_HOST: postgres
+      # Superuser created on first startup if it doesn't exist
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_PASSWORD: admin
+      DJANGO_SUPERUSER_EMAIL: ""
     volumes:
       # Mount source code for hot reload during development
       - .:/app

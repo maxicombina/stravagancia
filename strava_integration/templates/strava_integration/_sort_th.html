@@ -1,0 +1,19 @@
+{% comment %}
+  Renders a sortable <th>. Expects: col, label, align (left|right).
+  Uses current_sort and current_dir from context.
+{% endcomment %}
+{% if current_sort == col %}
+  {% if current_dir == "asc" %}{% with next_dir="desc" indicator="↑" %}
+  <th class="px-4 py-3 text-{{ align }}">
+    <a href="?sort={{ col }}&dir={{ next_dir }}" class="text-indigo-600 font-semibold hover:underline">{{ label }} {{ indicator }}</a>
+  </th>
+  {% endwith %}{% else %}{% with next_dir="asc" indicator="↓" %}
+  <th class="px-4 py-3 text-{{ align }}">
+    <a href="?sort={{ col }}&dir={{ next_dir }}" class="text-indigo-600 font-semibold hover:underline">{{ label }} {{ indicator }}</a>
+  </th>
+  {% endwith %}{% endif %}
+{% else %}
+  <th class="px-4 py-3 text-{{ align }}">
+    <a href="?sort={{ col }}&dir=desc" class="hover:text-indigo-600 hover:underline">{{ label }}</a>
+  </th>
+{% endif %}

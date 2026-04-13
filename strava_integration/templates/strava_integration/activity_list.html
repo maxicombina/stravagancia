@@ -1,0 +1,73 @@
+{% load strava_filters %}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Activities — Stravagancia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div class="max-w-6xl mx-auto p-6">
+
+      <a href="{% url 'dashboard' %}" class="text-sm text-indigo-600 hover:underline">← Dashboard</a>
+
+      <header class="mb-6 flex items-center justify-between mt-2">
+        <div>
+          <h1 class="text-2xl font-semibold">Activities</h1>
+          <p class="text-sm text-gray-500">{{ paginator.count }} total</p>
+        </div>
+      </header>
+
+      <div class="bg-white rounded shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+            <tr>
+              {% with col="date" label="Date" align="left" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              <th class="px-4 py-3 text-left">Name</th>
+              <th class="px-4 py-3 text-left">Type</th>
+              {% with col="distance" label="Distance" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="time" label="Time" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="elevation" label="Elevation" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="hr" label="Avg HR" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for activity in activities %}
+            <tr class="hover:bg-indigo-50 cursor-pointer transition-colors"
+                onclick="window.location='{% url 'activity-detail' activity.pk %}'">
+              <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ activity.start_date_local|date:"d M Y" }}</td>
+              <td class="px-4 py-3 font-medium">{{ activity.name }}</td>
+              <td class="px-4 py-3 text-gray-500">{{ activity.sport_type|default:activity.activity_type }}</td>
+              <td class="px-4 py-3 text-right">{{ activity.distance_km }} km</td>
+              <td class="px-4 py-3 text-right">{{ activity.moving_time|duration }}</td>
+              <td class="px-4 py-3 text-right">{{ activity.total_elevation_gain|floatformat:0 }} m</td>
+              <td class="px-4 py-3 text-right">
+                {% if activity.average_heartrate %}{{ activity.average_heartrate|floatformat:0 }} bpm{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No activities yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination (preserves sort params) -->
+      {% if page_obj.has_other_pages %}
+      <nav class="mt-4 flex justify-center gap-2 text-sm">
+        {% if page_obj.has_previous %}
+        <a href="?sort={{ current_sort }}&dir={{ current_dir }}&page={{ page_obj.previous_page_number }}"
+           class="px-3 py-1 bg-white rounded shadow hover:bg-indigo-50">← Prev</a>
+        {% endif %}
+        <span class="px-3 py-1 text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?sort={{ current_sort }}&dir={{ current_dir }}&page={{ page_obj.next_page_number }}"
+           class="px-3 py-1 bg-white rounded shadow hover:bg-indigo-50">Next →</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+
+    </div>
+  </body>
+</html>

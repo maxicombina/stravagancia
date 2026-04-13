@@ -1,0 +1,89 @@
+{% load strava_filters %}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ activity.name }} — Stravagancia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div class="max-w-3xl mx-auto p-6">
+
+      <a href="{% url 'activity-list' %}" class="text-sm text-indigo-600 hover:underline">← Activities</a>
+
+      <header class="mb-6 flex items-start justify-between mt-2">
+        <div>
+          <h1 class="text-2xl font-semibold">{{ activity.name }}</h1>
+          <p class="text-sm text-gray-500">
+            {{ activity.start_date_local|date:"l, d M Y · H:i" }} ·
+            {{ activity.sport_type|default:activity.activity_type }}
+          </p>
+        </div>
+        <a href="{{ activity.activity_url }}" target="_blank"
+           class="text-sm px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded shadow transition-colors">
+          View on Strava ↗
+        </a>
+      </header>
+
+      <!-- Key stats grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {% include "strava_integration/_stat_card.html" with label="Distance" value=activity.distance_km unit="km" %}
+        {% include "strava_integration/_stat_card.html" with label="Moving time" value=activity.moving_time|duration unit="" %}
+        {% include "strava_integration/_stat_card.html" with label="Elevation" value=activity.total_elevation_gain|floatformat:0 unit="m" %}
+        {% include "strava_integration/_stat_card.html" with label="Avg speed" value=activity.average_speed|speed_kmh unit="km/h" %}
+      </div>
+
+      <!-- Secondary stats -->
+      <div class="bg-white rounded shadow divide-y divide-gray-100 text-sm mb-6">
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Elapsed time</span>
+          <span class="font-medium">{{ activity.elapsed_time|duration }}</span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Average speed</span>
+          <span class="font-medium">
+            {% if activity.average_speed %}{{ activity.average_speed|speed_kmh }} km/h{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Max speed</span>
+          <span class="font-medium">
+            {% if activity.max_speed %}{{ activity.max_speed|speed_kmh }} km/h{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Average heart rate</span>
+          <span class="font-medium">
+            {% if activity.average_heartrate %}{{ activity.average_heartrate|floatformat:0 }} bpm{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Max heart rate</span>
+          <span class="font-medium">
+            {% if activity.max_heartrate %}{{ activity.max_heartrate|floatformat:0 }} bpm{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Calories</span>
+          <span class="font-medium">
+            {% if activity.calories %}{{ activity.calories|floatformat:0 }} kcal{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="flex justify-between px-4 py-3">
+          <span class="text-gray-500">Strava ID</span>
+          <span class="font-mono text-gray-600">{{ activity.strava_id }}</span>
+        </div>
+
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("strava/", include("strava_integration.urls")),
+    path("archive/strava/", include("strava_integration.urls")),
+    path("", include("strava_integration.ui_urls")),
 ]

@@ -47,6 +47,14 @@ async function refreshStatus() {
   document.getElementById('activities_count').textContent = data.activities_count;
   document.getElementById('missing_total').textContent = data.missing_total;
   document.getElementById('missing_unloaded').textContent = data.missing_unloaded;
+  if (data.last_activity) {
+    const el = document.getElementById('last-activity');
+    if (el) {
+      document.getElementById('last-activity-name').textContent = data.last_activity.name;
+      document.getElementById('last-activity-meta').textContent = `${data.last_activity.date} · ${data.last_activity.distance_km} km`;
+      document.getElementById('last-activity-link').href = data.last_activity.url;
+    }
+  }
 }
 
 // --- Button: load athlete ---

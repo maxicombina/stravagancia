@@ -79,7 +79,7 @@ def get_activities(per_page=50, after=0):
 
 def fetch_activity_detail(activity_id):
     """Fetch single activity by ID."""
-    access_token = os.getenv("STRAVA_ACCESS_TOKEN")
+    access_token = refresh_access_token()
     url = f"{STRAVA_API_BASE}/activities/{activity_id}"
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)

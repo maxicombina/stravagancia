@@ -35,11 +35,11 @@
           </div>
         </div>
         {% if last_activity %}
-        <div class="ml-auto text-right text-sm text-gray-500">
+        <div id="last-activity" class="ml-auto text-right text-sm text-gray-500">
           <div class="font-medium text-gray-700">Last activity</div>
-          <div>{{ last_activity.name }}</div>
-          <div>{{ last_activity.start_date_local|date:"d M Y" }} · {{ last_activity.distance_km }} km</div>
-          <div><a href="{{ last_activity.activity_url }}" target="_blank" class="text-indigo-500 hover:underline">View on Strava ↗</a></div>
+          <div id="last-activity-name">{{ last_activity.name }}</div>
+          <div id="last-activity-meta">{{ last_activity.start_date_local|date:"d M Y" }} · {{ last_activity.distance_km }} km</div>
+          <div><a id="last-activity-link" href="{{ last_activity.activity_url }}" target="_blank" class="text-indigo-500 hover:underline">View on Strava ↗</a></div>
         </div>
         {% endif %}
       </section>

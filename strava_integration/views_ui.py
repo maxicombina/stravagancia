@@ -105,10 +105,17 @@ def load_missing_api(request):
 
 @staff_member_required
 def status_api(request):
+    last = Activity.objects.order_by('-start_date_local').first()
     return JsonResponse({
         'activities_count': Activity.objects.count(),
         'missing_total': MissingActivity.objects.count(),
         'missing_unloaded': MissingActivity.objects.filter(loaded=False).count(),
+        'last_activity': {
+            'name': last.name,
+            'date': last.start_date_local.strftime('%-d %b %Y'),
+            'distance_km': last.distance_km,
+            'url': last.activity_url,
+        } if last else None,
     })
 
 

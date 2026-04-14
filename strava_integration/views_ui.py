@@ -28,6 +28,17 @@ class DashboardView(TemplateView):
         return ctx
 
 
+@method_decorator(staff_member_required, name='dispatch')
+class ChartsView(TemplateView):
+    template_name = 'strava_integration/charts.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['grafana_url'] = 'http://localhost:3001'
+        ctx['public_token'] = '298efab5710541fea26bf5f5c920ed6d'
+        return ctx
+
+
 @staff_member_required
 @require_POST
 def load_athlete_api(request):

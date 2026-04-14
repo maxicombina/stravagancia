@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stravagancia Charts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div class="max-w-7xl mx-auto p-6">
+
+      <header class="mb-8 flex items-center justify-between">
+        <div>
+          <a href="{% url 'dashboard' %}" class="text-sm text-gray-400 hover:text-gray-600 mb-1 block">← Dashboard</a>
+          <h1 class="text-3xl font-semibold">Charts</h1>
+          <p class="text-sm text-gray-500">Grafana panels — <a href="{{ grafana_url }}" target="_blank" class="text-indigo-500 hover:underline">Open Grafana ↗</a></p>
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="bg-white rounded shadow overflow-hidden">
+          <div class="p-3 border-b text-sm font-medium text-gray-700">Activities per week</div>
+          <iframe
+            src="{{ grafana_url }}/public-dashboards/{{ public_token }}?panelId=1&theme=light"
+            width="100%" height="300" frameborder="0">
+          </iframe>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-hidden">
+          <div class="p-3 border-b text-sm font-medium text-gray-700">Distance per week (km)</div>
+          <iframe
+            src="{{ grafana_url }}/public-dashboards/{{ public_token }}?panelId=2&theme=light"
+            width="100%" height="300" frameborder="0">
+          </iframe>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-hidden">
+          <div class="p-3 border-b text-sm font-medium text-gray-700">Average heart rate</div>
+          <iframe
+            src="{{ grafana_url }}/public-dashboards/{{ public_token }}?panelId=3&theme=light"
+            width="100%" height="300" frameborder="0">
+          </iframe>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-hidden">
+          <div class="p-3 border-b text-sm font-medium text-gray-700">Average speed (km/h)</div>
+          <iframe
+            src="{{ grafana_url }}/public-dashboards/{{ public_token }}?panelId=4&theme=light"
+            width="100%" height="300" frameborder="0">
+          </iframe>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>

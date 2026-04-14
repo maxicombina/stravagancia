@@ -15,9 +15,14 @@
           <h1 class="text-3xl font-semibold">Stravagancia</h1>
           <p class="text-sm text-gray-500">Strava sync dashboard</p>
         </div>
-        <a href="{% url 'activity-list' %}" class="px-4 py-2 bg-white rounded shadow text-sm text-indigo-600 hover:bg-indigo-50 transition-colors">
-          View activities →
-        </a>
+        <div class="flex gap-3">
+          <a href="{% url 'charts' %}" class="px-4 py-2 bg-white rounded shadow text-sm text-indigo-600 hover:bg-indigo-50 transition-colors">
+            Charts →
+          </a>
+          <a href="{% url 'activity-list' %}" class="px-4 py-2 bg-white rounded shadow text-sm text-indigo-600 hover:bg-indigo-50 transition-colors">
+            View activities →
+          </a>
+        </div>
       </header>
 
       <!-- Athlete info -->

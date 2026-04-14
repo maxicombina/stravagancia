@@ -33,6 +33,26 @@ services:
       - postgres
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana:10.4.3
+    container_name: stravagancia_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_FEATURE_TOGGLES_ENABLE: publicDashboards
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Editor
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   metabase:
     image: metabase/metabase:latest
     container_name: metabase_strava
@@ -50,3 +70,4 @@ services:
 
 volumes:
   postgres_data:
+  grafana_data:

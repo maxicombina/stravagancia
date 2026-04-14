@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Stravagancia
+    uid: strava-postgres
+    type: grafana-postgresql-datasource
+    url: postgres:5432
+    user: strava
+    secureJsonData:
+      password: strava
+    jsonData:
+      database: stravagancia
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
+    editable: true

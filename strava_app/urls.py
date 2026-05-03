@@ -19,6 +19,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("django.contrib.auth.urls")),  # login, logout, etc.
     path("archive/strava/", include("strava_integration.urls")),
     path("", include("strava_integration.ui_urls")),
 ]

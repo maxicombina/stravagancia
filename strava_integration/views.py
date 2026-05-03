@@ -1,3 +1,5 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.generic import ListView
@@ -13,19 +15,20 @@ from .services import (
     detect_and_save_missing_activities
 )
 
-class MissingActivityListView(ListView):
+class MissingActivityListView(LoginRequiredMixin, ListView):
     model = MissingActivity
     template_name = "strava_integration/missingactivities_list.html"
     context_object_name = "missingactivities"
     ordering = ["-detected_at"]
 
 
-class ActivityListView(ListView):
+class ActivityListView(LoginRequiredMixin, ListView):
     model = Activity
     template_name = "strava_integration/activities_list.html"
     context_object_name = "activities"
     ordering = ["-start_date_local"]
 
+@login_required
 def strava_test(request):
     """Render a pretty HTML page showing athlete JSON."""
     try:
@@ -36,6 +39,7 @@ def strava_test(request):
         # in case of error, show the error message in the template
         return render(request, "strava_integration/strava_test.html", {"json_data": str(e)})
 
+@login_required
 def athlete_detail(request):
     """Display the athlete stored in the database."""
     try:
@@ -45,11 +49,13 @@ def athlete_detail(request):
 
     return render(request, "strava_integration/athlete_detail.html", {"athlete": athlete})
 
+@login_required
 def strava_dashboard(request):
     """Simple dashboard page with buttons for Strava sync steps."""
     return render(request, "strava_integration/strava_dashboard.html")
 
 
+@login_required
 def strava_activities(request):
     """Show Strava activities (type Ride)."""
     try:
@@ -70,6 +76,7 @@ def strava_activities(request):
         )
 
 
+@login_required
 def load_athlete(request):
     """Call Strava API and store/update athlete."""
     athlete, created = fetch_and_store_athlete()
@@ -89,6 +96,7 @@ def load_athlete(request):
     return JsonResponse(data)
 
 
+@login_required
 def load_activity(request, activity_id):
     """Fetch a single Strava activity and store/update it."""
     data = fetch_activity_detail(activity_id)
@@ -101,10 +109,12 @@ def load_activity(request, activity_id):
     }
     return JsonResponse(msg)
 
+@login_required
 def missing_activities_view(request):
     missing_activities = get_missing_ride_activities()
     return JsonResponse({"missing_activities": missing_activities, "count": len(missing_activities)})
 
+@login_required
 def detect_missing_activities(request):
     """
     View to detect and save missing Strava activities,

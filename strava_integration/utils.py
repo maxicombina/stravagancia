@@ -8,6 +8,9 @@ STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 STRAVA_REFRESH_TOKEN = os.getenv("STRAVA_REFRESH_TOKEN")
 
+_ENV_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+
+
 def refresh_access_token():
     """
     Refresh Strava access token using the refresh token.
@@ -24,17 +27,19 @@ def refresh_access_token():
     response.raise_for_status()
     tokens = response.json()
 
-    # Update .env automatically
-    with open(".env", "r") as f:
-        lines = f.readlines()
-    with open(".env", "w") as f:
-        for line in lines:
-            if line.startswith("STRAVA_ACCESS_TOKEN="):
-                f.write(f"STRAVA_ACCESS_TOKEN={tokens['access_token']}\n")
-            elif line.startswith("STRAVA_REFRESH_TOKEN="):
-                f.write(f"STRAVA_REFRESH_TOKEN={tokens['refresh_token']}\n")
-            else:
-                f.write(line)
+    # Persist new tokens to .env if it exists (local dev only).
+    # In production, tokens are managed via environment secrets.
+    if os.path.exists(_ENV_FILE):
+        with open(_ENV_FILE, "r") as f:
+            lines = f.readlines()
+        with open(_ENV_FILE, "w") as f:
+            for line in lines:
+                if line.startswith("STRAVA_ACCESS_TOKEN="):
+                    f.write(f"STRAVA_ACCESS_TOKEN={tokens['access_token']}\n")
+                elif line.startswith("STRAVA_REFRESH_TOKEN="):
+                    f.write(f"STRAVA_REFRESH_TOKEN={tokens['refresh_token']}\n")
+                else:
+                    f.write(line)
 
     return tokens["access_token"]
 

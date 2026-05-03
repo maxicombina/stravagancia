@@ -18,5 +18,8 @@ else:
     print(f'Superuser {username!r} already exists, skipping.')
 "
 
-echo "Starting Django..."
-exec uv run python manage.py runserver 0.0.0.0:8000
+echo "Collecting static files..."
+uv run python manage.py collectstatic --noinput
+
+echo "Starting server..."
+exec uv run gunicorn strava_app.wsgi:application --bind 0.0.0.0:8000 --workers 2

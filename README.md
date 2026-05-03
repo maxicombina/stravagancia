@@ -83,3 +83,6 @@ It's a good excuse to learn something new and useful, while being able to view m
 Auth in metabase:
 - email: admin@admin.com  
 - password: django-strava-01
+
+
+- Unfold: theme para el admin

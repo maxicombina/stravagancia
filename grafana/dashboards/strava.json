@@ -105,11 +105,11 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DATE_TRUNC('week', start_date_local) AS time, COUNT(*) AS activities FROM strava_integration_activity WHERE $__timeFilter(start_date_local) GROUP BY time ORDER BY time",
+          "rawSql": "SELECT start_date_local AS time, 1 AS count FROM strava_integration_activity WHERE $__timeFilter(start_date_local) ORDER BY time",
           "refId": "A"
         }
       ],
-      "title": "Activities per week",
+      "title": "Activities",
       "type": "barchart"
     },
     {
@@ -199,7 +199,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DATE_TRUNC('week', start_date_local) AS time, SUM(distance)/1000.0 AS km FROM strava_integration_activity WHERE $__timeFilter(start_date_local) GROUP BY time ORDER BY time",
+          "rawSql": "SELECT start_date_local AS time, distance/1000.0 AS km FROM strava_integration_activity WHERE $__timeFilter(start_date_local) ORDER BY time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -220,7 +220,7 @@
           }
         }
       ],
-      "title": "Distance per week (km)",
+      "title": "Distance (km)",
       "type": "barchart"
     },
     {
@@ -408,6 +408,228 @@
       ],
       "title": "Average speed (km/h)",
       "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "strava-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kcal"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "strava-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT start_date_local AS time, calories AS kcal FROM strava_integration_activity WHERE $__timeFilter(start_date_local) AND calories IS NOT NULL ORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Calories",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "strava-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "lengthm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "strava-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT start_date_local AS time, total_elevation_gain AS meters FROM strava_integration_activity WHERE $__timeFilter(start_date_local) ORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Elevation gain (m)",
+      "type": "barchart"
     }
   ],
   "schemaVersion": 39,
@@ -421,7 +643,58 @@
     "from": "now-1y",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "refresh_intervals": [
+      "1d"
+    ],
+    "quick_ranges": [
+      {
+        "display": "Last 7 days",
+        "from": "now-7d",
+        "to": "now"
+      },
+      {
+        "display": "Last 28 days",
+        "from": "now-28d",
+        "to": "now"
+      },
+      {
+        "display": "Last 90 days",
+        "from": "now-90d",
+        "to": "now"
+      },
+      {
+        "display": "Last 6 months",
+        "from": "now-6M",
+        "to": "now"
+      },
+      {
+        "display": "Last 1 year",
+        "from": "now-1y",
+        "to": "now"
+      },
+      {
+        "display": "Last 3 years",
+        "from": "now-3y",
+        "to": "now"
+      },
+      {
+        "display": "Last 5 years",
+        "from": "now-5y",
+        "to": "now"
+      },
+      {
+        "display": "This month so far",
+        "from": "now/M",
+        "to": "now"
+      },
+      {
+        "display": "This year so far",
+        "from": "now/y",
+        "to": "now"
+      }
+    ]
+  },
   "timezone": "browser",
   "title": "Strava Overview",
   "uid": "strava-overview",

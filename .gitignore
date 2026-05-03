@@ -27,3 +27,4 @@ media/
 
 # Metabase
 metabase-data/metabase.db/metabase.db.trace.db
+metabase-data/metabase.db/metabase.db.mv.db

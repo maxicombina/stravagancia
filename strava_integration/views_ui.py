@@ -130,7 +130,6 @@ def status_api(request):
     })
 
 
-@method_decorator(staff_member_required, name='dispatch')
 class ActivityListView(ListView):
     model = Activity
     template_name = 'strava_integration/activity_list.html'

@@ -4,13 +4,13 @@ datasources:
   - name: Stravagancia
     uid: strava-postgres
     type: grafana-postgresql-datasource
-    url: postgres:5432
-    user: strava
+    url: ep-wild-sky-al1wjejk.c-3.eu-central-1.aws.neon.tech:5432
+    user: neondb_owner
     secureJsonData:
-      password: strava
+      password: ${NEON_PASSWORD}
     jsonData:
-      database: stravagancia
-      sslmode: disable
+      database: neondb
+      sslmode: require
       postgresVersion: 1600
       timescaledb: false
     isDefault: true

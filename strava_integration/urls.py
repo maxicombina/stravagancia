@@ -12,4 +12,5 @@ urlpatterns = [
     path("missing_activities/", views.missing_activities_view, name="missing_activities"),
     path("missing/", views.MissingActivityListView.as_view(), name="missingactivities-list"),
     path("activities/", views.ActivityListView.as_view(), name="activities-list"),
+    path("webhook/strava/", views.strava_webhook, name="strava_webhook"),
 ]

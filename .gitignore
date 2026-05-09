@@ -11,6 +11,7 @@ venv/
 # Django
 *.sqlite3
 /static/
+/staticfiles/
 media/
 
 # Environment variables

@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-50 text-gray-800">
-    <div class="max-w-6xl mx-auto p-6">
+    <div class="max-w-6xl mx-auto p-4 sm:p-6">
 
       <a href="{% url 'dashboard' %}" class="text-sm text-indigo-600 hover:underline">← Dashboard</a>
 
@@ -19,17 +19,17 @@
         </div>
       </header>
 
-      <div class="bg-white rounded shadow overflow-hidden">
+      <div class="bg-white rounded shadow overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
               {% with col="date" label="Date" align="left" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
               <th class="px-4 py-3 text-left">Name</th>
-              <th class="px-4 py-3 text-left">Type</th>
+              <th class="px-4 py-3 text-left hidden md:table-cell">Type</th>
               {% with col="distance" label="Distance" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
-              {% with col="time" label="Time" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
-              {% with col="elevation" label="Elevation" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
-              {% with col="hr" label="Avg HR" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="time" label="Time" align="right" extra_class="hidden sm:table-cell" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="elevation" label="Elevation" align="right" extra_class="hidden lg:table-cell" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
+              {% with col="hr" label="Avg HR" align="right" extra_class="hidden lg:table-cell" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -38,11 +38,11 @@
                 onclick="window.location='{% url 'activity-detail' activity.pk %}'">
               <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ activity.start_date_local|date:"d M Y" }}</td>
               <td class="px-4 py-3 font-medium">{{ activity.name }}</td>
-              <td class="px-4 py-3 text-gray-500">{{ activity.sport_type|default:activity.activity_type }}</td>
-              <td class="px-4 py-3 text-right">{{ activity.distance_km }} km</td>
-              <td class="px-4 py-3 text-right">{{ activity.moving_time|duration }}</td>
-              <td class="px-4 py-3 text-right">{{ activity.total_elevation_gain|floatformat:0 }} m</td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-gray-500 hidden md:table-cell">{{ activity.sport_type|default:activity.activity_type }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap">{{ activity.distance_km }} km</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap hidden sm:table-cell">{{ activity.moving_time|duration }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap hidden lg:table-cell">{{ activity.total_elevation_gain|floatformat:0 }} m</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap hidden lg:table-cell">
                 {% if activity.average_heartrate %}{{ activity.average_heartrate|floatformat:0 }} bpm{% else %}—{% endif %}
               </td>
             </tr>

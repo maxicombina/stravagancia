@@ -62,7 +62,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'strava_app.wsgi.application'
 
 
-# Database — supports both DATABASE_URL (Fly.io) and individual DB_* vars (local)
+# Database — supports both DATABASE_URL (Render/Neon) and individual DB_* vars (local)
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 _db_url = os.environ.get('DATABASE_URL')
 if _db_url:

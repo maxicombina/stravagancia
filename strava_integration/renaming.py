@@ -34,6 +34,7 @@ GENERIC_PATTERNS = [
     r'^(Morning|Afternoon|Evening|Night|Lunch)\s+(Ride|Run|Walk|Hike|Workout)$',
     r'^(Ride|Run|Walk|Hike|Workout)$',
     r'^Bicicleta de monta[ñn]a (matutina|vespertina|nocturna|de mediod[ií]a)$',
+    r'^Bicicleta (matutina|vespertina|nocturna|de mediod[ií]a)$',
     r'^Paseo en bici (matutino|vespertino|nocturno|de mediod[ií]a)$',
     r'^Carrera (matutina|vespertina|nocturna|de mediod[ií]a)$',
     r'^(Tarde|Ma[ñn]ana|Noche) en bici$',
@@ -42,6 +43,7 @@ GENERIC_PATTERNS = [
     r'^(Paseo|Caminata) (matutino?|vespertino?|nocturno?)$',
     # Spanish "lunch" variants ("a la hora del almuerzo")
     r'^Bicicleta de monta[ñn]a a la hora del almuerzo$',
+    r'^Bicicleta a la hora del almuerzo$',
     r'^Paseo en bici a la hora del almuerzo$',
     r'^Carrera a la hora del almuerzo$',
     r'^Caminata a la hora del almuerzo$',
@@ -50,6 +52,7 @@ GENERIC_PATTERNS = [
     r'^Paseo a la hora del almuerzo$',
     # Spanish "por la (tarde|mañana|noche)" variants
     r'^Bicicleta de monta[ñn]a por la (tarde|ma[ñn]ana|noche)$',
+    r'^Bicicleta por la (tarde|ma[ñn]ana|noche)$',
     r'^Paseo en bici por la (tarde|ma[ñn]ana|noche)$',
     r'^Carrera por la (tarde|ma[ñn]ana|noche)$',
     r'^Caminata por la (tarde|ma[ñn]ana|noche)$',

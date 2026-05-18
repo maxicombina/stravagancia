@@ -25,7 +25,6 @@
             <tr>
               {% with col="date" label="Date" align="left" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
               <th class="px-4 py-3 text-left">Name</th>
-              <th class="px-4 py-3 text-left hidden md:table-cell">Type</th>
               {% with col="distance" label="Distance" align="right" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
               {% with col="time" label="Time" align="right" extra_class="hidden sm:table-cell" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
               {% with col="elevation" label="Elevation" align="right" extra_class="hidden lg:table-cell" %}{% include "strava_integration/_sort_th.html" %}{% endwith %}
@@ -38,7 +37,6 @@
                 onclick="window.location='{% url 'activity-detail' activity.pk %}'">
               <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ activity.start_date_local|date:"d M Y" }}</td>
               <td class="px-4 py-3 font-medium">{{ activity.name }}</td>
-              <td class="px-4 py-3 text-gray-500 hidden md:table-cell">{{ activity.sport_type|default:activity.activity_type }}</td>
               <td class="px-4 py-3 text-right whitespace-nowrap">{{ activity.distance_km }} km</td>
               <td class="px-4 py-3 text-right whitespace-nowrap hidden sm:table-cell">{{ activity.moving_time|duration }}</td>
               <td class="px-4 py-3 text-right whitespace-nowrap hidden lg:table-cell">{{ activity.total_elevation_gain|floatformat:0 }} m</td>
@@ -47,7 +45,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No activities yet.</td></tr>
+            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No activities yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -55,15 +53,30 @@
 
       <!-- Pagination (preserves sort params) -->
       {% if page_obj.has_other_pages %}
-      <nav class="mt-4 flex justify-center gap-2 text-sm">
+      <nav class="mt-4 flex flex-wrap justify-center items-center gap-1 text-sm">
         {% if page_obj.has_previous %}
         <a href="?sort={{ current_sort }}&dir={{ current_dir }}&page={{ page_obj.previous_page_number }}"
            class="px-3 py-1 bg-white rounded shadow hover:bg-indigo-50">← Prev</a>
+        {% else %}
+        <span class="px-3 py-1 text-gray-300">← Prev</span>
         {% endif %}
-        <span class="px-3 py-1 text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% for page_num in elided_range %}
+          {% if page_num == '…' %}
+            <span class="px-2 py-1 text-gray-400">…</span>
+          {% elif page_num == page_obj.number %}
+            <span class="px-3 py-1 bg-indigo-600 text-white rounded shadow font-medium">{{ page_num }}</span>
+          {% else %}
+            <a href="?sort={{ current_sort }}&dir={{ current_dir }}&page={{ page_num }}"
+               class="px-3 py-1 bg-white rounded shadow hover:bg-indigo-50">{{ page_num }}</a>
+          {% endif %}
+        {% endfor %}
+
         {% if page_obj.has_next %}
         <a href="?sort={{ current_sort }}&dir={{ current_dir }}&page={{ page_obj.next_page_number }}"
            class="px-3 py-1 bg-white rounded shadow hover:bg-indigo-50">Next →</a>
+        {% else %}
+        <span class="px-3 py-1 text-gray-300">Next →</span>
         {% endif %}
       </nav>
       {% endif %}

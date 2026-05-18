@@ -156,6 +156,16 @@ class ActivityListView(ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['current_sort'] = self.request.GET.get('sort', self.DEFAULT_SORT)
         ctx['current_dir'] = self.request.GET.get('dir', self.DEFAULT_DIR)
+
+        page_obj = ctx.get('page_obj')
+        if page_obj is not None:
+            paginator = page_obj.paginator
+            ctx['elided_range'] = [
+                p if isinstance(p, int) else '…'
+                for p in paginator.get_elided_page_range(
+                    number=page_obj.number, on_each_side=2, on_ends=1
+                )
+            ]
         return ctx
 
 

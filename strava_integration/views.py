@@ -134,8 +134,26 @@ def detect_missing_activities(request):
 import hashlib
 import hmac
 import logging
+import threading
+
+from .renaming import auto_rename_from_strava_data
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_auto_rename(data: dict) -> None:
+    """
+    Wrapper to run `auto_rename_from_strava_data` inside a daemon thread.
+    Catches any exception and logs it — must not propagate silently.
+    """
+    try:
+        new_name = auto_rename_from_strava_data(data)
+        if new_name:
+            logger.info("Activity %s auto-renamed to: %s", data.get("id"), new_name)
+        else:
+            logger.info("Activity %s skipped auto-rename.", data.get("id"))
+    except Exception as exc:
+        logger.error("Auto-rename failed for activity %s: %s", data.get("id"), exc)
 
 
 @csrf_exempt
@@ -187,6 +205,20 @@ def _handle_webhook_event(request):
                 data = fetch_activity_detail(object_id)
                 store_activity_from_strava_data(data)
                 logger.info("Activity %s stored from webhook.", object_id)
+                # Auto-rename in the background — Strava allows 2s, geocoding
+                # takes longer. Daemon thread: if the worker dies, the work is
+                # lost (a manual admin action will be the future backup). If
+                # Strava retries the webhook, this is idempotent: the second
+                # time is_generic_name() returns False (because the first
+                # attempt's PUT already changed the name) and nothing happens.
+                # Only on `create`, NEVER on `update` — our PUT triggers an
+                # `update` webhook, and acting on that would cause an infinite loop.
+                threading.Thread(
+                    target=_safe_auto_rename,
+                    args=(data,),
+                    daemon=True,
+                    name=f"rename-{object_id}",
+                ).start()
             except Exception as exc:
                 logger.error("Failed to store activity %s: %s", object_id, exc)
         elif aspect_type == "delete":

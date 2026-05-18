@@ -16,7 +16,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "strava_app.settings"
-python_files = ["tests.py", "test_*.py"]
+python_files = ["tests.py", "tests_*.py"]
 
 [dependency-groups]
 dev = [

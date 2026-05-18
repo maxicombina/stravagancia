@@ -66,3 +66,29 @@ def strava_activity_payload(athlete):
         "average_heartrate": 148.0,
         "max_heartrate": 175.0,
     }
+
+
+@pytest.fixture
+def strava_activity_payload_with_polyline(strava_activity_payload):
+    """Like strava_activity_payload, plus a fake encoded polyline + generic name (Ride)."""
+    payload = dict(strava_activity_payload)
+    payload["id"] = 8888002
+    payload["name"] = "Morning Ride"
+    payload["map"] = {
+        # Fake encoded polyline string — tests mock decode/geocode so the exact
+        # contents don't matter, only that the key is present and non-empty.
+        "summary_polyline": "u`ueFp~ejVj]ssBb`A_yA",
+        "polyline": None,
+    }
+    return payload
+
+
+@pytest.fixture(autouse=True)
+def _clear_geocode_cache():
+    """Clear the module-level cache in renaming.py before each test."""
+    try:
+        from strava_integration.renaming import _GEO_CACHE
+        _GEO_CACHE.clear()
+    except ImportError:
+        pass
+    yield

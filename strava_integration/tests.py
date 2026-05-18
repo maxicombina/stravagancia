@@ -1,6 +1,9 @@
+import json
+
 import pytest
-from unittest.mock import patch
+from django.test import Client
 from django.utils import timezone
+from unittest.mock import patch
 
 
 # ---------------------------------------------------------------------------
@@ -268,3 +271,125 @@ def test_detect_dry_run_does_not_save(athlete):
 
     assert result["new_missing_added"] == 1
     assert not MissingActivity.objects.filter(strava_id=5551003).exists()
+
+
+# ---------------------------------------------------------------------------
+# Webhook: auto-rename thread dispatch
+# ---------------------------------------------------------------------------
+
+WEBHOOK_URL = "/archive/strava/webhook/strava/"
+
+
+def _post_webhook(client, event: dict):
+    return client.post(
+        WEBHOOK_URL,
+        data=json.dumps(event),
+        content_type="application/json",
+    )
+
+
+def _fake_activity_payload():
+    return {
+        "id": 99001,
+        "name": "Morning Ride",
+        "type": "Ride",
+        "distance": 30000.0,
+        "map": {"summary_polyline": "fake-poly"},
+    }
+
+
+@pytest.mark.django_db
+def test_webhook_create_dispatches_rename_thread(athlete):
+    """On aspect_type=create the thread must be dispatched with _safe_auto_rename."""
+    client = Client()
+    payload = _fake_activity_payload()
+
+    with patch("strava_integration.views.fetch_activity_detail", return_value=payload), \
+         patch("strava_integration.views.store_activity_from_strava_data") as store_mock, \
+         patch("strava_integration.views.threading.Thread") as thread_cls:
+        resp = _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "create",
+            "object_id": 99001,
+        })
+
+    assert resp.status_code == 200
+    store_mock.assert_called_once_with(payload)
+    thread_cls.assert_called_once()
+    kwargs = thread_cls.call_args.kwargs
+    from strava_integration.views import _safe_auto_rename
+    assert kwargs["target"] is _safe_auto_rename
+    assert kwargs["args"] == (payload,)
+    assert kwargs["daemon"] is True
+    # And .start() must have been called.
+    thread_cls.return_value.start.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_webhook_update_does_NOT_dispatch_rename_thread(athlete):
+    """Loop prevention: aspect_type=update must NEVER trigger a rename."""
+    client = Client()
+    payload = _fake_activity_payload()
+
+    with patch("strava_integration.views.fetch_activity_detail", return_value=payload), \
+         patch("strava_integration.views.store_activity_from_strava_data"), \
+         patch("strava_integration.views.threading.Thread") as thread_cls:
+        resp = _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "update",
+            "object_id": 99001,
+        })
+
+    assert resp.status_code == 200
+    thread_cls.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_webhook_delete_does_NOT_dispatch_rename_thread(activity):
+    """Delete must not trigger a rename either — it only deletes."""
+    client = Client()
+
+    with patch("strava_integration.views.threading.Thread") as thread_cls:
+        resp = _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "delete",
+            "object_id": activity.strava_id,
+        })
+
+    assert resp.status_code == 200
+    thread_cls.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_safe_auto_rename_swallows_exceptions():
+    """_safe_auto_rename must not propagate — only log."""
+    from strava_integration.views import _safe_auto_rename
+
+    with patch("strava_integration.views.auto_rename_from_strava_data",
+               side_effect=RuntimeError("boom")):
+        # Must not raise.
+        _safe_auto_rename({"id": 42})
+
+
+@pytest.mark.django_db
+def test_webhook_create_does_not_block_on_thread(athlete):
+    """
+    The handler must return without waiting for the thread.
+    We verify that Thread().start() is called (not Thread().run()) — start is
+    asynchronous, run is synchronous.
+    """
+    client = Client()
+    payload = _fake_activity_payload()
+
+    with patch("strava_integration.views.fetch_activity_detail", return_value=payload), \
+         patch("strava_integration.views.store_activity_from_strava_data"), \
+         patch("strava_integration.views.threading.Thread") as thread_cls:
+        _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "create",
+            "object_id": 99001,
+        })
+
+    thread_instance = thread_cls.return_value
+    thread_instance.start.assert_called_once()
+    thread_instance.run.assert_not_called()

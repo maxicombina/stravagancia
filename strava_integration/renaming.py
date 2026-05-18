@@ -13,6 +13,7 @@ Format: "St Feliu - [Castellbisbal] - Rubí ~8km spacing", where [brackets]
 marks the point furthest from the start.
 """
 
+import logging
 import math
 import re
 import time
@@ -21,6 +22,8 @@ from typing import Optional
 import requests
 
 from .utils import refresh_access_token
+
+logger = logging.getLogger(__name__)
 
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
 USER_AGENT = "stravagancia-rename/1.0"
@@ -141,9 +144,18 @@ def overpass_natural(lat: float, lon: float, radius: int = 600) -> Optional[str]
         )
         elements = [e for e in r.json().get("elements", []) if e.get("tags", {}).get("name")]
         if elements:
-            return elements[0]["tags"]["name"]
-    except Exception:
-        pass
+            name = elements[0]["tags"]["name"]
+            logger.info(
+                "Overpass (%.5f,%.5f) HTTP %s -> %r (%d elements)",
+                lat, lon, r.status_code, name, len(elements),
+            )
+            return name
+        logger.info(
+            "Overpass (%.5f,%.5f) HTTP %s -> 0 elements",
+            lat, lon, r.status_code,
+        )
+    except Exception as exc:
+        logger.warning("Overpass exception at (%.5f,%.5f): %s", lat, lon, exc)
     return None
 
 
@@ -157,7 +169,7 @@ def nominatim_reverse(lat: float, lon: float) -> str:
             timeout=10,
         )
         addr = r.json().get("address", {})
-        return (
+        result = (
             addr.get("town")
             or addr.get("village")
             or addr.get("municipality")
@@ -165,7 +177,13 @@ def nominatim_reverse(lat: float, lon: float) -> str:
             or addr.get("county")
             or "?"
         )
-    except Exception:
+        logger.info(
+            "Nominatim (%.5f,%.5f) HTTP %s -> %r",
+            lat, lon, r.status_code, result,
+        )
+        return result
+    except Exception as exc:
+        logger.warning("Nominatim exception at (%.5f,%.5f): %s", lat, lon, exc)
         return "?"
 
 
@@ -176,7 +194,9 @@ def geocode_point(lat: float, lon: float) -> tuple[Optional[str], bool]:
     """
     key = (round(lat, 3), round(lon, 3))
     if key in _GEO_CACHE:
-        return _GEO_CACHE[key]
+        cached = _GEO_CACHE[key]
+        logger.info("Geocode cache hit (%.5f,%.5f) -> %r", lat, lon, cached)
+        return cached
 
     time.sleep(GEOCODE_SLEEP_S)
     natural = overpass_natural(lat, lon)
@@ -191,6 +211,7 @@ def geocode_point(lat: float, lon: float) -> tuple[Optional[str], bool]:
             result = (None, False)
 
     _GEO_CACHE[key] = result
+    logger.info("Geocode result (%.5f,%.5f) -> %r", lat, lon, result)
     return result
 
 
@@ -202,6 +223,7 @@ def generate_name(polyline_str: str, distance_km: float) -> str:
     """
     pts = decode_polyline(polyline_str)
     if not pts:
+        logger.info("generate_name: polyline decoded to 0 points")
         return ""
 
     n = max(2, round(distance_km / SPACING_KM))
@@ -224,13 +246,25 @@ def generate_name(polyline_str: str, distance_km: float) -> str:
         combined.append((furthest_idx, True))
     combined.sort(key=lambda x: x[0])
 
+    logger.info(
+        "generate_name: %d points, distance_km=%.1f, n=%d, step=%d, "
+        "sample_indices=%s, furthest_idx=%d, combined=%s",
+        len(pts), distance_km, n, step, sample_indices, furthest_idx, combined,
+    )
+
     items: list[tuple[str, bool]] = []
     for idx, is_furthest in combined:
         name, _is_natural = geocode_point(pts[idx][0], pts[idx][1])
         if name:
             items.append((name, is_furthest))
+        else:
+            logger.warning(
+                "generate_name: idx=%d (furthest=%s) at (%.5f,%.5f) geocoded to None — dropping",
+                idx, is_furthest, pts[idx][0], pts[idx][1],
+            )
 
     if not items:
+        logger.warning("generate_name: no geocoded items — returning empty name")
         return ""
 
     # Dedupe consecutive same names — preserve furthest flag if any
@@ -242,7 +276,12 @@ def generate_name(polyline_str: str, distance_km: float) -> str:
             deduped.append((name, is_fur))
 
     parts = [f"[{n}]" if f else n for n, f in deduped]
-    return " - ".join(parts) + RENAME_MARKER
+    result = " - ".join(parts) + RENAME_MARKER
+    logger.info(
+        "generate_name: items=%s deduped=%s -> %r",
+        items, deduped, result,
+    )
+    return result
 
 
 def rename_activity_on_strava(strava_id: int, new_name: str, token: str) -> dict:
@@ -252,6 +291,10 @@ def rename_activity_on_strava(strava_id: int, new_name: str, token: str) -> dict
         headers={"Authorization": f"Bearer {token}"},
         json={"name": new_name},
         timeout=15,
+    )
+    logger.info(
+        "Strava PUT /activities/%s name=%r -> HTTP %s",
+        strava_id, new_name, r.status_code,
     )
     r.raise_for_status()
     return r.json()
@@ -271,31 +314,48 @@ def auto_rename_from_strava_data(data: dict) -> Optional[str]:
     - data["map"]["summary_polyline"] must exist
     - distance >= 1km (very short routes aren't worth geocoding)
     """
-    if (data.get("type") or "").strip() != "Ride":
-        return None
-
+    activity_id = data.get("id")
     name = data.get("name", "")
-    if not is_generic_name(name):
+    activity_type = data.get("type")
+    distance = data.get("distance") or 0
+    map_data = data.get("map") or {}
+    poly_full = map_data.get("polyline")
+    poly_summary = map_data.get("summary_polyline")
+    logger.info(
+        "auto_rename start: id=%s name=%r type=%s distance=%s polyline=%s summary_polyline=%s",
+        activity_id, name, activity_type, distance,
+        f"{len(poly_full)} chars" if poly_full else None,
+        f"{len(poly_summary)} chars" if poly_summary else None,
+    )
+
+    if (activity_type or "").strip() != "Ride":
+        logger.info("auto_rename skip: type=%r is not 'Ride'", activity_type)
         return None
 
-    map_data = data.get("map") or {}
+    if not is_generic_name(name):
+        logger.info("auto_rename skip: name not generic: %r", name)
+        return None
+
     # Prefer the full polyline for more representative sampling; fall back to
     # summary_polyline when the full one isn't available (rare — private
     # activities, no-GPS, etc.).
-    polyline = map_data.get("polyline") or map_data.get("summary_polyline")
+    polyline = poly_full or poly_summary
     if not polyline:
+        logger.info("auto_rename skip: no polyline available")
         return None
 
-    distance_km = (data.get("distance") or 0) / 1000.0
+    distance_km = distance / 1000.0
     if distance_km < 1:
+        logger.info("auto_rename skip: distance %.2f km < 1 km", distance_km)
         return None
 
     new_name = generate_name(polyline, distance_km)
     if not new_name or new_name == name:
+        logger.info("auto_rename skip: generated name empty or unchanged (%r)", new_name)
         return None
 
     token = refresh_access_token()
-    rename_activity_on_strava(data["id"], new_name, token)
+    rename_activity_on_strava(activity_id, new_name, token)
     # NOTE: we do NOT update Activity.name here. The PUT triggers an `update`
     # webhook that will re-fetch and persist the new name. Source of truth = Strava.
     return new_name

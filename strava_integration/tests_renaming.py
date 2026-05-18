@@ -262,6 +262,30 @@ def test_auto_rename_skips_no_polyline():
     put_mock.assert_not_called()
 
 
+def test_auto_rename_prefers_full_polyline_over_summary():
+    """When both are present, the full `polyline` must be used, not `summary_polyline`."""
+    data = _payload(map={"polyline": "full-poly", "summary_polyline": "summary-poly"})
+    with patch.object(renaming, "generate_name", return_value="A - [B] - C ~8km spacing") as gen, \
+         patch.object(renaming, "refresh_access_token", return_value="tok"), \
+         patch.object(renaming, "rename_activity_on_strava"):
+        auto_rename_from_strava_data(data)
+
+    gen.assert_called_once()
+    # First positional arg is the polyline string
+    assert gen.call_args.args[0] == "full-poly"
+
+
+def test_auto_rename_falls_back_to_summary_polyline():
+    """If `polyline` is missing/empty, fall back to `summary_polyline`."""
+    data = _payload(map={"polyline": None, "summary_polyline": "summary-poly"})
+    with patch.object(renaming, "generate_name", return_value="A - [B] - C ~8km spacing") as gen, \
+         patch.object(renaming, "refresh_access_token", return_value="tok"), \
+         patch.object(renaming, "rename_activity_on_strava"):
+        auto_rename_from_strava_data(data)
+
+    assert gen.call_args.args[0] == "summary-poly"
+
+
 def test_auto_rename_skips_missing_map():
     data = _payload()
     del data["map"]

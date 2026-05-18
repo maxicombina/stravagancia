@@ -278,7 +278,11 @@ def auto_rename_from_strava_data(data: dict) -> Optional[str]:
     if not is_generic_name(name):
         return None
 
-    polyline = (data.get("map") or {}).get("summary_polyline")
+    map_data = data.get("map") or {}
+    # Prefer the full polyline for more representative sampling; fall back to
+    # summary_polyline when the full one isn't available (rare — private
+    # activities, no-GPS, etc.).
+    polyline = map_data.get("polyline") or map_data.get("summary_polyline")
     if not polyline:
         return None
 

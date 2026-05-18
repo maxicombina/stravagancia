@@ -372,6 +372,44 @@ def test_safe_auto_rename_swallows_exceptions():
 
 
 @pytest.mark.django_db
+def test_webhook_create_skips_non_ride(athlete):
+    """A create event for a Walk/Run must NOT be stored and must NOT dispatch a rename."""
+    client = Client()
+    walk_payload = {**_fake_activity_payload(), "type": "Walk"}
+
+    with patch("strava_integration.views.fetch_activity_detail", return_value=walk_payload), \
+         patch("strava_integration.views.store_activity_from_strava_data") as store_mock, \
+         patch("strava_integration.views.threading.Thread") as thread_cls:
+        resp = _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "create",
+            "object_id": 99001,
+        })
+
+    assert resp.status_code == 200
+    store_mock.assert_not_called()
+    thread_cls.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_webhook_update_skips_non_ride(athlete):
+    """An update event for a Walk/Run must NOT be stored."""
+    client = Client()
+    run_payload = {**_fake_activity_payload(), "type": "Run"}
+
+    with patch("strava_integration.views.fetch_activity_detail", return_value=run_payload), \
+         patch("strava_integration.views.store_activity_from_strava_data") as store_mock:
+        resp = _post_webhook(client, {
+            "object_type": "activity",
+            "aspect_type": "update",
+            "object_id": 99001,
+        })
+
+    assert resp.status_code == 200
+    store_mock.assert_not_called()
+
+
+@pytest.mark.django_db
 def test_webhook_create_does_not_block_on_thread(athlete):
     """
     The handler must return without waiting for the thread.

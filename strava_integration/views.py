@@ -203,33 +203,47 @@ def _handle_webhook_event(request):
         if aspect_type == "create":
             try:
                 data = fetch_activity_detail(object_id)
-                store_activity_from_strava_data(data)
-                logger.info("Activity %s stored from webhook.", object_id)
-                # Auto-rename in the background — Strava allows 2s, geocoding
-                # takes longer. Daemon thread: if the worker dies, the work is
-                # lost (a manual admin action will be the future backup). If
-                # Strava retries the webhook, this is idempotent: the second
-                # time is_generic_name() returns False (because the first
-                # attempt's PUT already changed the name) and nothing happens.
-                # Only on `create`, NEVER on `update` — our PUT triggers an
-                # `update` webhook, and acting on that would cause an infinite loop.
-                threading.Thread(
-                    target=_safe_auto_rename,
-                    args=(data,),
-                    daemon=True,
-                    name=f"rename-{object_id}",
-                ).start()
+                if (data.get("type") or "").strip() != "Ride":
+                    logger.info(
+                        "Activity %s skipped (create): type=%r is not 'Ride'",
+                        object_id, data.get("type"),
+                    )
+                else:
+                    store_activity_from_strava_data(data)
+                    logger.info("Activity %s stored from webhook.", object_id)
+                    # Auto-rename in the background — Strava allows 2s, geocoding
+                    # takes longer. Daemon thread: if the worker dies, the work is
+                    # lost (a manual admin action will be the future backup). If
+                    # Strava retries the webhook, this is idempotent: the second
+                    # time is_generic_name() returns False (because the first
+                    # attempt's PUT already changed the name) and nothing happens.
+                    # Only on `create`, NEVER on `update` — our PUT triggers an
+                    # `update` webhook, and acting on that would cause an infinite loop.
+                    threading.Thread(
+                        target=_safe_auto_rename,
+                        args=(data,),
+                        daemon=True,
+                        name=f"rename-{object_id}",
+                    ).start()
             except Exception as exc:
                 logger.error("Failed to store activity %s: %s", object_id, exc)
         elif aspect_type == "delete":
+            # Idempotent: filter().delete() on a missing row is a no-op, so this is
+            # safe even if the deleted activity was a non-Ride we never stored.
             Activity.objects.filter(strava_id=object_id).delete()
             logger.info("Activity %s deleted from webhook.", object_id)
-        # "update" events: re-fetch and update
+        # "update" events: re-fetch and update — but only if it's still a Ride.
         elif aspect_type == "update":
             try:
                 data = fetch_activity_detail(object_id)
-                store_activity_from_strava_data(data)
-                logger.info("Activity %s updated from webhook.", object_id)
+                if (data.get("type") or "").strip() != "Ride":
+                    logger.info(
+                        "Activity %s skipped (update): type=%r is not 'Ride'",
+                        object_id, data.get("type"),
+                    )
+                else:
+                    store_activity_from_strava_data(data)
+                    logger.info("Activity %s updated from webhook.", object_id)
             except Exception as exc:
                 logger.error("Failed to update activity %s: %s", object_id, exc)
 

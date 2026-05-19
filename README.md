@@ -10,38 +10,27 @@ So, why not?
 It's a good excuse to learn something new and useful, while being able to view my Ride data in the way I want.
 
 # What does it do?
-- Loads one Strava athlete
-- Stores all the Ride activities
-- Detects missing activities, and ability to load only those
-- Leverages the Django admin interface to manage models
-- Using docker (with the provided `docker-compose.yml`, a Metabase instance can be launched to visualize the data
+- Loads one Strava athlete and syncs all Ride activities
+- Real-time sync via Strava webhook (`create` / `update` / `delete`)
+- Auto-renames generic activity names (e.g. "Morning Ride" → "Cornellà - [Molins] - Turó d'en Pisca - Cornellà ~8km spacing") using Overpass (peaks/saddles) + Nominatim (municipalities) reverse-geocoding
+- Public dashboard with paginated activity list and embedded Grafana charts
+- Detects missing activities and provides one-click sync to backfill them
+- Django admin with custom bulk actions: re-trigger auto-rename, force auto-rename
+- Optional Metabase/Grafana containers via `docker-compose.yml` for ad-hoc visualisations
+- Test suite with 90+ pytest tests (mocking external HTTP)
 
 # How does it look like?
 ![Example Dashboard](assets/dashboard_preview.png)
 
+> Note: screenshot is from an earlier version of the dashboard — TODO refresh.
+
 # Known issues and limitations
-- Only one user supported
-- Docker not used for Django, only for Metabase and Postgres. This is to keep things simple and avoid the overhead of managing multiple containers. The Django app can be run locally without Docker, and it will connect to the Postgres database running in Docker.
+- Only one user supported.
+- Render free tier sleeps after 15 min idle → the first webhook after sleep may miss; Strava retries automatically over the following hours.
+- Geocoding (Nominatim) can be non-deterministic on administrative boundary coordinates — a point on a municipal border may resolve to one side or the other at different times. Rare; the force auto-rename admin action can be used to re-roll if needed.
 
 # Next steps
-- Improve some basic visualizations of the data (e.g., total distance per month, average speed, calories per month)
-- Have a simple web interface to view and potentially manipulate some of the data
-- Get this project to live in the Cloud (check: Heroku)
-- Use Strava webhooks to get notified of new activities
-- Use Grafana instead of Metabase for visualization, and connect it to the Postgres database
-- Resources:
-  - https://medium.com/@codingforinnovations/deploying-a-django-app-to-production-with-vercel-in-less-than-8-minutes-0877a21af4f3
-  - https://neon.com/ database
-
-## Further improvements
-- Tests
-- `@make_as_endpoint("/activity")` -> new decorator to automatically add endpoints
-- `@store_in_db(Activity)` # Or any model -> store in DB
-- Used to decorate functions such as:
-    ```
-    def fetch_activity(id):
-        return request.get(....)
-    ```
+- Improve visualisations of the data (e.g., total distance per month, average speed, calories per month).
 
 # How to use this project
 ## On Strava
@@ -73,6 +62,9 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `python manage.py load_athlete`
   - `python manage.py detect_missing_activities`
   - `python manage.py load_missing_activities`: may take a while depending on how many activities you have
+- Run tests: `pytest` (uses `pytest-django`)
+- To exercise the webhook end-to-end with a real Strava upload (requires `activity:write` scope on the refresh token):
+  - `python manage.py upload_test_gpx path/to/ride.gpx`
 - Optionally: Run metabase using docker-compose:
   - `docker-compose up` (Will launch Metabase on port 3000)
 - Optionally: run the Django development server:
@@ -83,6 +75,20 @@ It's a good excuse to learn something new and useful, while being able to view m
 Auth in metabase:
 - email: admin@admin.com  
 - password: django-strava-01
+
+## In production (Render + Neon)
+
+This project runs on Render's free tier (Docker service) with a Neon Postgres database. The deployed app is live at https://stravagancia.onrender.com.
+
+- The service container builds from `Dockerfile` and runs `entrypoint.sh` (migrate, create superuser, collectstatic, gunicorn).
+- Auto-deploys on `git push origin main`.
+- Env vars set on Render:
+  - `STRAVA_REFRESH_TOKEN` (only the refresh token — access tokens are minted on each call by `utils.refresh_access_token`)
+  - `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`
+  - `STRAVA_WEBHOOK_VERIFY_TOKEN`
+  - `DATABASE_URL` (Neon connection string)
+  - `SECRET_KEY`, `ALLOWED_HOSTS`
+  - Optional: `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`, `DJANGO_SUPERUSER_EMAIL` (used once by `entrypoint.sh` to create the admin user on first boot).
 
 
 - Unfold: theme para el admin

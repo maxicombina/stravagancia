@@ -409,6 +409,127 @@ def test_webhook_update_skips_non_ride(athlete):
     store_mock.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# Admin action: auto_rename_activities
+# ---------------------------------------------------------------------------
+
+def _make_activity(athlete, strava_id, name="Morning Ride"):
+    from strava_integration.models import Activity
+    return Activity.objects.create(
+        athlete=athlete,
+        strava_id=strava_id,
+        name=name,
+        distance=20000,
+        moving_time=1800,
+        elapsed_time=1900,
+        total_elevation_gain=50,
+        activity_type="Ride",
+        start_date=timezone.now(),
+    )
+
+
+@pytest.mark.django_db
+def test_admin_action_renames_each_selected_activity(athlete):
+    from unittest.mock import MagicMock
+    from strava_integration.admin import auto_rename_activities
+    from strava_integration.models import Activity
+
+    a1 = _make_activity(athlete, 71001, "Morning Ride")
+    a2 = _make_activity(athlete, 71002, "Evening Ride")
+
+    payloads = {
+        71001: {"id": 71001, "name": "Morning Ride", "type": "Ride"},
+        71002: {"id": 71002, "name": "Evening Ride", "type": "Ride"},
+    }
+
+    def fake_fetch(sid):
+        return payloads[sid]
+
+    def fake_rename(data):
+        return f"Renamed-{data['id']}"
+
+    modeladmin = MagicMock()
+    request = MagicMock()
+
+    with patch("strava_integration.admin.fetch_activity_detail", side_effect=fake_fetch), \
+         patch("strava_integration.admin.auto_rename_from_strava_data", side_effect=fake_rename) as rename_mock:
+        auto_rename_activities(modeladmin, request, Activity.objects.filter(pk__in=[a1.pk, a2.pk]))
+
+    assert rename_mock.call_count == 2
+    # message_user called at least once (success path)
+    assert modeladmin.message_user.called
+
+
+@pytest.mark.django_db
+def test_admin_action_reports_skipped_when_rename_returns_none(athlete):
+    from unittest.mock import MagicMock
+    from strava_integration.admin import auto_rename_activities
+    from strava_integration.models import Activity
+    from django.contrib import messages
+
+    a1 = _make_activity(athlete, 72001, "Custom name (not generic)")
+
+    modeladmin = MagicMock()
+    request = MagicMock()
+
+    with patch("strava_integration.admin.fetch_activity_detail", return_value={"id": 72001, "type": "Ride"}), \
+         patch("strava_integration.admin.auto_rename_from_strava_data", return_value=None):
+        auto_rename_activities(modeladmin, request, Activity.objects.filter(pk=a1.pk))
+
+    # Verify a WARNING-level message was sent for the skipped activity
+    calls = modeladmin.message_user.call_args_list
+    levels = [c.kwargs.get("level") for c in calls]
+    assert messages.WARNING in levels
+
+
+@pytest.mark.django_db
+def test_admin_action_continues_after_one_error(athlete):
+    """If one activity errors, the others must still be processed."""
+    from unittest.mock import MagicMock
+    from strava_integration.admin import auto_rename_activities
+    from strava_integration.models import Activity
+    from django.contrib import messages
+
+    a1 = _make_activity(athlete, 73001, "Morning Ride")
+    a2 = _make_activity(athlete, 73002, "Evening Ride")
+
+    def fake_fetch(sid):
+        if sid == 73001:
+            raise RuntimeError("boom")
+        return {"id": sid, "type": "Ride"}
+
+    modeladmin = MagicMock()
+    request = MagicMock()
+
+    with patch("strava_integration.admin.fetch_activity_detail", side_effect=fake_fetch), \
+         patch("strava_integration.admin.auto_rename_from_strava_data", return_value="OK"):
+        auto_rename_activities(modeladmin, request, Activity.objects.filter(pk__in=[a1.pk, a2.pk]))
+
+    # Both an ERROR (for 73001) and a SUCCESS (for 73002) message should be sent
+    calls = modeladmin.message_user.call_args_list
+    levels = [c.kwargs.get("level") for c in calls]
+    assert messages.ERROR in levels
+    assert messages.SUCCESS in levels
+
+
+@pytest.mark.django_db
+def test_admin_action_empty_queryset_emits_no_messages(athlete):
+    from unittest.mock import MagicMock
+    from strava_integration.admin import auto_rename_activities
+    from strava_integration.models import Activity
+
+    modeladmin = MagicMock()
+    request = MagicMock()
+
+    with patch("strava_integration.admin.fetch_activity_detail") as fetch_mock, \
+         patch("strava_integration.admin.auto_rename_from_strava_data") as rename_mock:
+        auto_rename_activities(modeladmin, request, Activity.objects.none())
+
+    fetch_mock.assert_not_called()
+    rename_mock.assert_not_called()
+    modeladmin.message_user.assert_not_called()
+
+
 @pytest.mark.django_db
 def test_webhook_create_does_not_block_on_thread(athlete):
     """

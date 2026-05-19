@@ -29,3 +29,23 @@ media/
 # Metabase
 metabase-data/metabase.db/metabase.db.trace.db
 metabase-data/metabase.db/metabase.db.mv.db
+
+# Throwaway scripts and artifacts from the historical batch rename (2026-05-17/18).
+# Kept locally for reference; not part of the deployed app.
+apply_all_renames.py
+apply_renames.py
+batch_rename.py
+catchup_renames.py
+make_pending_html.py
+retry_errors.py
+retry_failed.py
+all_renames.html
+pending_renames.html
+rename_suggestions.csv
+rename_results.json
+apply_all_renames.log
+batch_rename.log
+catchup_renames.log
+make_pending_html.log
+retry_errors.log
+retry_failed.log

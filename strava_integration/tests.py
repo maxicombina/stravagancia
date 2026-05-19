@@ -530,6 +530,62 @@ def test_admin_action_empty_queryset_emits_no_messages(athlete):
     modeladmin.message_user.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# Force admin action (with interstitial confirmation)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_force_admin_action_without_confirmation_renders_confirm_page(athlete):
+    """First click on the force action: renders the confirmation page, does NOT rename."""
+    from unittest.mock import MagicMock
+    from strava_integration.admin import force_auto_rename_activities
+    from strava_integration.models import Activity
+
+    a = _make_activity(athlete, 74001, "My custom Garraf loop")
+
+    modeladmin = MagicMock()
+    modeladmin.model = Activity
+    request = MagicMock()
+    request.POST = {}  # no "post" key → confirmation page
+
+    with patch("strava_integration.admin.fetch_activity_detail") as fetch_mock, \
+         patch("strava_integration.admin.auto_rename_from_strava_data") as rename_mock:
+        response = force_auto_rename_activities(modeladmin, request, Activity.objects.filter(pk=a.pk))
+
+    fetch_mock.assert_not_called()
+    rename_mock.assert_not_called()
+    modeladmin.message_user.assert_not_called()
+    # Returned an HttpResponse (rendered template)
+    assert response is not None
+    assert response.status_code == 200
+    assert b"force-rename" in response.content.lower() or b"Force" in response.content
+
+
+@pytest.mark.django_db
+def test_force_admin_action_with_confirmation_renames(athlete):
+    """When post=yes, the force action calls auto_rename_from_strava_data with force=True."""
+    from unittest.mock import MagicMock
+    from strava_integration.admin import force_auto_rename_activities
+    from strava_integration.models import Activity
+
+    a = _make_activity(athlete, 74002, "My custom name")
+
+    modeladmin = MagicMock()
+    request = MagicMock()
+    request.POST = {"post": "yes"}
+
+    with patch("strava_integration.admin.fetch_activity_detail",
+               return_value={"id": 74002, "type": "Ride", "name": "My custom name"}), \
+         patch("strava_integration.admin.auto_rename_from_strava_data",
+               return_value="New name ~8km spacing") as rename_mock:
+        force_auto_rename_activities(modeladmin, request, Activity.objects.filter(pk=a.pk))
+
+    rename_mock.assert_called_once()
+    # The force=True kwarg must have been passed
+    assert rename_mock.call_args.kwargs.get("force") is True
+    modeladmin.message_user.assert_called()
+
+
 @pytest.mark.django_db
 def test_webhook_create_does_not_block_on_thread(athlete):
     """

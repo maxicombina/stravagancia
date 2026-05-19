@@ -333,3 +333,35 @@ def test_auto_rename_skips_when_generated_name_empty():
 
     assert result is None
     put_mock.assert_not_called()
+
+
+def test_auto_rename_force_bypasses_generic_name_check():
+    """With force=True, a non-generic name should still get renamed."""
+    data = _payload(name="My custom Garraf loop")
+    with patch.object(renaming, "generate_name", return_value="A - [B] - C ~8km spacing"), \
+         patch.object(renaming, "refresh_access_token", return_value="tok"), \
+         patch.object(renaming, "rename_activity_on_strava") as put_mock:
+        result = auto_rename_from_strava_data(data, force=True)
+
+    assert result == "A - [B] - C ~8km spacing"
+    put_mock.assert_called_once()
+
+
+def test_auto_rename_force_still_requires_ride_type():
+    """force=True must NOT override the type=Ride check."""
+    data = _payload(name="My custom Garraf loop", type="Walk")
+    with patch.object(renaming, "rename_activity_on_strava") as put_mock:
+        result = auto_rename_from_strava_data(data, force=True)
+
+    assert result is None
+    put_mock.assert_not_called()
+
+
+def test_auto_rename_force_still_requires_polyline():
+    """force=True must NOT override the polyline check."""
+    data = _payload(name="My custom loop", map={"polyline": None, "summary_polyline": None})
+    with patch.object(renaming, "rename_activity_on_strava") as put_mock:
+        result = auto_rename_from_strava_data(data, force=True)
+
+    assert result is None
+    put_mock.assert_not_called()

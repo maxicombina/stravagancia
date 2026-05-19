@@ -300,17 +300,17 @@ def rename_activity_on_strava(strava_id: int, new_name: str, token: str) -> dict
     return r.json()
 
 
-def auto_rename_from_strava_data(data: dict) -> Optional[str]:
+def auto_rename_from_strava_data(data: dict, force: bool = False) -> Optional[str]:
     """
     Given a full Strava activity payload, decide whether to rename and perform
     the PUT.
 
     Returns the new name if renamed, None if skipped. Idempotent: if the name
-    is no longer generic, this is a no-op.
+    is no longer generic, this is a no-op (unless force=True).
 
     Skip rules (in order):
     - type must be "Ride" (single-user is a cyclist; see memory [[only-rides-in-db]])
-    - name must be generic
+    - name must be generic, UNLESS force=True
     - data["map"]["summary_polyline"] must exist
     - distance >= 1km (very short routes aren't worth geocoding)
     """
@@ -332,7 +332,9 @@ def auto_rename_from_strava_data(data: dict) -> Optional[str]:
         logger.info("auto_rename skip: type=%r is not 'Ride'", activity_type)
         return None
 
-    if not is_generic_name(name):
+    if force:
+        logger.info("auto_rename force=True: bypassing is_generic_name check")
+    elif not is_generic_name(name):
         logger.info("auto_rename skip: name not generic: %r", name)
         return None
 

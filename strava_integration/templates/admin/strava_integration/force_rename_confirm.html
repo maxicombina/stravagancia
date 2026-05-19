@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>Force auto-rename — confirm</h1>
+
+<p>
+  You are about to <strong>force-rename</strong> the following activities. Their current
+  names are NOT generic (so the normal auto-rename would skip them), but you can
+  override that here. The new name will be computed from the GPS polyline and
+  PUT to Strava, overwriting whatever they're called now.
+</p>
+
+<p>
+  <strong>This will overwrite custom names you might have set manually.</strong>
+  Cancel if you're not sure.
+</p>
+
+<ul>
+  {% for a in activities %}
+    <li>
+      <code>{{ a.strava_id }}</code> — {{ a.name|default:"(no name)" }}
+      ({{ a.distance_km }} km, {{ a.start_date_local|date:"Y-m-d" }})
+    </li>
+  {% endfor %}
+</ul>
+
+<form method="post">
+  {% csrf_token %}
+  {% for a in activities %}
+    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ a.pk }}">
+  {% endfor %}
+  <input type="hidden" name="action" value="force_auto_rename_activities">
+  <input type="hidden" name="post" value="yes">
+  <input type="submit" value="Yes, force-rename {{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}">
+  <a href="../" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

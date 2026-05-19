@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import admin, messages
+from django.shortcuts import render
 from django.utils.html import format_html
 
 from .models import Athlete, Activity, MissingActivity
@@ -8,6 +9,52 @@ from .renaming import auto_rename_from_strava_data
 from .services import fetch_activity_detail
 
 logger = logging.getLogger(__name__)
+
+
+def _run_rename(queryset, force: bool):
+    """Helper shared by both rename actions. Returns (renamed, skipped, errors)."""
+    renamed: list[tuple[int, str]] = []
+    skipped: list[int] = []
+    errors: list[tuple[int, str]] = []
+
+    for activity in queryset:
+        try:
+            data = fetch_activity_detail(activity.strava_id)
+            new_name = auto_rename_from_strava_data(data, force=force)
+            if new_name:
+                renamed.append((activity.strava_id, new_name))
+            else:
+                skipped.append(activity.strava_id)
+        except Exception as exc:
+            logger.exception("Admin auto-rename failed for activity %s", activity.strava_id)
+            errors.append((activity.strava_id, str(exc)))
+
+    return renamed, skipped, errors
+
+
+def _report(modeladmin, request, renamed, skipped, errors, *, skip_label):
+    if renamed:
+        preview = ", ".join(f"{sid} → {name}" for sid, name in renamed[:3])
+        suffix = " …" if len(renamed) > 3 else ""
+        modeladmin.message_user(
+            request,
+            f"Renamed {len(renamed)}: {preview}{suffix}",
+            level=messages.SUCCESS,
+        )
+    if skipped:
+        modeladmin.message_user(
+            request,
+            f"Skipped {len(skipped)} ({skip_label}): "
+            f"{', '.join(str(s) for s in skipped[:10])}",
+            level=messages.WARNING,
+        )
+    if errors:
+        preview = "; ".join(f"{sid}: {msg}" for sid, msg in errors[:3])
+        modeladmin.message_user(
+            request,
+            f"Errored {len(errors)}: {preview}",
+            level=messages.ERROR,
+        )
 
 
 @admin.action(description="Auto-rename selected activities (re-fetch from Strava)")
@@ -20,44 +67,39 @@ def auto_rename_activities(modeladmin, request, queryset):
     Synchronous and rate-limited by the internal GEOCODE_SLEEP_S; expect ~10-30s
     per activity. Don't select dozens at once.
     """
-    renamed: list[tuple[int, str]] = []
-    skipped: list[int] = []
-    errors: list[tuple[int, str]] = []
+    renamed, skipped, errors = _run_rename(queryset, force=False)
+    _report(
+        modeladmin, request, renamed, skipped, errors,
+        skip_label="name not generic, no polyline, or non-Ride",
+    )
 
-    for activity in queryset:
-        try:
-            data = fetch_activity_detail(activity.strava_id)
-            new_name = auto_rename_from_strava_data(data)
-            if new_name:
-                renamed.append((activity.strava_id, new_name))
-            else:
-                skipped.append(activity.strava_id)
-        except Exception as exc:
-            logger.exception("Admin auto-rename failed for activity %s", activity.strava_id)
-            errors.append((activity.strava_id, str(exc)))
 
-    if renamed:
-        preview = ", ".join(f"{sid} → {name}" for sid, name in renamed[:3])
-        suffix = " …" if len(renamed) > 3 else ""
-        modeladmin.message_user(
+@admin.action(description="Force auto-rename selected (bypass generic-name check)")
+def force_auto_rename_activities(modeladmin, request, queryset):
+    """
+    Like `auto_rename_activities` but bypasses the is_generic_name check, so it
+    will rename activities even if their current name looks custom. Other gates
+    (type=Ride, polyline present, distance >= 1km) still apply.
+
+    Shows a confirmation page listing the activities before executing, since
+    overwriting a custom name is destructive.
+    """
+    if request.POST.get("post") != "yes":
+        return render(
             request,
-            f"Renamed {len(renamed)}: {preview}{suffix}",
-            level=messages.SUCCESS,
+            "admin/strava_integration/force_rename_confirm.html",
+            {
+                "activities": queryset,
+                "action_checkbox_name": admin.helpers.ACTION_CHECKBOX_NAME,
+                "opts": modeladmin.model._meta,
+            },
         )
-    if skipped:
-        modeladmin.message_user(
-            request,
-            f"Skipped {len(skipped)} (name not generic, no polyline, or non-Ride): "
-            f"{', '.join(str(s) for s in skipped[:10])}",
-            level=messages.WARNING,
-        )
-    if errors:
-        preview = "; ".join(f"{sid}: {msg}" for sid, msg in errors[:3])
-        modeladmin.message_user(
-            request,
-            f"Errored {len(errors)}: {preview}",
-            level=messages.ERROR,
-        )
+
+    renamed, skipped, errors = _run_rename(queryset, force=True)
+    _report(
+        modeladmin, request, renamed, skipped, errors,
+        skip_label="no polyline, non-Ride, distance<1km, or generated name empty",
+    )
 
 @admin.register(Athlete)
 class AthleteAdmin(admin.ModelAdmin):
@@ -68,7 +110,7 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ("id", "strava_id_link", "name", "calories", "distance_km", "start_date_local", "athlete")
     list_filter = ("activity_type", "start_date_local")
     search_fields = ("name",)
-    actions = [auto_rename_activities]
+    actions = [auto_rename_activities, force_auto_rename_activities]
 
     @admin.display(description="Strava ID", ordering="strava_id")
     def strava_id_link(self, obj):

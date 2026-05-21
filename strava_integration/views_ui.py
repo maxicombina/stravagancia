@@ -1,9 +1,13 @@
 import time
 from django.views.generic import TemplateView, ListView, DetailView
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
+
+
+def healthz(request):
+    return HttpResponse("ok", content_type="text/plain")
 
 from .models import Athlete, Activity, MissingActivity
 from .services import (

@@ -90,5 +90,17 @@ This project runs on Render's free tier (Docker service) with a Neon Postgres da
   - `SECRET_KEY`, `ALLOWED_HOSTS`
   - Optional: `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`, `DJANGO_SUPERUSER_EMAIL` (used once by `entrypoint.sh` to create the admin user on first boot).
 
+### Keep-alive (avoiding Render's 15-min sleep)
+
+Render's free tier puts the service to sleep after 15 min of inactivity, which adds a ~30s cold start on the first request and can cause Strava webhooks to miss the 2s timeout (Strava retries, so events still arrive eventually).
+
+To avoid that during the hours you'd actually use the app, an external scheduler hits a cheap endpoint on a regular interval:
+
+- **Endpoint**: `GET /healthz/` — returns `ok` (200) without touching the database. Defined at `strava_integration/views_ui.py` (`healthz`). Public, no auth.
+- **Scheduler**: [cron-job.org](https://cron-job.org/) (free tier) — single job, `GET` request, every 12 min, only during `10:00–01:00 Europe/Madrid`. Outside that window the service sleeps freely.
+- **UptimeRobot**: previously used for the same job but is paused; its free tier no longer offers maintenance windows, so it can't honour the night-time pause schedule. Re-enable it later if you want failure alerting on top.
+
+Why a 750h/month cap matters: Render free tier allows 750h of running time per account per billing cycle. One service awake 24/7 = 720h, leaving only 30h for anything else. Sleeping ~9h/night frees ~270h for a second service (e.g. a public Grafana).
+
 
 - Unfold: theme para el admin

@@ -7,11 +7,12 @@ name: Keep Render awake
 
 on:
   schedule:
-    # Every 10 min, 07:00–22:59 UTC. GitHub Actions cron is UTC-only (no DST),
-    # so this covers ~09:00–00:59 CEST (summer) / ~08:00–23:59 CET (winter),
-    # i.e. the requested 09:00–24:00 CET window. Off overnight to stay well
-    # under Render's 750h/month free cap (~16h/day ≈ 480-500h/month).
-    - cron: '*/10 7-22 * * *'
+    # Every 10 min, 06:00–21:59 UTC. GitHub Actions cron is UTC-only (no DST),
+    # so this is tuned for SUMMER (CEST, UTC+2) = 08:00–23:50 local Spain.
+    # In WINTER (CET, UTC+1) it shifts to 07:00–22:50 local — switch back to
+    # '7-22' around late October if you want 08:00–23:50 in winter too.
+    # Off overnight to stay well under Render's 750h/month free cap.
+    - cron: '*/10 6-21 * * *'
   workflow_dispatch: {}
 
 # Don't let slow cold-start runs pile up on top of each other.

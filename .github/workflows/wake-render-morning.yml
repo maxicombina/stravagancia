@@ -6,16 +6,17 @@ name: Wake Render (morning)
 # the spin-up but records a failure. This job's curl --retry rides through the cold
 # start within one run, the same trick as keep-alive.yml.
 #
-# Fires every 5 min for the first two UTC hours of the active window. GitHub drops
+# Fires every 5 min during the first UTC hour of the active window. GitHub drops
 # most scheduled runs under load (especially on the hour), so the dense cadence is
 # deliberate: many shots to land at least one wake. Off the rest of the day —
-# keep-alive.yml covers 06-21 UTC.
+# keep-alive.yml covers 07-21 UTC.
 
 on:
   schedule:
-    # Every 5 min, 06:00-07:59 UTC = 08:00-09:55 local Spain (summer, CEST UTC+2).
-    # In winter (CET, UTC+1) this is 07:00-08:55 local.
-    - cron: '*/5 6-7 * * *'
+    # Every 5 min, 07:00-07:59 UTC = 09:00-09:55 local Spain (summer, CEST UTC+2).
+    # In winter (CET, UTC+1) this is 08:00-08:55 local — bump to '8' for a 09:00
+    # local wake in winter too.
+    - cron: '*/5 7 * * *'
   workflow_dispatch: {}
 
 concurrency:

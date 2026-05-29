@@ -1,0 +1,39 @@
+name: Wake Render (morning)
+
+# Reinforces the morning wake-up, the moment most likely to find Render asleep
+# (overnight idle) and the moment cron-job.org fails at: its single ~30s-timeout
+# request gives up ~2s before Render's ~32s cold start returns 200, so it triggers
+# the spin-up but records a failure. This job's curl --retry rides through the cold
+# start within one run, the same trick as keep-alive.yml.
+#
+# Fires every 5 min for the first two UTC hours of the active window. GitHub drops
+# most scheduled runs under load (especially on the hour), so the dense cadence is
+# deliberate: many shots to land at least one wake. Off the rest of the day —
+# keep-alive.yml covers 06-21 UTC.
+
+on:
+  schedule:
+    # Every 5 min, 06:00-07:59 UTC = 08:00-09:55 local Spain (summer, CEST UTC+2).
+    # In winter (CET, UTC+1) this is 07:00-08:55 local.
+    - cron: '*/5 6-7 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /healthz/ (retry through cold start)
+        run: |
+          curl -fsS \
+            --retry 6 \
+            --retry-delay 30 \
+            --retry-all-errors \
+            --max-time 120 \
+            -o /dev/null \
+            -w 'HTTP %{http_code} in %{time_total}s\n' \
+            https://stravagancia.onrender.com/healthz/

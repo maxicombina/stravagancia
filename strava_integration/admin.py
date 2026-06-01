@@ -1,4 +1,5 @@
 import logging
+import time
 
 from django.contrib import admin, messages
 from django.shortcuts import render
@@ -17,18 +18,45 @@ def _run_rename(queryset, force: bool):
     skipped: list[int] = []
     errors: list[tuple[int, str]] = []
 
-    for activity in queryset:
-        try:
-            data = fetch_activity_detail(activity.strava_id)
-            new_name = auto_rename_from_strava_data(data, force=force)
-            if new_name:
-                renamed.append((activity.strava_id, new_name))
-            else:
-                skipped.append(activity.strava_id)
-        except Exception as exc:
-            logger.exception("Admin auto-rename failed for activity %s", activity.strava_id)
-            errors.append((activity.strava_id, str(exc)))
+    ids = list(queryset.values_list("strava_id", flat=True))
+    run_start = time.monotonic()
+    logger.info(
+        "admin _run_rename start: force=%s count=%d ids=%s",
+        force, len(ids), ids,
+    )
 
+    for activity in queryset:
+        sid = activity.strava_id
+        t0 = time.monotonic()
+        try:
+            logger.info("admin rename [%s]: fetching detail from Strava", sid)
+            data = fetch_activity_detail(sid)
+            t_fetch = time.monotonic()
+            logger.info(
+                "admin rename [%s]: detail fetched in %.1fs, starting auto_rename (geocoding)",
+                sid, t_fetch - t0,
+            )
+            new_name = auto_rename_from_strava_data(data, force=force)
+            t_done = time.monotonic()
+            logger.info(
+                "admin rename [%s]: auto_rename done in %.1fs (total %.1fs) -> %r",
+                sid, t_done - t_fetch, t_done - t0, new_name,
+            )
+            if new_name:
+                renamed.append((sid, new_name))
+            else:
+                skipped.append(sid)
+        except Exception as exc:
+            logger.exception(
+                "admin rename [%s]: FAILED after %.1fs: %s",
+                sid, time.monotonic() - t0, exc,
+            )
+            errors.append((sid, str(exc)))
+
+    logger.info(
+        "admin _run_rename done in %.1fs: renamed=%d skipped=%d errors=%d",
+        time.monotonic() - run_start, len(renamed), len(skipped), len(errors),
+    )
     return renamed, skipped, errors
 
 

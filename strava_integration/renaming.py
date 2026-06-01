@@ -35,6 +35,9 @@ GEOCODE_SLEEP_S = 1.1
 
 GENERIC_PATTERNS = [
     r'^(Morning|Afternoon|Evening|Night|Lunch)\s+(Ride|Run|Walk|Hike|Workout)$',
+    # English multi-word ride variants Strava emits for MTB/gravel/e-bike, e.g.
+    # "Evening Mountain Bike Ride". The single-word pattern above misses these.
+    r'^(Morning|Afternoon|Evening|Night|Lunch)\s+(Mountain Bike|Gravel|E-Bike|E-Mountain Bike) Ride$',
     r'^(Ride|Run|Walk|Hike|Workout)$',
     r'^Bicicleta de monta[ñn]a (matutina|vespertina|nocturna|de mediod[ií]a)$',
     r'^Bicicleta (matutina|vespertina|nocturna|de mediod[ií]a)$',

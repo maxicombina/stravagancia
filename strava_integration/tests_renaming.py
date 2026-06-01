@@ -26,6 +26,12 @@ from strava_integration.renaming import (
     "Lunch Ride",
     "Ride",
     "Workout",
+    # English multi-word ride variants (MTB/gravel/e-bike)
+    "Evening Mountain Bike Ride",
+    "Morning Mountain Bike Ride",
+    "Afternoon Gravel Ride",
+    "Night E-Bike Ride",
+    "Lunch E-Mountain Bike Ride",
     "Bicicleta de montaña matutina",
     "Bicicleta de montana vespertina",
     "Bicicleta nocturna",

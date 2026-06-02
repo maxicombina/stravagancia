@@ -8,6 +8,10 @@ from django.utils.dateparse import parse_datetime
 from .models import Athlete, Activity
 from .utils import refresh_access_token
 
+# NOTE (Strava API change): the base URL moves to "https://www.api-v3.strava.com"
+# effective 2027-06-01. As of 2026-06-02 the new domain is still NXDOMAIN (not
+# live yet), so DO NOT switch until a curl to it returns 401 instead of a DNS
+# failure. Same constant duplicated in renaming.py.
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
 
 

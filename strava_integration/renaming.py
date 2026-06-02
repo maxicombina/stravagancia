@@ -25,6 +25,10 @@ from .utils import refresh_access_token
 
 logger = logging.getLogger(__name__)
 
+# NOTE (Strava API change): the base URL moves to "https://www.api-v3.strava.com"
+# effective 2027-06-01. As of 2026-06-02 the new domain is still NXDOMAIN (not
+# live yet), so DO NOT switch until a curl to it returns 401 instead of a DNS
+# failure. Same constant duplicated in services.py.
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
 USER_AGENT = "stravagancia-rename/1.0"
 

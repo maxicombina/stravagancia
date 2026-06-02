@@ -27,11 +27,11 @@ TABLE = "strava_integration_activity"
 RIDE_FILTER = "activity_type = 'Ride'"
 
 # (title, aggregation expression over the table, grafana unit, fixed color, viz)
-# NOTE: "Distance (km)" and "Activities" are NOT here — they are rendered
-# together as a combo panel (combo_distance_panel) injected as the lead of the
-# Totales section, mirroring Metabase's combo card (km bars + activities line).
+# NOTE: Distance/Activities AND Calories are NOT here — they are rendered as
+# combo panels (combo_distance_panel, combo_calories_panel) injected as the
+# leads of the Totales section (bars + regression trend [+ activities line /
+# goal line]), mirroring Metabase's combo cards with trend & goal lines.
 TOTALS = [
-    ("Calories",            "SUM(calories)",                 "kcal",        "orange", "barchart"),
     ("Elevation gain (m)",  "SUM(total_elevation_gain)",     "lengthm",     "green",  "barchart"),
     ("Moving time (h)",     "SUM(moving_time) / 3600.0",     "h",           "blue",   "barchart"),
     ("Max speed (km/h)",    "MAX(max_speed) * 3.6",          "velocitykmh", "purple", "timeseries"),
@@ -213,6 +213,111 @@ def combo_distance_panel(pid, bucket, x, y):
     }
 
 
+def combo_calories_panel(pid, bucket, x, y):
+    """Calories combo (mirrors the Distance combo): orange kcal bars + dashed
+    light-yellow linear-regression trend line + dotted white baseline. The
+    baseline is the user's weekly minimum (2500 kcal/wk); scaled for month."""
+    if bucket == "week":
+        goal_expr, goal_label = "2500", "Baseline (2500 kcal/wk)"
+    elif bucket == "month":
+        goal_expr, goal_label = "10000", "Baseline (10000 kcal/mo)"
+    else:  # "$bucket"
+        goal_expr, goal_label = "CASE WHEN '$bucket' = 'week' THEN 2500 ELSE 10000 END", "Baseline"
+
+    sql = (
+        f"WITH w AS (\n"
+        f"  SELECT date_trunc('{bucket}', start_date_local) AS time,\n"
+        f"         SUM(calories) AS kcal\n"
+        f"  FROM {TABLE}\n"
+        f"  WHERE $__timeFilter(start_date_local) AND {RIDE_FILTER}\n"
+        f"  GROUP BY 1\n"
+        f"),\n"
+        f"n AS (\n"
+        f"  SELECT time, kcal, ROW_NUMBER() OVER (ORDER BY time) - 1 AS rn FROM w\n"
+        f"),\n"
+        f"r AS (\n"
+        f"  SELECT regr_slope(kcal, rn) AS slope, regr_intercept(kcal, rn) AS intercept FROM n\n"
+        f")\n"
+        f"SELECT n.time,\n"
+        f"       n.kcal AS \"Calories\",\n"
+        f"       r.intercept + r.slope * n.rn AS \"Trend (kcal)\",\n"
+        f"       {goal_expr} AS \"{goal_label}\"\n"
+        f"FROM n CROSS JOIN r\n"
+        f"ORDER BY n.time"
+    )
+    return {
+        "datasource": DS,
+        "fieldConfig": {
+            "defaults": {
+                "color": {"mode": "fixed", "fixedColor": "orange"},
+                "custom": {
+                    "axisBorderShow": False,
+                    "axisCenteredZero": False,
+                    "axisColorMode": "text",
+                    "axisLabel": "kcal",
+                    "axisPlacement": "left",
+                    "drawStyle": "bars",
+                    "fillOpacity": 80,
+                    "gradientMode": "none",
+                    "hideFrom": {"legend": False, "tooltip": False, "viz": False},
+                    "lineWidth": 1,
+                    "scaleDistribution": {"type": "linear"},
+                    "showPoints": "never",
+                    "stacking": {"group": "A", "mode": "none"},
+                    "thresholdsStyle": {"mode": "off"},
+                },
+                "mappings": [],
+                "thresholds": thresholds(),
+                "unit": "kcal",
+            },
+            "overrides": [
+                {
+                    "matcher": {"id": "byName", "options": "Trend (kcal)"},
+                    "properties": [
+                        {"id": "color", "value": {"mode": "fixed", "fixedColor": "light-yellow"}},
+                        {"id": "custom.drawStyle", "value": "line"},
+                        {"id": "custom.lineWidth", "value": 2},
+                        {"id": "custom.lineInterpolation", "value": "linear"},
+                        {"id": "custom.fillOpacity", "value": 0},
+                        {"id": "custom.showPoints", "value": "never"},
+                        {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                        {"id": "custom.axisPlacement", "value": "left"},
+                    ],
+                },
+                {
+                    "matcher": {"id": "byName", "options": goal_label},
+                    "properties": [
+                        {"id": "color", "value": {"mode": "fixed", "fixedColor": "white"}},
+                        {"id": "custom.drawStyle", "value": "line"},
+                        {"id": "custom.lineWidth", "value": 2},
+                        {"id": "custom.lineInterpolation", "value": "linear"},
+                        {"id": "custom.fillOpacity", "value": 0},
+                        {"id": "custom.showPoints", "value": "never"},
+                        {"id": "custom.lineStyle", "value": {"fill": "dot", "dash": [2, 10]}},
+                        {"id": "custom.axisPlacement", "value": "left"},
+                    ],
+                },
+            ],
+        },
+        "gridPos": {"h": 8, "w": 12, "x": x, "y": y},
+        "id": pid,
+        "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": True},
+            "tooltip": {"mode": "multi", "sort": "none"},
+        },
+        "title": "Calories + Trend",
+        "type": "timeseries",
+        "targets": [{
+            "datasource": DS,
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": True,
+            "rawSql": sql,
+            "refId": "A",
+        }],
+    }
+
+
 def metric_panel(pid, title, agg, unit, color, viz, bucket, x, y):
     field_defaults = {
         "color": {"mode": "fixed", "fixedColor": color},
@@ -320,16 +425,16 @@ def build_dashboard(uid, title, bucket, default_from, templating=None):
     pid = 1
     y = 0
 
-    def add_section(header, metrics, lead_builder=None):
+    def add_section(header, metrics, leads=None):
         nonlocal pid, y
         panels.append(text_panel(pid, header, y))
         pid += 1
         y += 2
-        # A lead_builder (e.g. the Distance combo) is placed first; the rest are
-        # plain barcharts. All barcharts let Grafana rotate the x-axis tick
+        # `leads` are prebuilt combo panels (timeseries) placed first; the rest
+        # are plain barcharts. Only barcharts let Grafana rotate the x-axis tick
         # labels, so they stay tilted/consistent (matching Metabase). The `viz`
         # column in the metric tables documents Metabase's original choice.
-        items = ([("lead", lead_builder)] if lead_builder else []) + [("metric", m) for m in metrics]
+        items = [("lead", b) for b in (leads or [])] + [("metric", m) for m in metrics]
         for i, (kind, item) in enumerate(items):
             x = 0 if i % 2 == 0 else 12
             if kind == "lead":
@@ -343,8 +448,10 @@ def build_dashboard(uid, title, bucket, default_from, templating=None):
         if len(items) % 2 == 1:
             y += 8
 
-    add_section("Totales", TOTALS,
-                lead_builder=lambda p, x, y: combo_distance_panel(p, bucket, x, y))
+    add_section("Totales", TOTALS, leads=[
+        lambda p, x, y: combo_distance_panel(p, bucket, x, y),
+        lambda p, x, y: combo_calories_panel(p, bucket, x, y),
+    ])
     add_section("Promedios por salida", AVERAGES)
     add_section("Derivados (por hora)", DERIVED)
 

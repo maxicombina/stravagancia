@@ -51,8 +51,46 @@ DERIVED = [
     ("Calories per hour",       "AVG(CASE WHEN moving_time = 0 THEN NULL ELSE calories / (moving_time / 3600.0) END)",             "short", "orange", "timeseries"),
     ("Max calories per hour",   "MAX(CASE WHEN moving_time = 0 THEN NULL ELSE calories / (moving_time / 3600.0) END)",             "short", "orange", "timeseries"),
     ("Elevation gain per hour", "AVG(CASE WHEN moving_time = 0 THEN NULL ELSE total_elevation_gain / (moving_time / 3600.0) END)", "short", "green",  "timeseries"),
-    ("Elevation per distance",  "AVG(CASE WHEN distance = 0 THEN NULL ELSE total_elevation_gain / distance END)",                  "short", "green",  "timeseries"),
+    # value is a ratio (m/m); percentunit renders 0.01 as "1%". 6th item = decimals.
+    ("Elevation per km",        "AVG(CASE WHEN distance = 0 THEN NULL ELSE total_elevation_gain / distance END)",                  "percentunit", "green",  "timeseries", 1),
 ]
+
+
+# Per-panel axis soft-max (~1.25x the real max in Neon, rounded), so the bar's
+# value label always has headroom above and Grafana renders it at a readable
+# font instead of shrinking/dropping it. Soft (not hard) max never clips bars:
+# if data grows past it the axis just extends. Keyed by title -> (week, month);
+# the $bucket dashboard uses max(week, month) so neither bucket clips.
+# Source: read-only MAX-per-bucket query against Neon (2026-06-03). Re-run if
+# the data range grows a lot and bars start hugging the top again.
+SOFTMAX = {
+    "Elevation gain (m)":      (3000, 7500),
+    "Moving time (h)":         (17,   42),
+    "Max speed (km/h)":        (85,   85),
+    "Max heart rate (bpm)":    (230,  230),
+    "Avg km per ride":         (100,  62),
+    "Avg calories per ride":   (4500, 2600),
+    "Avg moving time (h)":     (6,    4),
+    "Avg elevation gain (m)":  (1400, 850),
+    "Avg speed (km/h)":        (30,   23),
+    "Avg heart rate (bpm)":    (195,  195),
+    "Calories per hour":       (1300, 1200),
+    "Max calories per hour":   (1300, 1300),
+    "Elevation gain per hour": (420,  380),
+    "Elevation per km":        (0.037, 0.034),
+}
+
+
+def soft_max_for(title, bucket):
+    pair = SOFTMAX.get(title)
+    if pair is None:
+        return None
+    week, month = pair
+    if bucket == "week":
+        return week
+    if bucket == "month":
+        return month
+    return max(week, month)  # "$bucket": cover both so neither clips
 
 
 def agg_sql(agg, bucket, viz):
@@ -136,6 +174,8 @@ def combo_distance_panel(pid, bucket, x, y):
                     "axisColorMode": "text",
                     "axisLabel": "km",
                     "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.9,
                     "drawStyle": "bars",
                     "fillOpacity": 80,
                     "gradientMode": "none",
@@ -256,6 +296,8 @@ def combo_calories_panel(pid, bucket, x, y):
                     "axisColorMode": "text",
                     "axisLabel": "kcal",
                     "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.9,
                     "drawStyle": "bars",
                     "fillOpacity": 80,
                     "gradientMode": "none",
@@ -318,7 +360,14 @@ def combo_calories_panel(pid, bucket, x, y):
     }
 
 
-def metric_panel(pid, title, agg, unit, color, viz, bucket, x, y):
+def metric_panel(pid, title, agg, unit, color, viz, bucket, x, y, decimals=None):
+    soft_max = soft_max_for(title, bucket)
+    # Show only the number on the bar (and axis); the unit already lives in the
+    # title ("Moving time (h)", "Avg km per ride", ...). Plain numbers are also
+    # narrower than "32.9 h"/"5.88 km", so the label fits on narrow bars (long
+    # monthly ranges) instead of being dropped. Exception: percentunit values
+    # are tiny ratios (0.029) that are meaningless without the "%", so keep them.
+    display_unit = unit if unit == "percentunit" else "none"
     field_defaults = {
         "color": {"mode": "fixed", "fixedColor": color},
         "custom": {
@@ -336,8 +385,12 @@ def metric_panel(pid, title, agg, unit, color, viz, bucket, x, y):
         },
         "mappings": [],
         "thresholds": thresholds(),
-        "unit": unit,
+        "unit": display_unit,
     }
+    if decimals is not None:
+        field_defaults["decimals"] = decimals
+    if soft_max is not None:
+        field_defaults["custom"]["axisSoftMax"] = soft_max
     if viz == "timeseries":
         field_defaults["custom"].update({
             "drawStyle": "line",
@@ -359,7 +412,7 @@ def metric_panel(pid, title, agg, unit, color, viz, bucket, x, y):
             "groupWidth": 0.7,
             "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": False},
             "orientation": "auto",
-            "showValue": "auto",
+            "showValue": "always",
             "stacking": "none",
             "tooltip": {"mode": "single", "sort": "none"},
             "xTickLabelRotation": -45,
@@ -394,32 +447,6 @@ def text_panel(pid, text, y):
     }
 
 
-def missing_table_panel(pid, y):
-    sql = (
-        "SELECT start_date_local AS \"Fecha\", strava_id AS \"Strava ID\", "
-        "loaded AS \"Cargada\"\n"
-        "FROM strava_integration_missingactivity\n"
-        "ORDER BY start_date_local DESC"
-    )
-    return {
-        "datasource": DS,
-        "fieldConfig": {"defaults": {"custom": {"filterable": True}}, "overrides": []},
-        "gridPos": {"h": 9, "w": 24, "x": 0, "y": y},
-        "id": pid,
-        "options": {"showHeader": True, "cellHeight": "sm"},
-        "title": "Missing activities",
-        "type": "table",
-        "targets": [{
-            "datasource": DS,
-            "editorMode": "code",
-            "format": "table",
-            "rawQuery": True,
-            "rawSql": sql,
-            "refId": "A",
-        }],
-    }
-
-
 def build_dashboard(uid, title, bucket, default_from, templating=None):
     panels = []
     pid = 1
@@ -440,8 +467,9 @@ def build_dashboard(uid, title, bucket, default_from, templating=None):
             if kind == "lead":
                 panels.append(item(pid, x, y))
             else:
-                mtitle, agg, unit, color, viz = item
-                panels.append(metric_panel(pid, mtitle, agg, unit, color, "barchart", bucket, x, y))
+                mtitle, agg, unit, color, viz, *rest = item
+                decimals = rest[0] if rest else None
+                panels.append(metric_panel(pid, mtitle, agg, unit, color, "barchart", bucket, x, y, decimals=decimals))
             pid += 1
             if i % 2 == 1:
                 y += 8
@@ -454,8 +482,6 @@ def build_dashboard(uid, title, bucket, default_from, templating=None):
     ])
     add_section("Promedios por salida", AVERAGES)
     add_section("Derivados (por hora)", DERIVED)
-
-    panels.append(missing_table_panel(pid, y))
 
     return {
         "annotations": {"list": [{

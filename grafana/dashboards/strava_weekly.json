@@ -52,6 +52,8 @@
             "axisColorMode": "text",
             "axisLabel": "km",
             "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.9,
             "drawStyle": "bars",
             "fillOpacity": 80,
             "gradientMode": "none",
@@ -289,6 +291,8 @@
             "axisColorMode": "text",
             "axisLabel": "kcal",
             "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.9,
             "drawStyle": "bars",
             "fillOpacity": 80,
             "gradientMode": "none",
@@ -488,7 +492,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 3000
           },
           "mappings": [],
           "thresholds": {
@@ -500,7 +505,7 @@
               }
             ]
           },
-          "unit": "lengthm"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -523,7 +528,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -578,7 +583,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 17
           },
           "mappings": [],
           "thresholds": {
@@ -590,7 +596,7 @@
               }
             ]
           },
-          "unit": "h"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -613,7 +619,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -668,7 +674,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 85
           },
           "mappings": [],
           "thresholds": {
@@ -680,7 +687,7 @@
               }
             ]
           },
-          "unit": "velocitykmh"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -703,7 +710,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -758,7 +765,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 230
           },
           "mappings": [],
           "thresholds": {
@@ -770,7 +778,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -793,7 +801,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -863,7 +871,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 100
           },
           "mappings": [],
           "thresholds": {
@@ -875,7 +884,7 @@
               }
             ]
           },
-          "unit": "lengthkm"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -898,7 +907,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -953,7 +962,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 4500
           },
           "mappings": [],
           "thresholds": {
@@ -965,7 +975,7 @@
               }
             ]
           },
-          "unit": "kcal"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -988,7 +998,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1043,7 +1053,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 6
           },
           "mappings": [],
           "thresholds": {
@@ -1055,7 +1066,7 @@
               }
             ]
           },
-          "unit": "h"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1078,7 +1089,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1133,7 +1144,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 1400
           },
           "mappings": [],
           "thresholds": {
@@ -1145,7 +1157,7 @@
               }
             ]
           },
-          "unit": "lengthm"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1168,7 +1180,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1223,7 +1235,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 30
           },
           "mappings": [],
           "thresholds": {
@@ -1235,7 +1248,7 @@
               }
             ]
           },
-          "unit": "velocitykmh"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1258,7 +1271,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1313,7 +1326,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 195
           },
           "mappings": [],
           "thresholds": {
@@ -1325,7 +1339,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1348,7 +1362,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1418,7 +1432,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 1300
           },
           "mappings": [],
           "thresholds": {
@@ -1430,7 +1445,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1453,7 +1468,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1508,7 +1523,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 1300
           },
           "mappings": [],
           "thresholds": {
@@ -1520,7 +1536,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1543,7 +1559,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1598,7 +1614,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 420
           },
           "mappings": [],
           "thresholds": {
@@ -1610,7 +1627,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1633,7 +1650,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1688,7 +1705,8 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisSoftMax": 0.037
           },
           "mappings": [],
           "thresholds": {
@@ -1700,7 +1718,8 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "percentunit",
+          "decimals": 1
         },
         "overrides": []
       },
@@ -1723,7 +1742,7 @@
           "showLegend": false
         },
         "orientation": "auto",
-        "showValue": "auto",
+        "showValue": "always",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -1732,7 +1751,7 @@
         "xTickLabelRotation": -45,
         "xTickLabelSpacing": 0
       },
-      "title": "Elevation per distance",
+      "title": "Elevation per km",
       "type": "barchart",
       "targets": [
         {
@@ -1744,46 +1763,6 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT to_char(date_trunc('week', start_date_local), 'YYYY-MM-DD') AS period, AVG(CASE WHEN distance = 0 THEN NULL ELSE total_elevation_gain / distance END) AS value\nFROM strava_integration_activity\nWHERE $__timeFilter(start_date_local) AND activity_type = 'Ride'\nGROUP BY 1\nORDER BY 1",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "strava-postgres"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "filterable": true
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 70
-      },
-      "id": 20,
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "title": "Missing activities",
-      "type": "table",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "strava-postgres"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT start_date_local AS \"Fecha\", strava_id AS \"Strava ID\", loaded AS \"Cargada\"\nFROM strava_integration_missingactivity\nORDER BY start_date_local DESC",
           "refId": "A"
         }
       ]

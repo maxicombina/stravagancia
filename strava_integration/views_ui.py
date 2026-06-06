@@ -1,3 +1,4 @@
+import logging
 import time
 from django.conf import settings
 from django.views.generic import TemplateView, ListView, DetailView
@@ -6,8 +7,15 @@ from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 
+logger = logging.getLogger(__name__)
+
 
 def healthz(request):
+    # Log every hit so keep-alive / wake traffic is visible in Render logs.
+    # Behind Render's proxy the real client IP is the first X-Forwarded-For entry.
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    ip = xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", "?")
+    logger.info("healthz ping from %s ua=%r", ip, request.META.get("HTTP_USER_AGENT", "")[:80])
     return HttpResponse("ok", content_type="text/plain")
 
 from .models import Athlete, Activity, MissingActivity

@@ -28,7 +28,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
     'strava_integration',
+]
+
+# django-axes: brute-force protection on the login form.
+# AxesStandaloneBackend must come first so failed attempts are counted before
+# the normal credential check.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 MIDDLEWARE = [
@@ -40,7 +49,20 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Must be last: wraps the login view to record/raise on failed attempts.
+    'axes.middleware.AxesMiddleware',
 ]
+
+# django-axes configuration
+AXES_FAILURE_LIMIT = 5                              # failed attempts before lockout
+AXES_COOLOFF_TIME = 1                               # lockout duration, in hours
+AXES_RESET_ON_SUCCESS = True                        # a good login clears the counter
+# Lock the (IP, username) pair together: stops brute force from one source
+# without letting an attacker lock the real user out from every IP.
+AXES_LOCKOUT_PARAMETERS = [['ip_address', 'username']]
+# Behind Render's proxy, the real client IP is in X-Forwarded-For, not REMOTE_ADDR.
+AXES_IPWARE_PROXY_COUNT = 1
+AXES_IPWARE_META_PRECEDENCE_ORDER = ['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR']
 
 ROOT_URLCONF = 'strava_app.urls'
 
@@ -148,3 +170,9 @@ LOGGING = {
         },
     },
 }
+
+# Public URL of the Grafana instance whose dashboards are embedded in /charts/.
+# Local dev defaults to the docker-compose Grafana; in prod set GRAFANA_URL to the
+# Render Grafana service URL (the iframe loads in the user's browser, so it must be
+# a publicly reachable host, not localhost).
+GRAFANA_URL = os.getenv('GRAFANA_URL', 'http://localhost:3001')

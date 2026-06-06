@@ -1,4 +1,5 @@
 import time
+from django.conf import settings
 from django.views.generic import TemplateView, ListView, DetailView
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
@@ -38,8 +39,11 @@ class ChartsView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['grafana_url'] = 'http://localhost:3001'
-        ctx['public_token'] = '298efab5710541fea26bf5f5c920ed6d'
+        # GRAFANA_URL is the docker-compose Grafana locally and the Render Grafana
+        # service in prod. Anonymous access + embedding are enabled on both, so we
+        # iframe the dashboard directly without a public-dashboard token.
+        ctx['grafana_url'] = settings.GRAFANA_URL
+        ctx['dashboard_uid'] = 'strava-weekly'
         return ctx
 
 

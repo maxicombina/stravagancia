@@ -4,6 +4,9 @@ set -e
 echo "Running migrations..."
 uv run python manage.py migrate --noinput
 
+if [ "$SKIP_SUPERUSER" = "1" ]; then
+  echo "SKIP_SUPERUSER=1 set, skipping superuser creation."
+else
 echo "Creating superuser if it doesn't exist..."
 uv run python manage.py shell -c "
 from django.contrib.auth.models import User
@@ -17,6 +20,7 @@ if not User.objects.filter(username=username).exists():
 else:
     print(f'Superuser {username!r} already exists, skipping.')
 "
+fi
 
 echo "Collecting static files..."
 uv run python manage.py collectstatic --noinput

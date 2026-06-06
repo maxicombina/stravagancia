@@ -20,17 +20,13 @@ services:
     env_file:
       - .env
     environment:
-      # Override DB_HOST to use the postgres service name instead of localhost
-      DB_HOST: postgres
-      # Superuser created on first startup if it doesn't exist
-      DJANGO_SUPERUSER_USERNAME: admin
-      DJANGO_SUPERUSER_PASSWORD: admin
-      DJANGO_SUPERUSER_EMAIL: ""
+      # Point django at the production Neon DB (takes precedence over DB_* vars in settings.py)
+      DATABASE_URL: postgresql://neondb_owner:${NEON_PASSWORD}@ep-wild-sky-al1wjejk.c-3.eu-central-1.aws.neon.tech:5432/neondb?sslmode=require
+      # Don't create a superuser against prod Neon on startup
+      SKIP_SUPERUSER: "1"
     volumes:
       # Mount source code for hot reload during development
       - .:/app
-    depends_on:
-      - postgres
     restart: unless-stopped
 
   grafana:
@@ -71,8 +67,6 @@ services:
     volumes:
       - ./metabase-data:/metabase-data
     restart: unless-stopped
-    depends_on:
-      - postgres
 
 volumes:
   postgres_data:

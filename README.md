@@ -13,7 +13,7 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Loads one Strava athlete and syncs all Ride activities
 - Real-time sync via Strava webhook (`create` / `update` / `delete`)
 - Auto-renames generic activity names (e.g. "Morning Ride" → "Cornellà - [Molins] - Turó d'en Pisca - Cornellà ~8km spacing") using Overpass (peaks/saddles) + Nominatim (municipalities) reverse-geocoding
-- Public dashboard with paginated activity list and embedded Grafana charts
+- Public paginated activity list, plus a staff-only dashboard and a staff-only charts page (embedded Grafana)
 - Detects missing activities and provides one-click sync to backfill them
 - Django admin with custom bulk actions: re-trigger auto-rename, force auto-rename
 - Optional Metabase/Grafana containers via `docker-compose.yml` for ad-hoc visualisations
@@ -45,10 +45,9 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `source .venv/bin/activate`
   - `uv sync`
 - Initialize the environment variables. Create a `.env` file in the project root with the following variables:
-  - `STRAVA_ACCESS_TOKEN=your_strava_access_token`
   - `STRAVA_CLIENT_ID=your_strava_client_id`
   - `STRAVA_CLIENT_SECRET=your_strava_client_secret`
-  - `STRAVA_REFRESH_TOKEN=your_strava_refresh_token`
+  - `STRAVA_REFRESH_TOKEN=your_strava_refresh_token` (the access token is minted from this at runtime and cached automatically — you don't set `STRAVA_ACCESS_TOKEN` yourself)
   - `DB_NAME`=stravagancia 
   - `DB_USER`=strava 
   - `DB_PASSWORD`=strava 
@@ -65,8 +64,8 @@ It's a good excuse to learn something new and useful, while being able to view m
 - Run tests: `pytest` (uses `pytest-django`)
 - To exercise the webhook end-to-end with a real Strava upload (requires `activity:write` scope on the refresh token):
   - `python manage.py upload_test_gpx path/to/ride.gpx`
-- Optionally: Run metabase using docker-compose:
-  - `docker-compose up` (Will launch Metabase on port 3000)
+- Optionally: run the dashboard containers via Docker:
+  - `docker compose up -d grafana metabase` → Metabase on port 3000, Grafana on port 3001. (Plain `docker compose up` starts every service, including the `django` container, which is wired to the production Neon DB.)
 - Optionally: run the Django development server:
   - `python manage.py runserver`
   - Access the admin interface at http://localhost:8000/admin using the superuser credentials created before.

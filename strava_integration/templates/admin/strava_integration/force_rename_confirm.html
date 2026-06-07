@@ -1,38 +1,48 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 
+{# Inline styles on purpose: Unfold ships a precompiled CSS bundle (only the
+   classes Unfold itself uses), so arbitrary Tailwind utility classes here may not
+   be present. Inline styles always apply. Body text colour is left to inherit
+   Unfold's content area so it stays readable in both light and dark mode. #}
 {% block content %}
-<h1>Force auto-rename — confirm</h1>
+<div style="max-width: 56rem; padding: 0.5rem 0; font-size: 0.875rem; line-height: 1.5;">
+  <h1 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Force auto-rename — confirm</h1>
 
-<p>
-  You are about to <strong>force-rename</strong> the following activities. Their current
-  names are NOT generic (so the normal auto-rename would skip them), but you can
-  override that here. The new name will be computed from the GPS polyline and
-  PUT to Strava, overwriting whatever they're called now.
-</p>
+  <p style="margin-bottom: 0.75rem;">
+    You are about to <strong>force-rename</strong> the following activities. Their current
+    names are NOT generic (so the normal auto-rename would skip them), but you can
+    override that here. The new name will be computed from the GPS polyline and
+    PUT to Strava, overwriting whatever they're called now.
+  </p>
 
-<p>
-  <strong>This will overwrite custom names you might have set manually.</strong>
-  Cancel if you're not sure.
-</p>
+  <p style="margin-bottom: 1.25rem; color: #dc2626; font-weight: 600;">
+    This will overwrite custom names you might have set manually. Cancel if you're not sure.
+  </p>
 
-<ul>
-  {% for a in activities %}
-    <li>
-      <code>{{ a.strava_id }}</code> — {{ a.name|default:"(no name)" }}
-      ({{ a.distance_km }} km, {{ a.start_date_local|date:"Y-m-d" }})
-    </li>
-  {% endfor %}
-</ul>
+  <ul style="margin: 0 0 1.5rem 1.25rem; padding: 0; list-style: disc;">
+    {% for a in activities %}
+      <li style="margin-bottom: 0.35rem;">
+        <code style="background: rgba(127,127,127,0.18); padding: 0.05rem 0.3rem; border-radius: 0.25rem;">{{ a.strava_id }}</code>
+        — {{ a.name|default:"(no name)" }}
+        ({{ a.distance_km }} km, {{ a.start_date_local|date:"Y-m-d" }})
+      </li>
+    {% endfor %}
+  </ul>
 
-<form method="post">
-  {% csrf_token %}
-  {% for a in activities %}
-    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ a.pk }}">
-  {% endfor %}
-  <input type="hidden" name="action" value="force_auto_rename_activities">
-  <input type="hidden" name="post" value="yes">
-  <input type="submit" value="Yes, force-rename {{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}">
-  <a href="../" class="button cancel-link">Cancel</a>
-</form>
+  <form method="post" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    {% csrf_token %}
+    {% for a in activities %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ a.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="force_auto_rename_activities">
+    <input type="hidden" name="post" value="yes">
+    <a href="../" style="font-weight: 500; text-decoration: none; opacity: 0.75;">Cancel</a>
+    <button type="submit"
+            style="background: #dc2626; color: #fff; font-weight: 600; font-size: 0.875rem;
+                   padding: 0.55rem 1.1rem; border: none; border-radius: 0.375rem; cursor: pointer;">
+      Yes, force-rename {{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}
+    </button>
+  </form>
+</div>
 {% endblock %}

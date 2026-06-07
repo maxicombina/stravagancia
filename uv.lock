@@ -1,6 +1,10 @@
 version = 1
 revision = 3
 requires-python = ">=3.11"
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version < '3.12'",
+]
 
 [[package]]
 name = "asgiref"
@@ -139,6 +143,36 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f0/b4/00c701a22d46288e3eb1340a1c141f5b4002572ce836a3e8d069f1e1de8a/django_axes-8.3.1.tar.gz", hash = "sha256:d57e923c0ba33cf45275253dd1313c3a3ff04bec686b38d677beb2b3d43c7bcd", size = 254715, upload-time = "2026-02-11T20:19:52.172Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/f6/777a5df7d5698eeb23c7c496cc268c0181f0489dbc5b5f2b235b30e5d8dd/django_axes-8.3.1-py3-none-any.whl", hash = "sha256:f7887582fd12713064f1602091ff6152752becae5e891a15bf802746cab0f51a", size = 74213, upload-time = "2026-02-11T20:19:48.646Z" },
+]
+
+[[package]]
+name = "django-unfold"
+version = "0.91.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.12'",
+]
+dependencies = [
+    { name = "django", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a4/cd/a2fdc41f2eed90242338982e2afadccdab4db7043a829b41a9ec54baaa35/django_unfold-0.91.0.tar.gz", hash = "sha256:98543cf149f9b363ad83c77747ff7e9e89323324b10e6afa4d3a672cb0c4f86d", size = 1121543, upload-time = "2026-04-27T13:25:30.417Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/e8/2591119368628867284550ee5c337bae1f4b4c0e5a8a59f231899326a26f/django_unfold-0.91.0-py3-none-any.whl", hash = "sha256:486a468ec4788e0668a9e73686796b04450709171af4ac213b6d229a8015676a", size = 1245169, upload-time = "2026-04-27T13:25:31.765Z" },
+]
+
+[[package]]
+name = "django-unfold"
+version = "0.97.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+]
+dependencies = [
+    { name = "django", marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/93/b7/f96aa6b3c060e6361b922607d0f4ec66e8f821a82a495a03ad2ea94e42ae/django_unfold-0.97.0.tar.gz", hash = "sha256:35cc862efde910fe2bb37689c1697a9fc87ca7886b39de0a90d7a037e0fd15ae", size = 1125964, upload-time = "2026-06-06T09:03:20.94Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/93/35dc26fa47152779749c53bb3881436d816ea8bcc038a01d5539286a9eab/django_unfold-0.97.0-py3-none-any.whl", hash = "sha256:651abadb26b8b46a590caa3c7d1b902a9ddc5a1b13aca2476a36b54acca42500", size = 1253659, upload-time = "2026-06-06T09:03:22.643Z" },
 ]
 
 [[package]]
@@ -319,6 +353,8 @@ dependencies = [
     { name = "dj-database-url" },
     { name = "django" },
     { name = "django-axes" },
+    { name = "django-unfold", version = "0.91.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "django-unfold", version = "0.97.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "gunicorn" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
@@ -337,6 +373,7 @@ requires-dist = [
     { name = "dj-database-url", specifier = ">=3.1.2" },
     { name = "django", specifier = ">=5.2.7" },
     { name = "django-axes", specifier = ">=8.3.1" },
+    { name = "django-unfold", specifier = ">=0.91.0" },
     { name = "gunicorn", specifier = ">=25.3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "python-dotenv", specifier = ">=1.2.1" },

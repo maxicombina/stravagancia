@@ -22,6 +22,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',  # modern admin theme — MUST precede django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -31,6 +32,12 @@ INSTALLED_APPS = [
     'axes',
     'strava_integration',
 ]
+
+# django-unfold admin theme. Minimal config; see https://unfoldadmin.com/docs/
+UNFOLD = {
+    "SITE_TITLE": "Stravagancia Admin",
+    "SITE_HEADER": "Stravagancia",
+}
 
 # django-axes: brute-force protection on the login form.
 # AxesStandaloneBackend must come first so failed attempts are counted before

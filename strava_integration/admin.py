@@ -4,6 +4,7 @@ import time
 from django.contrib import admin, messages
 from django.shortcuts import render
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin as UnfoldModelAdmin
 
 from .models import Athlete, Activity, MissingActivity
 from .renaming import auto_rename_from_strava_data
@@ -130,11 +131,11 @@ def force_auto_rename_activities(modeladmin, request, queryset):
     )
 
 @admin.register(Athlete)
-class AthleteAdmin(admin.ModelAdmin):
+class AthleteAdmin(UnfoldModelAdmin):
     list_display = ("id", "strava_id", "first_name", "last_name", "city", "country")
 
 @admin.register(Activity)
-class ActivityAdmin(admin.ModelAdmin):
+class ActivityAdmin(UnfoldModelAdmin):
     list_display = ("id", "strava_id_link", "name", "calories", "distance_km", "start_date_local", "athlete")
     list_filter = ("activity_type", "start_date_local")
     search_fields = ("name",)
@@ -165,7 +166,7 @@ def mark_as_loaded(modeladmin, request, queryset):
     modeladmin.message_user(request, f"{updated} activities marked as loaded.")
 
 @admin.register(MissingActivity)
-class MissingActivityAdmin(admin.ModelAdmin):
+class MissingActivityAdmin(UnfoldModelAdmin):
     list_display = ("strava_id", "detected_at", "start_date_local", "loaded")
     list_filter = ("loaded",)
     ordering = ("-start_date_local",)

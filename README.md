@@ -78,7 +78,7 @@ Auth in metabase:
 
 ## In production (Render + Neon)
 
-This project runs on Render's free tier (Docker service) with a Neon Postgres database. The deployed app is live at https://stravagancia.onrender.com.
+This project runs on Render's free tier (Docker service) with a Neon Postgres database. (The live app URL is intentionally kept out of this public repo to avoid drive-by pings that would keep the free-tier service awake.)
 
 - The service container builds from `Dockerfile` and runs `entrypoint.sh` (migrate, create superuser, collectstatic, gunicorn).
 - Auto-deploys on `git push origin main`.
@@ -94,13 +94,19 @@ This project runs on Render's free tier (Docker service) with a Neon Postgres da
 
 Render's free tier puts the service to sleep after 15 min of inactivity, which adds a ~30s cold start on the first request and can cause Strava webhooks to miss the 2s timeout (Strava retries, so events still arrive eventually).
 
-To avoid that during the hours you'd actually use the app, an external scheduler hits a cheap endpoint on a regular interval:
+A **Cloudflare Worker** (free) pings `GET /healthz/` every 12 min on a Cron Trigger, but only during **09:00–23:59 Europe/Madrid** (enforced in the Worker code, DST-aware), so the service still sleeps overnight. Cloudflare cron fires regardless of the previous result (no backoff), and the Worker uses a `curl` User-Agent + retries to ride through the cold-start `503` — fixing the failure mode that made the old cron-job.org / GitHub Actions pingers unreliable. Code and details in [`keepalive/`](./keepalive/).
 
-- **Endpoint**: `GET /healthz/` — returns `ok` (200) without touching the database. Defined at `strava_integration/views_ui.py` (`healthz`). Public, no auth.
-- **Scheduler**: [cron-job.org](https://cron-job.org/) (free tier) — single job, `GET` request, every 12 min, only during `10:00–01:00 Europe/Madrid`. Outside that window the service sleeps freely.
-- **UptimeRobot**: previously used for the same job but is paused; its free tier no longer offers maintenance windows, so it can't honour the night-time pause schedule. Re-enable it later if you want failure alerting on top.
+- **Endpoint**: `GET /healthz/` → returns `ok` (200), no DB, no auth. Defined in `strava_integration/views_ui.py` (`healthz`); it logs each hit with the client IP + User-Agent so keep-alive traffic shows up in Render logs.
 
-Why a 750h/month cap matters: Render free tier allows 750h of running time per account per billing cycle. One service awake 24/7 = 720h, leaving only 30h for anything else. Sleeping ~9h/night frees ~270h for a second service (e.g. a public Grafana).
+Why the 750h/month cap matters: Render free tier allows 750h of running time per account per billing cycle. One service awake 24/7 = 720h. Sleeping overnight frees hours for a second service (the Grafana below).
+
+### Dashboards (Grafana on Render)
+
+The `/charts/` page embeds Grafana dashboards. In production, Grafana runs as a **separate Render service** built from [`grafana/Dockerfile`](./grafana/Dockerfile) — provisioned to read the Neon DB, with anonymous read-only access enabled for embedding. The Django `GRAFANA_URL` env var points `/charts/` at it. Locally, `docker-compose.yml` runs Grafana instead.
+
+### Admin login protection
+
+The Django admin login is rate-limited with [django-axes](https://github.com/jazzband/django-axes): 5 failed attempts lock the `(IP, username)` pair for 1 hour, X-Forwarded-For-aware for Render's proxy. Config in `strava_app/settings.py`.
 
 
 - Unfold: theme para el admin

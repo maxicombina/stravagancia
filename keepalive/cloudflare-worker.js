@@ -1,22 +1,25 @@
 // Cloudflare Worker — keep the Render app awake.
 //
-// THE keep-alive solution (replaces cron-job.org / the Docker pinger). Deployed
-// to the Cloudflare Worker "strava-keepalive"
-// (https://strava-keepalive.maxicombina.workers.dev/). This file is the source of
+// THE keep-alive solution (replaces cron-job.org / the old GitHub Actions pingers).
+// Deployed as the Cloudflare Worker "strava-keepalive". This file is the source of
 // record; the live copy is edited in the Cloudflare dashboard.
 //
-// - Cron Trigger "*/12 * * * *" fires the scheduled() handler every 12 min.
-//   Cloudflare cron fires regardless of prior result (NO backoff — which is what
-//   broke cron-job.org). Free tier: cron down to 1 min, 100k req/day, scheduled
-//   workers up to 15 min wall-time, no per-subrequest timeout.
+// NOTE: TARGET is redacted in this public repo (we don't publish the Render URL to
+// avoid drive-by pings keeping the free-tier service awake). The live Worker uses
+// the real `https://<app>.onrender.com/healthz/` URL — set it in the dashboard.
+//
+// - Cron Trigger "*/12 * * * *" fires scheduled() every 12 min. Cloudflare cron
+//   fires regardless of prior result (NO backoff — what broke cron-job.org). Free
+//   tier: cron down to 1 min, 100k req/day, scheduled workers up to 15 min wall
+//   time, no per-subrequest timeout.
 // - Pings /healthz/ with User-Agent "curl/8.7.1" (mimics the manual curl that
 //   works) + retries with a long per-attempt timeout to ride through Render's
-//   ~32s cold-start, mirroring keepalive/ping.sh (--max-time 120 --retry).
+//   ~32s cold start.
 // - Active 09:00-23:59 Europe/Madrid (DST-aware, in code) so Render still sleeps
 //   overnight and stays under the 750h/mo Render cap.
 // - The fetch() handler runs the same ping so visiting the URL tests it manually.
 
-const TARGET = "https://stravagancia.onrender.com/healthz/";
+const TARGET = "https://REDACTED.onrender.com/healthz/"; // set real URL in Cloudflare dashboard
 const MAX_ATTEMPTS = 4;
 const GAP_MS = 20000;
 const FETCH_TIMEOUT_MS = 120000;

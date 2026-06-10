@@ -95,7 +95,15 @@ WSGI_APPLICATION = 'strava_app.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 _db_url = os.environ.get('DATABASE_URL')
 if _db_url:
-    DATABASES = {'default': dj_database_url.parse(_db_url, conn_max_age=600)}
+    # conn_health_checks: persistent connections (conn_max_age) are reused across
+    # requests, but Neon autosuspends the compute after idle and kills the socket
+    # server-side. Without a health check Django reuses the dead connection and the
+    # next query fails with "SSL connection has been closed unexpectedly". With it,
+    # Django pings the connection at the start of each request and transparently
+    # reopens it if dead.
+    DATABASES = {
+        'default': dj_database_url.parse(_db_url, conn_max_age=600, conn_health_checks=True)
+    }
 else:
     DATABASES = {
         'default': {
@@ -105,6 +113,9 @@ else:
             'PASSWORD': os.getenv('DB_PASSWORD', 'strava'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            # Harmless locally (conn_max_age defaults to 0 → fresh connection per
+            # request), kept for symmetry with the prod branch above.
+            'CONN_HEALTH_CHECKS': True,
         }
     }
 

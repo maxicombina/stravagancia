@@ -21,7 +21,10 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
 ## Autorización y límites vigentes
 
 - Repositorio: /Users/maxicombina/src/learning/django/stravagancia.
-- Rama obligatoria: `codex/garage-plan`. **Sin commits, staging, push ni despliegue**.
+- Rama obligatoria: `codex/garage-plan`. **Sin push ni despliegue.** Commits
+  sólo cuando el usuario los pida (el 25 oct 2026 pidió «commit de todo»:
+  `5e422c8`, un commit con todo el trabajo de Garage; quedaron fuera la base
+  binaria de Metabase modificada y `.serena/`).
 - Hay muchísimo código nuevo sin seguimiento Git. No ejecutar git clean/reset,
   checkout de archivos, stash ni borrar cambios para preparar el trabajo.
 - Continuar implementación necesaria, pruebas y revisión adversarial, en orden

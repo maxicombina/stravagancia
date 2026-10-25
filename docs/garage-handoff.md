@@ -1,8 +1,13 @@
 # Estado de Garage para Claude u otra IA
 
-Actualización: 18 de octubre de 2026, Claude. Empezar por CLAUDE.md y
+Actualización: 25 de octubre de 2026, Claude. Empezar por CLAUDE.md y
 garage-context.md; no rediseñar el proyecto ni ignorar cambios locales. Rama
-codex/garage-plan, cero commits sobre main, staging vacío.
+codex/garage-plan: desde el 25 oct, **un commit sobre main** (`5e422c8`, todo el
+trabajo de Garage, pedido por el usuario); sin push. Fuera del commit, a
+propósito: `metabase-data/metabase.db/metabase.db.mv.db` (base binaria
+modificada por Metabase, ya ignorada pero rastreada) y `.serena/` (caché de
+herramienta). Los dos commits del legado en `main` (`dd607f6`, `45a7cf6`)
+siguen sin integrar (sección «Siguiente paso», punto 7).
 
 ## Aviso importante: migraciones de Garage aplicadas en producción (Neon)
 

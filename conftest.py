@@ -85,10 +85,29 @@ def strava_activity_payload_with_polyline(strava_activity_payload):
 
 @pytest.fixture(autouse=True)
 def _clear_geocode_cache():
-    """Clear the module-level cache in renaming.py before each test."""
+    """Reset the module-level geocoding state in renaming.py before each test:
+    the cache, the preferred Overpass endpoint and the diagnosed hosts."""
     try:
-        from strava_integration.renaming import _GEO_CACHE
-        _GEO_CACHE.clear()
+        from strava_integration import renaming
     except ImportError:
-        pass
+        renaming = None
+    if renaming is not None:
+        renaming._GEO_CACHE.clear()
+        renaming._overpass_preferred_idx = 0
+        renaming._CONNECTION_DIAG_REPORTED_HOSTS.clear()
     yield
+
+
+@pytest.fixture
+def app_caplog(caplog, monkeypatch):
+    """caplog that sees the app's logs at INFO and above.
+
+    settings.LOGGING gives the "strava_integration" logger propagate=False, so
+    its records never reach caplog's handler on the root logger. Re-enable
+    propagation for the duration of the test only.
+    """
+    import logging
+
+    monkeypatch.setattr(logging.getLogger("strava_integration"), "propagate", True)
+    caplog.set_level(logging.INFO, logger="strava_integration")
+    return caplog

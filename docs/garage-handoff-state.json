@@ -2,7 +2,7 @@
   "handoff_at": "2026-10-17T11:16:58+00:00",
   "updated_by": "Claude Opus 5.5",
   "requested_successor": "Claude or another AI",
-  "branch": "codex/garage-plan",
+  "branch": "garage",
   "commits_ahead_of_main": 0,
   "staged_files": [],
   "active_agents": [],

@@ -2,7 +2,7 @@
 
 Preparar una nueva app Django `garage` para gestionar bicis, componentes y equipamiento personal, con fotos, mantenimiento y estadísticas. Reutilizar Stravagancia y sus servicios actuales, con un objetivo de **0 € adicionales de infraestructura al mes**.
 
-Este documento es el plan de implementación. El trabajo se hace en la rama `codex/garage-plan`, sin commits ni despliegues por ahora. Tras completar garage-001, el usuario ha autorizado continuar con las entregas iniciales usando agentes Sol, pruebas completas y revisión adversarial. Las decisiones propuestas se distinguen de los requisitos ya acordados. Las tareas ejecutables y sus dependencias se mantienen en Beads; véase [GARAGE_TASKS.md](GARAGE_TASKS.md).
+Este documento es el plan de implementación. El trabajo se hace en la rama `garage`, sin commits ni despliegues por ahora. Tras completar garage-001, el usuario ha autorizado continuar con las entregas iniciales usando agentes Sol, pruebas completas y revisión adversarial. Las decisiones propuestas se distinguen de los requisitos ya acordados. Las tareas ejecutables y sus dependencias se mantienen en Beads; véase [GARAGE_TASKS.md](GARAGE_TASKS.md).
 
 ## 1 Requisitos acordados
 

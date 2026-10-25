@@ -21,7 +21,7 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
 ## Autorización y límites vigentes
 
 - Repositorio: /Users/maxicombina/src/learning/django/stravagancia.
-- Rama obligatoria: `codex/garage-plan`. **Sin push ni despliegue.** Commits
+- Rama obligatoria: `garage`. **Sin push ni despliegue.** Commits
   sólo cuando el usuario los pida (el 25 oct 2026 pidió «commit de todo»:
   `5e422c8`, un commit con todo el trabajo de Garage; quedaron fuera la base
   binaria de Metabase modificada y `.serena/`).
@@ -117,7 +117,7 @@ resolver la sincronización real desde Strava, y el despliegue es lo último.
 5. 022 depende de 010. 023: logger `garage`, `STORAGES`, docker-compose sin migrate.
 6. Antes de cualquier tarea: comprobar rama, cambios locales, procesos y entorno.
    **25 oct**: `main` tiene dos commits nuevos del legado (`dd607f6`, `45a7cf6`,
-   renombrado/webhook; ya en Render) que `codex/garage-plan` debe integrar;
+   renombrado/webhook; ya en Render) que `garage` debe integrar;
    `strava_integration/views.py` dará conflicto. Detalle en docs/garage-handoff.md §Siguiente paso 7.
 7. En macOS, `cp`/`rm` piden confirmación (alias): usar `/bin/cp -f` y `/bin/rm -f`
    en mutaciones y restauraciones, y comprobar el hash al restaurar.

@@ -13,7 +13,7 @@ El usuario ha autorizado **continuar la implementación de Garage y lanzar subag
 
 El entorno de pruebas, contrato de dominio, fuentes, inventario, permisos, montajes, lecturas previas, páginas privadas, salidas propias, importación FIT reanudable, perfiles, materialización de uso e intervenciones, reglas, avisos de mantenimiento y estadísticas están completados y revisados. Las fotos están integradas localmente; falta su comprobación en un bucket privado real. La exportación personal JSON/CSV (garage-020) está completada. La última suite conjunta registrada consta de 1730 pruebas y 12 subcasos que pasan. Consultar [el estado guardado](docs/garage-handoff.md), [TESTING.md](TESTING.md), Beads y el tablero para continuar según dependencias. Las apps móviles, monetización y despliegue siguen siendo fases posteriores.
 
-Trabajar en `codex/garage-plan`. No hacer commits, staging, pushes ni despliegues. No ejecutar `bd init`: el repositorio ya está inicializado y ese comando puede crear un commit automáticamente.
+Trabajar en `garage`. No hacer commits, staging, pushes ni despliegues. No ejecutar `bd init`: el repositorio ya está inicializado y ese comando puede crear un commit automáticamente.
 
 ## Contexto y tareas
 

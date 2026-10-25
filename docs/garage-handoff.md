@@ -2,7 +2,7 @@
 
 Actualización: 25 de octubre de 2026, Claude. Empezar por CLAUDE.md y
 garage-context.md; no rediseñar el proyecto ni ignorar cambios locales. Rama
-codex/garage-plan: desde el 25 oct, **un commit sobre main** (`5e422c8`, todo el
+garage: desde el 25 oct, **un commit sobre main** (`5e422c8`, todo el
 trabajo de Garage, pedido por el usuario); sin push. Fuera del commit, a
 propósito: `metabase-data/metabase.db/metabase.db.mv.db` (base binaria
 modificada por Metabase, ya ignorada pero rastreada) y `.serena/` (caché de
@@ -681,7 +681,7 @@ Límites declarados:
    `getaddrinfo`) y `45a7cf6` (el webhook `create` responde antes de pedir el
    detalle: fetch → store → rename en el hilo `create-<id>`; `settings.py` fuerza
    IPv4 saliente en Render salvo `GEOCODING_FORCE_IPV4=0`). Desplegados en Render
-   con autodeploy. `codex/garage-plan` **no los tiene**: al integrarlos,
+   con autodeploy. `garage` **no los tiene**: al integrarlos,
    `strava_integration/views.py` chocará con los cambios de garage-030
    (`accept_event`/`subscription_matches`); conservar ambos. Suite de `main`:
    138 tests con PostgreSQL local (sin `.env`).

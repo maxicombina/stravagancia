@@ -108,7 +108,7 @@ Modelo autorizado actualmente: GPT-6.1 Sol. Entregar una tarea concreta y las se
 
 Plantilla de encargo:
 
-> Trabaja en la tarea <id> de Stravagancia, en la rama codex/garage-plan. Lee AGENTS.md, GARAGE_TASKS.md y bd show <id>, y comprueba sus dependencias. Implementa solo su alcance y valida sus criterios con PostgreSQL aislado y datos sintéticos. No hagas commits, staging, pushes, despliegues ni escrituras en producción. No cambies .env. Antes de editar, identifica los archivos afectados. Al terminar informa cambios, pruebas, limitaciones y estado real de la tarea.
+> Trabaja en la tarea <id> de Stravagancia, en la rama garage. Lee AGENTS.md, GARAGE_TASKS.md y bd show <id>, y comprueba sus dependencias. Implementa solo su alcance y valida sus criterios con PostgreSQL aislado y datos sintéticos. No hagas commits, staging, pushes, despliegues ni escrituras en producción. No cambies .env. Antes de editar, identifica los archivos afectados. Al terminar informa cambios, pruebas, limitaciones y estado real de la tarea.
 
 Para una tarea de diseño, sustituir “implementa” por “documenta y propone”; no generar código de aplicación.
 

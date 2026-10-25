@@ -1,0 +1,18 @@
+{% extends "garage/shell.html" %}
+{% block title %}Entrar · Garage{% endblock %}
+{% block content %}
+<section class="login" aria-label="Acceso privado">
+  <div class="hero">
+    <span class="glyph accent"><svg class="ic"><use href="#i-garage"/></svg></span>
+    <h1>Entrar en Garage</h1>
+  </div>
+  <p class="lede">Tu inventario y su historial son privados.</p>
+  <form method="post" class="login-form">{% csrf_token %}
+    {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field"><label for="{{ form.username.id_for_label }}">Usuario</label><input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default:'' }}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>{{ form.username.errors }}</div>
+    <div class="field"><label for="{{ form.password.id_for_label }}">Contraseña</label><input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>{{ form.password.errors }}</div>
+    <input type="hidden" name="next" value="{{ next|default:'/garage/' }}">
+    <button type="submit" class="btn">Entrar</button>
+  </form>
+</section>
+{% endblock %}

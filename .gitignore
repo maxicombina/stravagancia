@@ -49,3 +49,6 @@ catchup_renames.log
 make_pending_html.log
 retry_errors.log
 retry_failed.log
+
+# Beads runtime gate files
+/.beads.gate.lock*

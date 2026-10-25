@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Garage en el móvil</title>
+<style>
+/* Layout: the page follows the viewer's theme; three phone frames sit side by side and
+   collapse to one navigable screen under 760px. Screens use their own style × mode tokens. */
+:root{
+  --bg:#f2f5f5; --panel:#ffffff; --fg:#14201f; --muted:#56686a; --line:#d4dddc;
+  --accent:#006b61; --on-accent:#ffffff; --focus:#c77a12; --bezel:#1b2122; --shadow:rgba(12,32,30,.30);
+  --font-ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-ios:-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --font-android:Roboto,"Google Sans","Segoe UI",system-ui,sans-serif;
+  --font-num:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1213; --panel:#151c1d; --fg:#e3ebeb; --muted:#93a5a6; --line:#293536;
+  --accent:#4cc3b3; --on-accent:#05211d; --focus:#f0a640; --bezel:#3a4547; --shadow:rgba(0,0,0,.55);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1213; --panel:#151c1d; --fg:#e3ebeb; --muted:#93a5a6; --line:#293536;
+  --accent:#4cc3b3; --on-accent:#05211d; --focus:#f0a640; --bezel:#3a4547; --shadow:rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+
+/* Screen tokens: style A "Tarjetas" grows from Garage's current teal; style B "Instrumentos" is cobalt. */
+.stage[data-style="a"][data-mode="light"]{--s-bg:#eef3f2;--s-surface:#ffffff;--s-tile:#e1ebe9;--s-ink:#132826;--s-ink2:#556b67;--s-line:#d8e2e0;--s-accent:#006b61;--s-on-accent:#ffffff;--s-accent-soft:#d2eae6;--s-tab:rgba(249,252,251,.94)}
+.stage[data-style="a"][data-mode="dark"]{--s-bg:#0c1413;--s-surface:#16201e;--s-tile:#1f2c2a;--s-ink:#e4eeec;--s-ink2:#98ada9;--s-line:#25332f;--s-accent:#43c4b2;--s-on-accent:#04201c;--s-accent-soft:#163530;--s-tab:rgba(17,26,24,.95)}
+.stage[data-style="b"][data-mode="light"]{--s-bg:#f1f2f5;--s-surface:#ffffff;--s-tile:#e5e8ef;--s-ink:#10131a;--s-ink2:#5a6172;--s-line:#d8dbe3;--s-accent:#2450d6;--s-on-accent:#ffffff;--s-accent-soft:#dce4fb;--s-tab:rgba(246,247,250,.95)}
+.stage[data-style="b"][data-mode="dark"]{--s-bg:#0a0c11;--s-surface:#141822;--s-tile:#1c2130;--s-ink:#eef1f7;--s-ink2:#8f98aa;--s-line:#232938;--s-accent:#7896ff;--s-on-accent:#0a1030;--s-accent-soft:#1c2647;--s-tab:rgba(13,16,23,.95)}
+.stage[data-mode="light"]{--ok:#0ca30c;--ok-i:#11801b;--soon:#fab219;--soon-i:#a66b00;--due:#d03b3b;--due-i:#b3302f}
+.stage[data-mode="dark"]{--ok:#0ca30c;--ok-i:#46cf46;--soon:#fab219;--soon-i:#fab219;--due:#d03b3b;--due-i:#f06b6b}
+.st-ok{--c:var(--ok);--ci:var(--ok-i)} .st-soon{--c:var(--soon);--ci:var(--soon-i)} .st-due{--c:var(--due);--ci:var(--due-i)}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-ui)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.page{max-width:1220px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+.intro{display:grid;gap:8px;max-width:68ch}
+.intro h1{margin:0;font-size:clamp(1.6rem,3.2vw,2.2rem);line-height:1.15;letter-spacing:-.02em;text-wrap:balance}
+.intro p{margin:0;color:var(--muted)}
+
+.controls{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center}
+.seg{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.seg-btns{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px}
+.seg-btns button{border:0;background:transparent;padding:6px 12px;border-radius:8px;min-height:36px;cursor:pointer;font-size:.9rem;white-space:nowrap}
+.seg-btns button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.style-note{margin:0;color:var(--muted);font-size:.92rem;max-width:68ch}
+.only-narrow{display:none}
+
+.stage{display:flex;flex-wrap:wrap;justify-content:center;gap:30px 28px}
+.slot{margin:0;display:grid;gap:10px;justify-items:center;min-width:0}
+.slot figcaption{font-weight:600}
+.slot figcaption span{color:var(--muted);font-weight:400}
+
+/* Phone frame */
+.device{position:relative;width:360px;max-width:100%;height:760px;border:10px solid var(--bezel);border-radius:50px;background:var(--s-bg);color:var(--s-ink);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 22px 44px -26px var(--shadow);font-family:var(--font-ios);font-size:15px;line-height:1.4}
+[data-os="android"] .device{border-width:8px;border-radius:38px;font-family:var(--font-android)}
+.slot.flash .device{animation:flash 1.1s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 5px var(--accent)}100%{box-shadow:0 22px 44px -26px var(--shadow)}}
+[data-os="ios"] .only-android,[data-os="android"] .only-ios,[data-style="a"] .only-b,[data-style="b"] .only-a{display:none!important}
+
+.statusbar{flex:none;height:50px;display:flex;align-items:center;justify-content:space-between;padding:4px 26px 0 34px;font-size:15px;font-weight:600;position:relative;font-variant-numeric:tabular-nums}
+.cam{position:absolute;left:50%;top:10px;width:100px;height:29px;border-radius:20px;background:#000;transform:translateX(-50%)}
+[data-os="android"] .statusbar{height:34px;padding:2px 20px 0 22px;font-size:13px;font-weight:500}
+[data-os="android"] .cam{width:13px;height:13px;top:10px;border-radius:50%}
+.sb{width:66px;height:12px}
+[data-os="android"] .sb{width:58px}
+
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;position:relative}
+.scroll::-webkit-scrollbar{display:none}
+.homebar{flex:none;height:24px;display:grid;place-items:center;background:var(--s-tab)}
+.homebar::before{content:"";width:132px;height:5px;border-radius:3px;background:var(--s-ink);opacity:.85}
+[data-os="android"] .homebar{height:18px}
+[data-os="android"] .homebar::before{width:104px;height:4px;opacity:.6}
+
+/* Icons */
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:middle}
+.ic.sm{width:18px;height:18px}
+.ic.xs{width:14px;height:14px;stroke-width:2.2}
+
+/* App bars */
+.appbar{padding:2px 8px 4px}
+.appbar-row{height:44px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+[data-os="android"] .appbar-row{justify-content:flex-start;height:52px}
+[data-os="android"] .appbar-row .icon-btn:last-child{margin-left:auto}
+.appbar-title{font-size:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.large-title{margin:0;padding:0 10px;font-size:32px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+[data-os="android"] .large-title{font-size:27px;font-weight:500;letter-spacing:0;padding:2px 10px 6px}
+.icon-btn,.back{border:0;background:transparent;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:22px;cursor:pointer;color:var(--s-accent)}
+[data-os="android"] .icon-btn,[data-os="android"] .back{color:var(--s-ink)}
+.back{gap:2px;padding:0 6px 0 0;font-size:17px;justify-content:flex-start}
+.back .ic{width:26px;height:26px}
+.link-btn{border:0;background:transparent;color:var(--s-accent);font-weight:600;cursor:pointer;padding:6px 2px;min-height:36px}
+
+.content{padding:4px 16px 26px;display:grid;gap:24px}
+.sec{display:grid;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec-h h3{margin:0;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--s-ink2);font-weight:600}
+[data-style="a"] .sec-h h3{font-size:18px;text-transform:none;letter-spacing:-.01em;color:var(--s-ink);font-weight:650}
+.count{font-size:12px;font-weight:700;min-width:22px;height:22px;padding:0 7px;border-radius:11px;display:inline-grid;place-items:center;background:var(--s-tile);color:var(--s-ink)}
+
+.install{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:12px 6px 12px 14px;border-radius:16px;background:var(--s-accent-soft);font-size:13.5px}
+.install p{margin:2px 0 0}
+.install > .ic{color:var(--s-accent);margin-top:2px}
+.install .icon-btn{min-width:36px;min-height:36px;margin-top:-6px;color:var(--s-ink2)}
+
+/* Status chip and meter: color carries severity, icon and word carry meaning */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:650;padding:2px 9px 2px 6px;border-radius:999px;background:color-mix(in oklab,var(--c) 17%,var(--s-surface));color:var(--s-ink);white-space:nowrap}
+.chip .ic{color:var(--ci)}
+.meter{display:block;height:8px;border-radius:4px;background:color-mix(in oklab,var(--c) 22%,var(--s-surface));overflow:hidden}
+.meter > i{display:block;height:100%;width:var(--p);background:var(--c);border-radius:4px}
+.meter.thin{height:5px}
+
+/* Style A cards */
+.stack{display:grid;gap:10px}
+.alert{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:14px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:18px;text-align:left;width:100%;cursor:pointer}
+.tile{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:var(--s-tile);color:var(--s-ink)}
+.a-body{display:grid;gap:6px;min-width:0}
+.a-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.a-name{font-weight:650;font-size:15.5px}
+.a-sub{font-size:13px;color:var(--s-ink2);font-variant-numeric:tabular-nums}
+.a-foot{font-size:13px;color:var(--s-ink2)}
+.a-foot em{font-style:normal;opacity:.8}
+
+/* Style B rows */
+.rows{display:grid}
+.row-b{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 0;border:0;border-bottom:1px solid var(--s-line);background:transparent;text-align:left;width:100%;cursor:pointer}
+.ring{width:52px;height:52px}
+.ring .trk{fill:none;stroke:color-mix(in oklab,var(--c) 20%,var(--s-bg));stroke-width:6}
+.ring .arc{fill:none;stroke:var(--c);stroke-width:6;stroke-linecap:round}
+.ring text{fill:var(--s-ink);font-size:12.5px;font-weight:700;text-anchor:middle;font-family:var(--font-ui)}
+.ring-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--c);color:var(--ci)}
+.r-name{font-weight:650;display:block}
+.r-sub{font-size:12.5px;color:var(--s-ink2);display:block}
+.big{display:grid;justify-items:end;line-height:1.05}
+.big b{font-family:var(--font-num);font-size:22px;font-weight:600;letter-spacing:-.03em}
+.big small{font-size:11px;color:var(--s-ink2)}
+
+/* Bikes */
+.bikes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bike{display:grid;gap:4px;justify-items:start;padding:14px;border-radius:18px;background:var(--s-surface);border:1px solid var(--s-line);text-align:left;cursor:pointer}
+.bike .ic{color:var(--s-accent);width:30px;height:30px;margin-bottom:4px}
+.b-name{font-weight:650}
+.b-km{font-size:13px;color:var(--s-ink2)}
+.b-km b{font-size:21px;color:var(--s-ink);font-weight:700;letter-spacing:-.02em}
+.b-sub{font-size:12.5px;color:var(--s-ink2)}
+[data-style="b"] .bikes{grid-template-columns:1fr;gap:0}
+[data-style="b"] .bike{grid-template-columns:34px 1fr auto;align-items:center;gap:2px 12px;padding:12px 0;border-radius:0;border:0;border-bottom:1px solid var(--s-line);background:transparent}
+[data-style="b"] .bike .ic{grid-row:span 2;margin:0}
+[data-style="b"] .b-km{grid-row:span 2;grid-column:3;font-size:11px;text-align:right}
+[data-style="b"] .b-km b{display:block;font-family:var(--font-num);font-size:22px;font-weight:600;letter-spacing:.02em}
+
+/* Lists */
+.list{list-style:none;margin:0;padding:0;background:var(--s-surface);border:1px solid var(--s-line);border-radius:18px}
+.list li{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:11px 14px}
+.list li + li{border-top:1px solid var(--s-line)}
+.list .tile{width:40px;height:40px;border-radius:12px}
+.l-name{font-weight:600;display:block}
+.l-sub{font-size:12.5px;color:var(--s-ink2);display:block}
+.l-val{font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
+[data-style="b"] .list{background:transparent;border:0;border-radius:0}
+[data-style="b"] .list li{padding-inline:0}
+[data-style="b"] .list li + li,[data-style="b"] .list li{border-top:0;border-bottom:1px solid var(--s-line)}
+[data-style="b"] .list .tile{background:transparent;border:1px solid var(--s-line)}
+[data-style="b"] .l-val{font-family:var(--font-num);font-weight:600}
+
+/* Floating action (Android) */
+.fab{position:absolute;right:16px;bottom:100px;display:none;align-items:center;gap:8px;height:56px;padding:0 20px 0 16px;border:0;border-radius:16px;background:var(--s-accent);color:var(--s-on-accent);font-weight:600;box-shadow:0 8px 18px -8px var(--shadow);cursor:pointer}
+[data-os="android"] .fab{display:inline-flex}
+
+/* Tab bar */
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--s-line);background:var(--s-tab);padding:6px 2px 0}
+.tab{border:0;background:transparent;display:grid;justify-items:center;gap:2px;padding:3px 0 2px;min-height:50px;font-size:10.5px;color:var(--s-ink2);cursor:pointer}
+.tab[aria-current="page"]{color:var(--s-accent);font-weight:600}
+.tab-ic{display:grid;place-items:center;height:28px;width:56px;border-radius:15px}
+[data-os="android"] .tabbar{border-top:0;padding-top:10px}
+[data-os="android"] .tab{font-size:11.5px;gap:4px;min-height:58px}
+[data-os="android"] .tab[aria-current="page"]{color:var(--s-ink)}
+[data-os="android"] .tab[aria-current="page"] .tab-ic{background:var(--s-accent-soft);color:var(--s-ink)}
+
+/* Component screen */
+.hero{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center}
+.hero .tile{width:56px;height:56px;border-radius:16px}
+.hero .ic{width:28px;height:28px}
+.hero h2{margin:0;font-size:23px;line-height:1.15;letter-spacing:-.015em}
+.hero p{margin:2px 0 0;color:var(--s-ink2);font-size:13.5px}
+.card{background:var(--s-surface);border:1px solid var(--s-line);border-radius:18px;padding:14px;display:grid;gap:12px}
+[data-style="b"] .card{border-radius:14px}
+.m-row{display:grid;gap:6px}
+.m-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px}
+.m-top b{font-variant-numeric:tabular-nums}
+.m-top span{color:var(--s-ink2)}
+.note{margin:0;font-size:12.5px;color:var(--s-ink2)}
+.remain{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--s-line);font-size:14px}
+.remain b{font-size:18px}
+.gauge{display:grid;justify-items:center;gap:10px;padding:6px 0 2px}
+.gauge svg{width:168px;height:168px}
+.gauge .trk{fill:none;stroke:color-mix(in oklab,var(--c) 18%,var(--s-surface));stroke-width:12}
+.gauge .arc{fill:none;stroke:var(--c);stroke-width:12;stroke-linecap:round}
+.gauge .g-num{fill:var(--s-ink);font-family:var(--font-num);font-size:38px;font-weight:600;text-anchor:middle;letter-spacing:-1px}
+.gauge .g-lbl{fill:var(--s-ink2);font-family:var(--font-ui);font-size:12.5px;text-anchor:middle}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.trio > div{display:grid;gap:5px;min-width:0}
+.trio b{font-family:var(--font-num);font-size:17px;font-weight:600;letter-spacing:-.02em}
+.trio span{font-size:11.5px;color:var(--s-ink2)}
+
+/* Charts */
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.chart .grid line{stroke:var(--s-line);stroke-width:1}
+.chart .grid .base{stroke:var(--s-ink2);stroke-opacity:.5}
+.chart text{font-family:var(--font-ui);font-size:10.5px;fill:var(--s-ink2)}
+.chart .ticks text{text-anchor:end;font-variant-numeric:tabular-nums}
+.chart .months text{text-anchor:middle}
+.chart .val{fill:var(--s-ink);font-weight:650;text-anchor:middle;font-size:11px}
+.cols path{fill:var(--s-accent)}
+.cols path.cur{fill-opacity:.45}
+.cols:has(.on) path:not(.on){fill-opacity:.35}
+.chart .area{fill:var(--s-accent);fill-opacity:.1;stroke:none}
+.chart .line{fill:none;stroke:var(--s-accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .dash{stroke-dasharray:3 4}
+.chart .dot{fill:var(--s-accent);stroke:var(--s-surface);stroke-width:2}
+.chart .pt{fill:var(--s-accent);stroke:var(--s-surface);stroke-width:2;opacity:0}
+.chart .pt.on{opacity:1}
+.chart .hl{stroke:var(--s-ink2);stroke-width:1;opacity:0}
+.tip{position:absolute;transform:translate(-50%,calc(-100% - 10px));background:var(--s-ink);color:var(--s-bg);font-size:12px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}
+.c-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.c-head h4{margin:0;font-size:15px}
+.c-head span{font-size:12px;color:var(--s-ink2)}
+
+/* Mount timeline */
+.mounts{list-style:none;margin:0;padding:0;display:grid}
+.mounts li{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:start;padding:8px 0;position:relative}
+.mounts li::before{content:"";width:10px;height:10px;border-radius:50%;margin:5px 0 0 4px;background:var(--s-surface);border:2px solid var(--s-accent)}
+.mounts li:first-child::before{background:var(--s-accent)}
+.mounts li:not(:last-child)::after{content:"";position:absolute;left:8px;top:23px;bottom:-5px;width:2px;background:var(--s-line)}
+.mounts b{display:block;font-weight:600}
+.mounts span{font-size:12.5px;color:var(--s-ink2)}
+.mounts .l-val{font-size:14px}
+
+.actionbar{position:sticky;bottom:0;display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px 16px 12px;background:linear-gradient(to bottom,transparent,var(--s-bg) 32%)}
+.btn{border:0;border-radius:14px;min-height:48px;padding:0 16px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--s-accent);color:var(--s-on-accent)}
+.btn.ghost{background:var(--s-tile);color:var(--s-ink)}
+[data-os="android"] .btn{border-radius:24px}
+
+/* Ride screen */
+.ride-h h2{margin:0;font-size:23px;letter-spacing:-.015em}
+.ride-h p{margin:3px 0 8px;color:var(--s-ink2);font-size:13.5px}
+.src{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--s-ink2)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats > div{background:var(--s-surface);border:1px solid var(--s-line);border-radius:14px;padding:10px;display:grid;gap:2px;min-width:0}
+.stats b{font-size:19px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats span{font-size:11.5px;color:var(--s-ink2)}
+[data-style="b"] .stats{gap:0;border-block:1px solid var(--s-line)}
+[data-style="b"] .stats > div{background:transparent;border:0;border-radius:0;padding:10px 0 10px 12px}
+[data-style="b"] .stats > div:first-child{padding-left:0}
+[data-style="b"] .stats > div + div{border-left:1px solid var(--s-line)}
+[data-style="b"] .stats b{font-family:var(--font-num);font-weight:600;font-size:20px}
+.pending{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:color-mix(in oklab,var(--c) 14%,var(--s-surface));font-size:13px}
+.pending .ic{color:var(--ci);margin-top:1px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice button{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:12px;border-radius:16px;border:1.5px solid var(--s-line);background:var(--s-surface);text-align:left;cursor:pointer;min-height:56px}
+.choice button[aria-checked="true"]{border-color:var(--s-accent);background:var(--s-accent-soft)}
+.choice .tick{opacity:0;color:var(--s-accent)}
+.choice button[aria-checked="true"] .tick{opacity:1}
+.choice small{display:block;font-size:11.5px;color:var(--s-ink2)}
+.sw-list{list-style:none;margin:0;padding:0;background:var(--s-surface);border:1px solid var(--s-line);border-radius:18px}
+.sw-list li + li{border-top:1px solid var(--s-line)}
+.sw-list label{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;padding:10px 14px;min-height:56px;cursor:pointer}
+.sw-list .tag{display:block;font-size:12px;color:var(--s-ink2)}
+.sw-list .tag.ex{color:var(--s-accent);font-weight:600}
+[data-style="b"] .sw-list{background:transparent;border:0;border-radius:0}
+[data-style="b"] .sw-list label{padding-inline:0}
+[data-style="b"] .sw-list li,[data-style="b"] .sw-list li + li{border-top:0;border-bottom:1px solid var(--s-line)}
+.sw{appearance:none;-webkit-appearance:none;margin:0;width:51px;height:31px;border-radius:16px;background:var(--s-tile);position:relative;cursor:pointer;flex:none}
+.sw::before{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#ffffff;box-shadow:0 2px 4px var(--shadow)}
+.sw:checked{background:var(--s-accent)}
+.sw:checked::before{transform:translateX(20px)}
+[data-os="android"] .sw{width:52px;height:32px;border:2px solid var(--s-ink2);background:var(--s-tile)}
+[data-os="android"] .sw::before{top:6px;left:6px;width:16px;height:16px;background:var(--s-ink2);box-shadow:none}
+[data-os="android"] .sw:checked{border-color:var(--s-accent);background:var(--s-accent)}
+[data-os="android"] .sw:checked::before{top:2px;left:2px;width:24px;height:24px;background:var(--s-on-accent);transform:translateX(20px)}
+.effects{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.effects li{display:grid;grid-template-columns:24px 1fr auto;gap:4px 10px;align-items:center;padding:8px 0}
+.effects li + li{border-top:1px solid var(--s-line)}
+.effects .e-name{font-weight:600;font-size:14px}
+.effects .e-val{grid-column:2;font-size:12.5px;color:var(--s-ink2);font-variant-numeric:tabular-nums}
+.effects .e-val b{color:var(--s-ink)}
+.effects .chip{grid-column:3;grid-row:1 / span 2}
+.effects .ic{grid-row:1 / span 2;color:var(--s-ink2)}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:0 10px 24px -12px var(--shadow);z-index:5;max-width:calc(100% - 32px)}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px 28px;border-top:1px solid var(--line);padding-top:20px}
+.notes h2{margin:0 0 6px;font-size:1rem}
+.notes ul{margin:0;padding-left:1.1em;color:var(--muted);display:grid;gap:4px;font-size:.93rem}
+
+@media (prefers-reduced-motion: no-preference){
+  .sw::before{transition:transform .18s ease,width .18s ease,height .18s ease,top .18s ease,left .18s ease}
+  .sw,.choice button,.tab-ic,.seg-btns button{transition:background-color .18s ease,border-color .18s ease}
+  .slot[data-active] .device{animation:none}
+  .alert:active,.row-b:active,.bike:active,.btn:active,.tab:active{transform:scale(.98)}
+  .narrow-in{animation:slidein .22s ease-out}
+  @keyframes slidein{from{opacity:.4;transform:translateX(14px)}to{opacity:1;transform:none}}
+}
+
+@media (max-width:759px){
+  .only-narrow{display:flex}
+  .stage{display:block}
+  .slot:not([data-active]){display:none}
+  .slot figcaption{display:none}
+  .device{width:100%;height:calc(100vh - 210px);height:calc(100svh - 210px);min-height:540px;max-height:800px;border-width:1px;border-color:var(--line);border-radius:26px}
+  [data-os="android"] .device{border-width:1px;border-radius:26px}
+  .statusbar{display:none}
+  .appbar{padding-top:6px}
+  .homebar{height:6px}
+  .homebar::before{display:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-garage" viewBox="0 0 24 24"><path d="M3 21V9.5L12 3l9 6.5V21"/><path d="M7 21v-8h10v8M7 16.5h10"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="5" r="2.2"/><path d="M8.2 19h8.3a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7h8.3"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V14M12 20V5M19 20v-9M3 20.5h18"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-octagon" viewBox="0 0 24 24"><path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M8 9H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2"/><path d="M12 15V2.5M8 6l4-4 4 4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3.6"/><circle cx="18.5" cy="16.5" r="3.6"/><path d="M5.5 16.5 9.6 9.2H16M12 16.5 8.9 7.6M7.4 7.6h3M12 16.5 16 9.2M16 9.2l2.5 7.3M16 9.2 15.1 6.6h2.6M5.5 16.5H12"/></symbol>
+  <symbol id="i-chain" viewBox="0 0 24 24"><rect x="2.5" y="8.2" width="11" height="7.6" rx="3.8"/><rect x="10.5" y="8.2" width="11" height="7.6" rx="3.8"/></symbol>
+  <symbol id="i-tire" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-brake" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M15 3.6a9.5 9.5 0 0 1 5.4 5.4"/><path d="M12 6.5v1.5M17.5 12H16M12 17.5V16M6.5 12H8"/></symbol>
+  <symbol id="i-shoe" viewBox="0 0 24 24"><path d="M3 16.5V9.6l3.6-.6 2.1 2.6c3 .5 6.1 1.1 9 2.3 1.6.7 2.9 1.6 3.3 2.6z"/><path d="M3 19h18M10 12.2l1.1-1.5M12.6 12.8l1.1-1.6"/></symbol>
+  <symbol id="i-helmet" viewBox="0 0 24 24"><path d="M2.8 15.2a9.2 7.4 0 0 1 18.4 0v.8H2.8z"/><path d="M3.4 16l1.2 2.6h7.2M9.2 8.6l2 7.4M14.4 8.2l1.6 7.8"/></symbol>
+  <symbol id="i-light" viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="3.2"/><path d="M12 8.5v7M3.5 9.5 5 10.5M3.5 14.5 5 13.5M20.5 9.5 19 10.5M20.5 14.5 19 13.5"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></symbol>
+  <symbol id="i-sb" viewBox="0 0 68 12"><g fill="currentColor" stroke="none"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="4.5" y="6" width="3" height="6" rx=".8"/><rect x="9" y="3.5" width="3" height="8.5" rx=".8"/><rect x="13.5" y="1" width="3" height="11" rx=".8"/><circle cx="28" cy="10" r="1.4"/><rect x="42.5" y="2.8" width="15" height="6.4" rx="1.6"/></g><path d="M22.4 4.7a8 8 0 0 1 11.2 0M24.7 7.1a5 5 0 0 1 6.6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="40.5" y=".8" width="22" height="10.4" rx="3" fill="none" stroke="currentColor" stroke-opacity=".45"/><path d="M64.6 4.3v3.4" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round"/></symbol>
+</svg>
+
+<main class="page">
+  <header class="intro">
+    <h1>Garage en el móvil</h1>
+    <p>Bocetos para elegir estilo antes de construir la versión instalable. Los datos son inventados. Cambia las opciones de abajo y toca dentro de los teléfonos: los avisos llevan a la ficha de la cadena y a la salida por revisar.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg"><span class="seg-label" id="lbl-style">Estilo</span>
+      <div class="seg-btns" role="group" aria-labelledby="lbl-style">
+        <button type="button" id="opt-style-a" data-set="style" data-value="a" aria-pressed="true">A · Tarjetas</button>
+        <button type="button" id="opt-style-b" data-set="style" data-value="b" aria-pressed="false">B · Instrumentos</button>
+      </div>
+    </div>
+    <div class="seg"><span class="seg-label" id="lbl-os">Teléfono</span>
+      <div class="seg-btns" role="group" aria-labelledby="lbl-os">
+        <button type="button" id="opt-os-ios" data-set="os" data-value="ios" aria-pressed="true">iPhone</button>
+        <button type="button" id="opt-os-android" data-set="os" data-value="android" aria-pressed="false">Android</button>
+      </div>
+    </div>
+    <div class="seg"><span class="seg-label" id="lbl-mode">Modo</span>
+      <div class="seg-btns" role="group" aria-labelledby="lbl-mode">
+        <button type="button" id="opt-mode-light" data-set="mode" data-value="light" aria-pressed="true">Claro</button>
+        <button type="button" id="opt-mode-dark" data-set="mode" data-value="dark" aria-pressed="false">Oscuro</button>
+      </div>
+    </div>
+    <div class="seg only-narrow"><span class="seg-label" id="lbl-screen">Pantalla</span>
+      <div class="seg-btns" role="group" aria-labelledby="lbl-screen">
+        <button type="button" id="opt-screen-home" data-screen-btn="home" aria-pressed="true">Inicio</button>
+        <button type="button" id="opt-screen-item" data-screen-btn="item" aria-pressed="false">Cadena</button>
+        <button type="button" id="opt-screen-ride" data-screen-btn="ride" aria-pressed="false">Salida</button>
+      </div>
+    </div>
+  </div>
+  <p class="style-note" id="style-note" aria-live="polite">Tarjetas: claro y ordenado, cada cosa en su tarjeta y barras de desgaste. Parte de los colores actuales de Garage.</p>
+
+  <section class="stage" id="stage" data-style="a" data-os="ios" data-mode="light" aria-label="Bocetos">
+
+    <!-- ============ INICIO ============ -->
+    <figure class="slot" data-screen="home" data-active>
+      <figcaption>Inicio <span>· avisos, bicis y material</span></figcaption>
+      <div class="device">
+        <div class="statusbar" aria-hidden="true"><span>9:41</span><i class="cam"></i><svg class="sb"><use href="#i-sb"/></svg></div>
+        <div class="scroll">
+          <header class="appbar">
+            <div class="appbar-row"><span></span><button class="icon-btn only-ios" type="button" data-soon aria-label="Añadir"><svg class="ic"><use href="#i-plus"/></svg></button></div>
+            <h2 class="large-title">Garaje</h2>
+          </header>
+          <div class="content">
+            <aside class="install" data-install>
+              <svg class="ic"><use href="#i-download"/></svg>
+              <p class="only-ios">Instala Garage en tu iPhone: toca <svg class="ic xs"><use href="#i-share"/></svg> <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>.</p>
+              <p class="only-android">Instala Garage como una app más. <button class="link-btn" type="button" data-soon>Instalar</button></p>
+              <button class="icon-btn" type="button" data-dismiss aria-label="Cerrar aviso"><svg class="ic sm"><use href="#i-x"/></svg></button>
+            </aside>
+
+            <section class="sec" aria-label="Requiere atención">
+              <div class="sec-h"><h3>Requiere atención</h3><span class="count">3</span></div>
+              <div class="stack only-a">
+                <button class="alert st-soon" type="button" data-go="item">
+                  <span class="tile"><svg class="ic"><use href="#i-chain"/></svg></span>
+                  <span class="a-body">
+                    <span class="a-top"><span class="a-name">Cadena 11v</span><span class="chip"><svg class="ic xs"><use href="#i-alert"/></svg>Próximo</span></span>
+                    <span class="a-sub">Carretera · 2.840 de 3.000 km</span>
+                    <span class="meter" style="--p:94.7%"><i></i></span>
+                    <span class="a-foot">Quedan 160 km, unas 2 salidas <em>(estimado)</em></span>
+                  </span>
+                </button>
+                <button class="alert st-due" type="button" data-soon>
+                  <span class="tile"><svg class="ic"><use href="#i-brake"/></svg></span>
+                  <span class="a-body">
+                    <span class="a-top"><span class="a-name">Pastillas traseras</span><span class="chip"><svg class="ic xs"><use href="#i-octagon"/></svg>Vencido</span></span>
+                    <span class="a-sub">Gravel · 397 de 365 días</span>
+                    <span class="meter" style="--p:100%"><i></i></span>
+                    <span class="a-foot">Venció hace 32 días. El calendario cuenta aunque no la uses.</span>
+                  </span>
+                </button>
+                <button class="alert st-soon" type="button" data-go="ride">
+                  <span class="tile"><svg class="ic"><use href="#i-route"/></svg></span>
+                  <span class="a-body">
+                    <span class="a-top"><span class="a-name">Salida sin bici</span><span class="chip"><svg class="ic xs"><use href="#i-alert"/></svg>Revisar</span></span>
+                    <span class="a-sub">Vuelta por la sierra · sáb 11 oct · 92,4 km</span>
+                    <span class="a-foot">Sus km no cuentan hasta que elijas bici.</span>
+                  </span>
+                </button>
+              </div>
+              <div class="rows only-b">
+                <button class="row-b st-soon" type="button" data-go="item">
+                  <svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="22"/><circle class="arc" cx="28" cy="28" r="22" stroke-dasharray="130.9 138.23" transform="rotate(-90 28 28)"/><text x="28" y="32.5">95 %</text></svg>
+                  <span><span class="r-name">Cadena 11v</span><span class="r-sub">Carretera · próximo</span></span>
+                  <span class="big"><b>160</b><small>km quedan</small></span>
+                </button>
+                <button class="row-b st-due" type="button" data-soon>
+                  <svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="22"/><circle class="arc" cx="28" cy="28" r="22" stroke-dasharray="138.23 138.23" transform="rotate(-90 28 28)"/><text x="28" y="32.5">109 %</text></svg>
+                  <span><span class="r-name">Pastillas traseras</span><span class="r-sub">Gravel · vencido por calendario</span></span>
+                  <span class="big"><b>+32</b><small>días</small></span>
+                </button>
+                <button class="row-b st-soon" type="button" data-go="ride">
+                  <span class="ring-ic"><svg class="ic"><use href="#i-route"/></svg></span>
+                  <span><span class="r-name">Salida sin bici</span><span class="r-sub">Vuelta por la sierra · sáb 11 oct</span></span>
+                  <span class="big"><b>92,4</b><small>km sin contar</small></span>
+                </button>
+              </div>
+            </section>
+
+            <section class="sec" aria-label="Bicis">
+              <div class="sec-h"><h3>Bicis</h3></div>
+              <div class="bikes">
+                <button class="bike" type="button" data-soon><svg class="ic"><use href="#i-bike"/></svg><span class="b-name">Carretera</span><span class="b-km"><b>8.412</b> km</span><span class="b-sub">412 h · 1 aviso</span></button>
+                <button class="bike" type="button" data-soon><svg class="ic"><use href="#i-bike"/></svg><span class="b-name">Gravel</span><span class="b-km"><b>3.105</b> km</span><span class="b-sub">164 h · 1 vencido</span></button>
+              </div>
+            </section>
+
+            <section class="sec" aria-label="Material sin bici fija">
+              <div class="sec-h"><h3>Material sin bici fija</h3><button class="link-btn" type="button" data-soon>Ver todo</button></div>
+              <ul class="list">
+                <li><span class="tile"><svg class="ic"><use href="#i-shoe"/></svg></span><span><span class="l-name">Zapatillas de carretera</span><span class="l-sub">Usadas en 2 bicis</span></span><span class="l-val">4.210 km</span></li>
+                <li><span class="tile"><svg class="ic"><use href="#i-shoe"/></svg></span><span><span class="l-name">Zapatillas de gravel</span><span class="l-sub">Habituales en Gravel</span></span><span class="l-val">1.380 km</span></li>
+                <li><span class="tile"><svg class="ic"><use href="#i-helmet"/></svg></span><span><span class="l-name">Casco</span><span class="l-sub">Desde mayo de 2023</span></span><span class="l-val">6.230 km</span></li>
+              </ul>
+            </section>
+          </div>
+        </div>
+        <button class="fab" type="button" data-soon><svg class="ic"><use href="#i-plus"/></svg>Añadir</button>
+        <nav class="tabbar" aria-label="Secciones">
+          <button type="button" class="tab" data-go="home" aria-current="page"><span class="tab-ic"><svg class="ic"><use href="#i-garage"/></svg></span>Garaje</button>
+          <button type="button" class="tab" data-go="ride"><span class="tab-ic"><svg class="ic"><use href="#i-route"/></svg></span>Salidas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-wrench"/></svg></span>Taller</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-chart"/></svg></span>Estadísticas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-more"/></svg></span>Más</button>
+        </nav>
+        <div class="homebar" aria-hidden="true"></div>
+      </div>
+    </figure>
+
+    <!-- ============ COMPONENTE ============ -->
+    <figure class="slot" data-screen="item">
+      <figcaption>Ficha de componente <span>· desgaste, uso y montajes</span></figcaption>
+      <div class="device">
+        <div class="statusbar" aria-hidden="true"><span>9:41</span><i class="cam"></i><svg class="sb"><use href="#i-sb"/></svg></div>
+        <div class="scroll">
+          <header class="appbar">
+            <div class="appbar-row">
+              <button class="back" type="button" data-go="home" aria-label="Volver a Garaje"><svg class="ic only-ios"><use href="#i-chev-left"/></svg><svg class="ic only-android"><use href="#i-arrow-left"/></svg><span class="only-ios">Garaje</span></button>
+              <span class="appbar-title only-android">Cadena 11v</span>
+              <button class="icon-btn" type="button" data-soon aria-label="Más opciones"><svg class="ic"><use href="#i-more"/></svg></button>
+            </div>
+          </header>
+          <div class="content">
+            <div class="hero">
+              <span class="tile"><svg class="ic"><use href="#i-chain"/></svg></span>
+              <div><h2>Cadena 11v</h2><p>En Carretera desde el 2 jun 2026</p></div>
+            </div>
+
+            <div class="card st-soon only-a">
+              <div class="m-row st-soon">
+                <div class="m-top"><span>Distancia</span><b>2.840 / 3.000 km</b></div>
+                <span class="meter" style="--p:94.7%"><i></i></span>
+              </div>
+              <div class="m-row st-ok">
+                <div class="m-top"><span>Tiempo en movimiento</span><b>114 / 150 h</b></div>
+                <span class="meter" style="--p:76%"><i></i></span>
+              </div>
+              <div class="m-row st-ok">
+                <div class="m-top"><span>Calendario</span><b>227 / 365 días</b></div>
+                <span class="meter" style="--p:62.2%"><i></i></span>
+              </div>
+              <div class="remain"><span>Quedan <b>160 km</b>, unas 2 salidas</span><span class="chip"><svg class="ic xs"><use href="#i-alert"/></svg>Próximo</span></div>
+              <p class="note">Avisa al 90 % de un umbral y vence con el primero que se alcance.</p>
+            </div>
+
+            <div class="card only-b">
+              <div class="gauge st-soon">
+                <svg viewBox="0 0 160 160" role="img" aria-label="Distancia: 2.840 de 3.000 km, quedan 160 km">
+                  <circle class="trk" cx="80" cy="80" r="62"/>
+                  <circle class="arc" cx="80" cy="80" r="62" stroke-dasharray="368.9 389.56" transform="rotate(-90 80 80)"/>
+                  <text class="g-num" x="80" y="84">160</text>
+                  <text class="g-lbl" x="80" y="104">km restantes</text>
+                </svg>
+                <span class="chip"><svg class="ic xs"><use href="#i-alert"/></svg>Próximo · 95 % de 3.000 km</span>
+                <div class="trio">
+                  <div class="st-soon"><b>2.840</b><span class="meter thin" style="--p:94.7%"><i></i></span><span>km de 3.000</span></div>
+                  <div class="st-ok"><b>114</b><span class="meter thin" style="--p:76%"><i></i></span><span>h de 150</span></div>
+                  <div class="st-ok"><b>227</b><span class="meter thin" style="--p:62.2%"><i></i></span><span>días de 365</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="c-head"><h4>Km por mes</h4><span>2026 · octubre en curso</span></div>
+              <div class="chart only-a" data-chart="cols">
+                <svg viewBox="0 0 320 170" role="img" aria-label="Kilómetros por mes de marzo a octubre de 2026. Máximo en julio con 610 km." tabindex="0">
+                  <g class="grid"><line x1="34" x2="312" y1="23.7" y2="23.7"/><line x1="34" x2="312" y1="62.5" y2="62.5"/><line x1="34" x2="312" y1="101.2" y2="101.2"/><line class="base" x1="34" x2="312" y1="140" y2="140"/></g>
+                  <g class="ticks"><text x="28" y="27.4">600</text><text x="28" y="66.2">400</text><text x="28" y="104.9">200</text><text x="28" y="143.7">0</text></g>
+                  <g class="cols">
+                    <path data-i="0" d="M41.38 140V109.11a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="1" d="M76.13 140V83.91a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="2" d="M110.88 140V62.58a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="3" d="M145.63 140V43.2a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="4" d="M180.38 140V25.75a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="5" d="M215.13 140V70.34a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="6" d="M249.88 140V87.78a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                    <path data-i="7" class="cur" d="M284.63 140V118.8a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4V140z"/>
+                  </g>
+                  <g class="months"><text x="51.38" y="157">mar</text><text x="86.13" y="157">abr</text><text x="120.88" y="157">may</text><text x="155.63" y="157">jun</text><text x="190.38" y="157">jul</text><text x="225.13" y="157">ago</text><text x="259.88" y="157">sep</text><text x="294.63" y="157">oct</text></g>
+                  <text class="val" x="190.38" y="15.5">610</text>
+                  <text class="val" x="294.63" y="108.6">130</text>
+                </svg>
+                <span class="tip" hidden></span>
+              </div>
+              <div class="chart only-b" data-chart="line">
+                <svg viewBox="0 0 320 170" role="img" aria-label="Kilómetros por mes de marzo a octubre de 2026. Máximo en julio con 610 km." tabindex="0">
+                  <g class="grid"><line x1="34" x2="312" y1="23.7" y2="23.7"/><line x1="34" x2="312" y1="62.5" y2="62.5"/><line x1="34" x2="312" y1="101.2" y2="101.2"/><line class="base" x1="34" x2="312" y1="140" y2="140"/></g>
+                  <g class="ticks"><text x="28" y="27.4">600</text><text x="28" y="66.2">400</text><text x="28" y="104.9">200</text><text x="28" y="143.7">0</text></g>
+                  <path class="area" d="M51.38 140L51.38 105.11L86.13 79.91L120.88 58.58L155.63 39.2L190.38 21.75L225.13 66.34L259.88 83.78L259.88 140Z"/>
+                  <polyline class="line" points="51.38,105.11 86.13,79.91 120.88,58.58 155.63,39.2 190.38,21.75 225.13,66.34 259.88,83.78"/>
+                  <line class="line dash" x1="259.88" y1="83.78" x2="294.63" y2="114.8"/>
+                  <line class="hl" x1="0" x2="0" y1="14" y2="140"/>
+                  <g class="pts"><circle class="pt" data-i="0" cx="51.38" cy="105.11" r="4"/><circle class="pt" data-i="1" cx="86.13" cy="79.91" r="4"/><circle class="pt" data-i="2" cx="120.88" cy="58.58" r="4"/><circle class="pt" data-i="3" cx="155.63" cy="39.2" r="4"/><circle class="pt" data-i="4" cx="190.38" cy="21.75" r="4"/><circle class="pt" data-i="5" cx="225.13" cy="66.34" r="4"/><circle class="pt" data-i="6" cx="259.88" cy="83.78" r="4"/></g>
+                  <circle class="dot" cx="294.63" cy="114.8" r="4"/>
+                  <g class="months"><text x="51.38" y="157">mar</text><text x="86.13" y="157">abr</text><text x="120.88" y="157">may</text><text x="155.63" y="157">jun</text><text x="190.38" y="157">jul</text><text x="225.13" y="157">ago</text><text x="259.88" y="157">sep</text><text x="294.63" y="157">oct</text></g>
+                  <text class="val" x="190.38" y="13">610</text>
+                  <text class="val" x="294.63" y="104.6">130</text>
+                </svg>
+                <span class="tip" hidden></span>
+              </div>
+              <table class="sr-only"><caption>Km por mes, 2026</caption><thead><tr><th>Mes</th><th>Km</th></tr></thead><tbody><tr><td>marzo</td><td>180</td></tr><tr><td>abril</td><td>310</td></tr><tr><td>mayo</td><td>420</td></tr><tr><td>junio</td><td>520</td></tr><tr><td>julio</td><td>610</td></tr><tr><td>agosto</td><td>380</td></tr><tr><td>septiembre</td><td>290</td></tr><tr><td>octubre (en curso)</td><td>130</td></tr></tbody></table>
+            </div>
+
+            <section class="sec" aria-label="Montajes">
+              <div class="sec-h"><h3>Montajes</h3></div>
+              <ul class="mounts">
+                <li><span><b>Carretera</b><span>2 jun 2026 → hoy</span></span><span class="l-val">1.930 km</span></li>
+                <li><span><b>Gravel</b><span>3 mar → 1 jun 2026</span></span><span class="l-val">910 km</span></li>
+              </ul>
+            </section>
+
+            <section class="sec" aria-label="Intervenciones">
+              <div class="sec-h"><h3>Intervenciones</h3></div>
+              <ul class="list">
+                <li><span class="tile"><svg class="ic"><use href="#i-wrench"/></svg></span><span><span class="l-name">Limpieza y lubricación</span><span class="l-sub">2 oct 2026 · con 2.610 km</span></span><span></span></li>
+                <li><span class="tile"><svg class="ic"><use href="#i-plus"/></svg></span><span><span class="l-name">Compra y montaje</span><span class="l-sub">3 mar 2026 · 0,012 €/km hasta hoy</span></span><span class="l-val">32,90 €</span></li>
+              </ul>
+            </section>
+          </div>
+          <div class="actionbar">
+            <button class="btn primary" type="button" data-soon><svg class="ic sm"><use href="#i-wrench"/></svg>Registrar mantenimiento</button>
+            <button class="btn ghost" type="button" data-soon aria-label="Mover a otra bici"><svg class="ic sm"><use href="#i-swap"/></svg></button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="Secciones">
+          <button type="button" class="tab" data-go="home" aria-current="page"><span class="tab-ic"><svg class="ic"><use href="#i-garage"/></svg></span>Garaje</button>
+          <button type="button" class="tab" data-go="ride"><span class="tab-ic"><svg class="ic"><use href="#i-route"/></svg></span>Salidas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-wrench"/></svg></span>Taller</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-chart"/></svg></span>Estadísticas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-more"/></svg></span>Más</button>
+        </nav>
+        <div class="homebar" aria-hidden="true"></div>
+      </div>
+    </figure>
+
+    <!-- ============ SALIDA ============ -->
+    <figure class="slot" data-screen="ride">
+      <figcaption>Revisar una salida <span>· bici, material y efecto</span></figcaption>
+      <div class="device">
+        <div class="statusbar" aria-hidden="true"><span>9:41</span><i class="cam"></i><svg class="sb"><use href="#i-sb"/></svg></div>
+        <div class="scroll">
+          <header class="appbar">
+            <div class="appbar-row">
+              <button class="back" type="button" data-go="home" aria-label="Volver a Garaje"><svg class="ic only-ios"><use href="#i-chev-left"/></svg><svg class="ic only-android"><use href="#i-arrow-left"/></svg><span class="only-ios">Garaje</span></button>
+              <span class="appbar-title only-android">Revisar salida</span>
+              <button class="icon-btn" type="button" data-soon aria-label="Más opciones"><svg class="ic"><use href="#i-more"/></svg></button>
+            </div>
+          </header>
+          <div class="content">
+            <div class="ride-h">
+              <h2>Vuelta por la sierra</h2>
+              <p>Sábado 11 oct 2026 · 8:12</p>
+              <span class="src"><svg class="ic sm"><use href="#i-file"/></svg>Archivo FIT del Garmin</span>
+            </div>
+            <div class="stats">
+              <div><b>92,4</b><span>km</span></div>
+              <div><b>3 h 41</b><span>en movimiento</span></div>
+              <div><b>25,1</b><span>km/h media</span></div>
+            </div>
+
+            <section class="sec" aria-label="Bici">
+              <div class="sec-h"><h3>¿Con qué bici?</h3></div>
+              <p class="pending st-soon"><svg class="ic sm"><use href="#i-alert"/></svg><span>El archivo no indicaba la bici. Al elegirla se marca su material habitual.</span></p>
+              <div class="choice" role="radiogroup" aria-label="Bici de la salida">
+                <button type="button" role="radio" id="bike-carretera" data-bike="carretera" aria-checked="true"><svg class="ic"><use href="#i-bike"/></svg><span>Carretera<small>8.412 km</small></span><svg class="ic sm tick"><use href="#i-check"/></svg></button>
+                <button type="button" role="radio" id="bike-gravel" data-bike="gravel" aria-checked="false"><svg class="ic"><use href="#i-bike"/></svg><span>Gravel<small>3.105 km</small></span><svg class="ic sm tick"><use href="#i-check"/></svg></button>
+              </div>
+            </section>
+
+            <section class="sec" aria-label="Material">
+              <div class="sec-h"><h3>Material que llevaste</h3></div>
+              <ul class="sw-list">
+                <li><label for="sw-zr"><svg class="ic"><use href="#i-shoe"/></svg><span>Zapatillas de carretera<span class="tag" data-tag="sw-zr"></span></span><input class="sw" type="checkbox" role="switch" id="sw-zr" checked></label></li>
+                <li><label for="sw-zg"><svg class="ic"><use href="#i-shoe"/></svg><span>Zapatillas de gravel<span class="tag" data-tag="sw-zg"></span></span><input class="sw" type="checkbox" role="switch" id="sw-zg"></label></li>
+                <li><label for="sw-casco"><svg class="ic"><use href="#i-helmet"/></svg><span>Casco<span class="tag" data-tag="sw-casco"></span></span><input class="sw" type="checkbox" role="switch" id="sw-casco" checked></label></li>
+                <li><label for="sw-luz"><svg class="ic"><use href="#i-light"/></svg><span>Luz trasera<span class="tag" data-tag="sw-luz"></span></span><input class="sw" type="checkbox" role="switch" id="sw-luz"></label></li>
+              </ul>
+            </section>
+
+            <section class="sec" aria-label="Al guardar">
+              <div class="sec-h"><h3>Al guardar</h3><span class="count" id="effects-count">5</span></div>
+              <div class="card"><ul class="effects" id="effects"></ul></div>
+              <p class="note">Sólo cambia esta salida. Los contadores se recalculan al guardar.</p>
+            </section>
+          </div>
+          <div class="actionbar">
+            <button class="btn primary" type="button" data-soon>Guardar salida</button>
+            <button class="btn ghost" type="button" data-go="home">Luego</button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="Secciones">
+          <button type="button" class="tab" data-go="home"><span class="tab-ic"><svg class="ic"><use href="#i-garage"/></svg></span>Garaje</button>
+          <button type="button" class="tab" data-go="ride" aria-current="page"><span class="tab-ic"><svg class="ic"><use href="#i-route"/></svg></span>Salidas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-wrench"/></svg></span>Taller</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-chart"/></svg></span>Estadísticas</button>
+          <button type="button" class="tab" data-soon><span class="tab-ic"><svg class="ic"><use href="#i-more"/></svg></span>Más</button>
+        </nav>
+        <div class="homebar" aria-hidden="true"></div>
+      </div>
+    </figure>
+  </section>
+
+  <section class="notes" aria-label="Notas del boceto">
+    <div><h2>Igual en iPhone y Android</h2><ul>
+      <li>Las mismas pantallas, datos y menú inferior.</li>
+      <li>Modo claro u oscuro según el teléfono.</li>
+      <li>Botones de 44 px como mínimo, para usar con una mano.</li>
+    </ul></div>
+    <div><h2>Cambia según el teléfono</h2><ul>
+      <li>Letra del sistema: San Francisco en iPhone, Roboto en Android. En el ordenador ambos marcos usan la del ordenador.</li>
+      <li>Volver: flecha con «Garaje» en iPhone, flecha sola en Android, además del gesto o botón de cada sistema.</li>
+      <li>Añadir: botón arriba en iPhone, botón flotante en Android.</li>
+      <li>Instalar: Compartir → Añadir a pantalla de inicio en iPhone; «Instalar» en Android.</li>
+    </ul></div>
+    <div><h2>Fuera de este boceto</h2><ul>
+      <li>Taller, estadísticas y «Más» aparecen en el menú pero no están dibujados.</li>
+      <li>Fotos, formularios largos, importación de FIT y exportación.</li>
+    </ul></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const narrow = matchMedia('(max-width: 759px)');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const store = {
+    get(k) { try { return localStorage.getItem('garage-mock-' + k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem('garage-mock-' + k, v); } catch (e) { /* optional */ } },
+  };
+  const styleNotes = {
+    a: 'Tarjetas: claro y ordenado, cada cosa en su tarjeta y barras de desgaste. Parte de los colores actuales de Garage.',
+    b: 'Instrumentos: más denso y numérico, con anillos de desgaste y cifras grandes, como un ciclocomputador.',
+  };
+
+  function fmt(v) {
+    const r = Math.round(Math.abs(v) * 10) / 10;
+    let [i, d] = r.toFixed(1).split('.');
+    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (v < 0 ? '-' : '') + i + (d !== '0' ? ',' + d : '');
+  }
+
+  function setOpt(key, value, save = true) {
+    stage.dataset[key] = value;
+    document.querySelectorAll(`[data-set="${key}"]`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === value)));
+    if (key === 'style') document.getElementById('style-note').textContent = styleNotes[value];
+    if (save) store.set(key, value);
+  }
+  const theme = document.documentElement.dataset.theme;
+  const prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  setOpt('style', store.get('style') || 'a', false);
+  setOpt('os', store.get('os') || (/Android/i.test(navigator.userAgent) ? 'android' : 'ios'), false);
+  setOpt('mode', store.get('mode') || theme || (prefersDark ? 'dark' : 'light'), false);
+  document.querySelectorAll('[data-set]').forEach(b => b.addEventListener('click', () => setOpt(b.dataset.set, b.dataset.value)));
+
+  const slots = [...document.querySelectorAll('.slot')];
+  function show(name) {
+    const target = slots.find(s => s.dataset.screen === name);
+    if (!target) return;
+    if (narrow.matches) {
+      slots.forEach(s => s.toggleAttribute('data-active', s === target));
+      document.querySelectorAll('[data-screen-btn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.screenBtn === name)));
+      const dev = target.querySelector('.device');
+      target.querySelector('.scroll').scrollTop = 0;
+      dev.classList.remove('narrow-in'); void dev.offsetWidth; dev.classList.add('narrow-in');
+    } else {
+      target.scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+      if (!reduce.matches) { target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
+    }
+  }
+  document.querySelectorAll('[data-screen-btn]').forEach(b => b.addEventListener('click', () => show(b.dataset.screenBtn)));
+
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1900);
+  }
+
+  document.addEventListener('click', e => {
+    const go = e.target.closest('[data-go]');
+    if (go) { show(go.dataset.go); return; }
+    const dismiss = e.target.closest('[data-dismiss]');
+    if (dismiss) { dismiss.closest('[data-install]').hidden = true; return; }
+    if (e.target.closest('[data-soon]')) toast('Esta parte no está dibujada en el boceto.');
+  });
+
+  // Charts: tap or hover a month to read its value.
+  const months = ['marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre'];
+  const km = [180, 310, 420, 520, 610, 380, 290, 130];
+  const cx = i => 34 + i * 34.75 + 17.375;
+  const cy = i => 140 - km[i] * 126 / 650;
+  document.querySelectorAll('[data-chart]').forEach(wrap => {
+    const svg = wrap.querySelector('svg');
+    const tip = wrap.querySelector('.tip');
+    const hl = svg.querySelector('.hl');
+    let current = -1;
+    function hide() {
+      current = -1;
+      tip.hidden = true;
+      svg.querySelectorAll('[data-i]').forEach(el => el.classList.remove('on'));
+      if (hl) hl.style.opacity = 0;
+    }
+    function pick(i) {
+      if (i < 0 || i > 7) { hide(); return; }
+      current = i;
+      const r = svg.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+      const px = (r.left - w.left) + cx(i) * r.width / 320;
+      const py = (r.top - w.top) + cy(i) * r.height / 170;
+      tip.textContent = `${months[i]}${i === 7 ? ' (en curso)' : ''} · ${fmt(km[i])} km`;
+      tip.hidden = false;
+      const half = tip.offsetWidth / 2 + 2;
+      tip.style.left = Math.max(half, Math.min(w.width - half, px)) + 'px';
+      tip.style.top = py + 'px';
+      svg.querySelectorAll('[data-i]').forEach(el => el.classList.toggle('on', +el.dataset.i === i));
+      if (hl) { hl.setAttribute('x1', cx(i)); hl.setAttribute('x2', cx(i)); hl.style.opacity = 1; }
+    }
+    const at = clientX => {
+      const r = svg.getBoundingClientRect();
+      const x = (clientX - r.left) * 320 / r.width;
+      return Math.floor((x - 34) / 34.75);
+    };
+    svg.addEventListener('pointermove', e => pick(at(e.clientX)));
+    svg.addEventListener('pointerdown', e => pick(at(e.clientX)));
+    svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+    svg.addEventListener('blur', hide);
+    svg.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { pick(Math.min(7, current + 1)); e.preventDefault(); }
+      if (e.key === 'ArrowLeft') { pick(Math.max(0, current < 0 ? 7 : current - 1)); e.preventDefault(); }
+      if (e.key === 'Escape') hide();
+    });
+  });
+
+  // Ride review: choosing a bike marks its usual gear; changes show their effect on counters.
+  const KM = 92.4;
+  const bikes = {
+    carretera: { rows: [
+      { ic: 'bike', n: 'Carretera', from: 8412 },
+      { ic: 'chain', n: 'Cadena 11v', from: 2840, of: 3000 },
+      { ic: 'tire', n: 'Cubierta trasera 28 mm', from: 3610, of: 5000 },
+    ], usual: ['sw-zr', 'sw-casco'] },
+    gravel: { rows: [
+      { ic: 'bike', n: 'Gravel', from: 3105 },
+      { ic: 'tire', n: 'Cubierta trasera 40 mm', from: 2105, of: 4000 },
+      { ic: 'brake', n: 'Pastillas traseras', from: 1980, due: 'Vencido' },
+    ], usual: ['sw-zg', 'sw-casco'] },
+  };
+  const gear = {
+    'sw-zr': { ic: 'shoe', n: 'Zapatillas de carretera', from: 4210 },
+    'sw-zg': { ic: 'shoe', n: 'Zapatillas de gravel', from: 1380 },
+    'sw-casco': { ic: 'helmet', n: 'Casco', from: 6230 },
+    'sw-luz': { ic: 'light', n: 'Luz trasera', from: 940 },
+  };
+  const chip = (st, label) => {
+    const icon = { ok: 'check-circle', soon: 'alert', due: 'octagon' }[st];
+    return `<span class="chip st-${st}"><svg class="ic xs"><use href="#i-${icon}"/></svg>${label}</span>`;
+  };
+  let bike = 'carretera';
+  function render() {
+    const rows = [...bikes[bike].rows];
+    Object.keys(gear).forEach(id => {
+      const on = document.getElementById(id).checked;
+      const usual = bikes[bike].usual.includes(id);
+      if (on) rows.push(gear[id]);
+      const tag = document.querySelector(`[data-tag="${id}"]`);
+      tag.textContent = on && usual ? 'Habitual en ' + (bike === 'carretera' ? 'Carretera' : 'Gravel')
+        : on ? 'Añadido sólo en esta salida' : usual ? 'Quitado sólo en esta salida' : '';
+      tag.classList.toggle('ex', on !== usual);
+    });
+    document.getElementById('effects').innerHTML = rows.map(r => {
+      const to = r.from + KM;
+      let c = '';
+      if (r.due) c = chip('due', r.due);
+      else if (r.of) { const p = to / r.of; c = p >= 1 ? chip('due', 'Vencido') : p >= 0.9 ? chip('soon', 'Próximo') : chip('ok', 'Al día'); }
+      const of = r.of ? ` de ${fmt(r.of)}` : '';
+      return `<li><svg class="ic"><use href="#i-${r.ic}"/></svg><span class="e-name">${r.n}</span><span class="e-val">${fmt(r.from)} → <b>${fmt(to)}</b> km${of}</span>${c}</li>`;
+    }).join('');
+    document.getElementById('effects-count').textContent = rows.length;
+  }
+  document.querySelectorAll('[data-bike]').forEach(b => b.addEventListener('click', () => {
+    bike = b.dataset.bike;
+    document.querySelectorAll('[data-bike]').forEach(o => o.setAttribute('aria-checked', String(o === b)));
+    Object.keys(gear).forEach(id => { document.getElementById(id).checked = bikes[bike].usual.includes(id); });
+    render();
+  }));
+  Object.keys(gear).forEach(id => document.getElementById(id).addEventListener('change', render));
+  render();
+})();
+</script>
+</body>
+</html>

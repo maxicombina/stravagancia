@@ -1,0 +1,52 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-{{ icon }}"/></svg></span>
+  <div><h1>{{ name }}</h1><p class="lede">{{ target.name }} · {{ rule|thresholds_or }}, lo primero que llegue</p></div>
+</div>
+{% with metric=w.headline %}
+<section class="panel st-{{ w.real_state }}" aria-label="Estado de {{ name }}">
+  <p><span class="chip st-{{ w.real_state }}"><svg class="ic xs"><use href="#i-{{ w.real_icon }}"/></svg>{{ w.real_word }}</span>
+    {% if metric and metric.state != 'nodata' %}<b class="num">{{ metric.big }}</b> {{ metric.big_caption }} · {{ metric.percent_text }} de {{ metric.threshold_label }}{% endif %}</p>
+  <p><a class="btn" href="{{ event_url }}"><svg class="ic sm"><use href="#i-wrench"/></svg>Registrar {{ rule.service_type.name|lower }}</a></p>
+  {% include "garage/_elevation_rule_note.html" %}
+  <p class="note">Registrar la intervención reinicia la cuenta. Si aún no puedes hacerla, pospón el aviso.</p>
+</section>
+{% endwith %}
+{% if w.snooze %}{% with status=w.snooze.status %}
+<section class="panel st-snoozed" aria-labelledby="snoozed-title">
+  <h2 id="snoozed-title"><svg class="ic sm"><use href="#i-clock"/></svg> {% if status == 'reached' %}Aplazamiento terminado{% elif w.snooze.unknown_elevation %}Aplazamiento por revisar{% elif status == 'unknown' %}Aplazamiento sin calcular{% else %}Pospuesto{% endif %}</h2>
+  <p>Desde el {% local_date w.snooze.snooze.started_at %}: {{ w.snooze.snooze|thresholds_or }}{% if w.snooze.snooze.notes %} ({{ w.snooze.snooze.notes }}){% endif %}.
+    {% if w.snoozed %}{{ w.snooze_verb|capfirst }} <b>{{ w.snooze_left }}</b>; después vuelve a avisar.
+    {% elif status == 'active' %}{{ w.snooze_verb|capfirst }} <b>{{ w.snooze_left }}</b>. Ahora no requiere atención; si vence antes, no avisará.
+    {% elif status == 'reached' %}Se llegó a {{ w.snooze_reached }}{% if w.needs_attention %}: el aviso se muestra{% endif %}.
+    {% elif w.snooze.unknown_elevation %}Alguna salida desde entonces no registra desnivel, así que no se sabe cuánto queda{% if w.needs_attention %}: el aviso se sigue mostrando{% endif %}.
+    {% else %}El uso desde entonces está pendiente de calcular{% if w.needs_attention %}: el aviso se sigue mostrando{% endif %}.{% endif %}</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="end"><button type="submit" class="btn ghost">{% if status == 'reached' %}Cerrar el aplazamiento{% else %}Dejar de posponer{% endif %}</button></form>
+</section>
+{% endwith %}{% endif %}
+<section class="sec" aria-labelledby="snooze-title">
+  <div class="sec-h"><h2 id="snooze-title">{% if w.snooze %}Volver a posponer desde ahora{% else %}Posponer el aviso{% endif %}</h2></div>
+  <p class="note">Deja de avisar hasta que pasen los km, las horas, las salidas, el desnivel o los días que indiques: <b>lo primero que llegue</b>.{% if not w.needs_attention and not w.snoozed and not w.snooze.active %} Ahora no requiere atención: si vence dentro de lo pospuesto, no avisará.{% endif %}{% if w.snooze and w.snooze.status != 'reached' %} El aplazamiento actual termina al guardar otro.{% endif %}</p>
+  {% if errors %}<div role="alert" class="errorlist">{% for message in errors %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+  <form method="post" class="presets" aria-label="Atajos">{% csrf_token %}{% for key, label, amounts in presets %}
+    <button type="submit" name="preset" value="{{ key }}" class="chip-link">{{ label }}<span class="sr-only">: {{ amounts }}</span></button>{% endfor %}
+  </form>
+  <form method="post" novalidate class="form" aria-label="Posponer {{ name }}">{% csrf_token %}
+    {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field-row">
+      {% include "garage/_field.html" with field=form.distance_km %}
+      {% include "garage/_field.html" with field=form.moving_time_h %}
+    </div>
+    <div class="field-row">
+      {% include "garage/_field.html" with field=form.ride_count %}
+      {% include "garage/_field.html" with field=form.calendar_days %}
+    </div>
+    {% include "garage/_field.html" with field=form.elevation_gain_m %}
+    <p class="note">Siempre hay un máximo de días: así el aviso no queda oculto si dejas de registrar salidas. Cuenta desde ahora con las salidas registradas en Garage; si el uso está pendiente de calcular, el aviso no se oculta.</p>
+    {% include "garage/_field.html" with field=form.notes %}
+    <div class="actionbar"><button type="submit" class="btn"><svg class="ic sm"><use href="#i-clock"/></svg>Posponer</button><a class="btn ghost" href="{{ back_url }}">Cancelar</a></div>
+  </form>
+</section>
+<p class="note"><a class="link" href="{{ edit_url }}">{% if rule|is_life %}Editar vida útil{% else %}Editar la regla{% endif %} ({{ rule|thresholds }})</a></p>
+{% endblock %}

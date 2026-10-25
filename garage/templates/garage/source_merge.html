@@ -1,0 +1,22 @@
+{% extends "garage/base.html" %}
+{% block garage_content %}
+<h1>Unir con…</h1>
+<p class="lede">Salidas a menos de 6 horas sin otra fuente del mismo tipo. «Coincide» significa inicio a ±90 s y distancia a ±2 %. Nunca se unen dos FIT ni dos actividades de Strava.</p>
+{% if form %}
+<section class="panel" aria-labelledby="merge-effects">
+  <h2 id="merge-effects">Antes de unir</h2>
+  <ul>{% for line in warnings %}<li>{{ line }}</li>{% endfor %}</ul>
+</section>
+<form method="post" novalidate class="form">{% csrf_token %}
+  {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form.visible_fields %}{% include "garage/_field.html" %}{% endfor %}
+  <div class="actionbar">
+    <button type="submit" class="btn">Unir</button>
+    <a class="btn ghost" href="{{ back }}">Cancelar</a>
+  </div>
+</form>
+{% else %}
+<p class="empty">No hay salidas a menos de 6 horas que puedan recibir esta fuente.</p>
+<p><a class="btn ghost" href="{{ back }}">Volver a la salida</a></p>
+{% endif %}
+{% endblock %}

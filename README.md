@@ -61,7 +61,7 @@ It's a good excuse to learn something new and useful, while being able to view m
   - `python manage.py load_athlete`
   - `python manage.py detect_missing_activities`
   - `python manage.py load_missing_activities`: may take a while depending on how many activities you have
-- Run tests: `pytest` (uses `pytest-django`)
+- Run isolated tests with local PostgreSQL: see [TESTING.md](TESTING.md).
 - To exercise the webhook end-to-end with a real Strava upload (requires `activity:write` scope on the refresh token):
   - `python manage.py upload_test_gpx path/to/ride.gpx`
 - Optionally: run the dashboard containers via Docker:
@@ -108,3 +108,75 @@ The `/charts/` page embeds Grafana dashboards. In production, Grafana runs as a 
 The Django admin login is rate-limited with [django-axes](https://github.com/jazzband/django-axes): 5 failed attempts lock the `(IP, username)` pair for 1 hour, X-Forwarded-For-aware for Render's proxy. Config in `strava_app/settings.py`.
 
 The admin uses the [django-unfold](https://unfoldadmin.com/) theme (configured in `strava_app/settings.py` under `UNFOLD`; the custom `ModelAdmin`s in `strava_integration/admin.py` extend Unfold's).
+
+## Private Garage photos (prepared locally, external validation pending)
+
+Bike and item detail pages support private JPEG/PNG/WebP uploads, replacement and
+deletion. The server processes images with `garage.photos`; PostgreSQL stores
+only opaque object references, dimensions, processed byte counts and SHA-256.
+Original filenames, signed URLs and storage credentials are never stored there.
+The protected content endpoint authorizes the owner before issuing a short-lived
+GET URL. Even superusers cannot access another owner's photo through Garage.
+
+The private bucket and branch-scoped credentials must be authorized and configured
+separately; no bucket, credential or deployment was created for this work. Required
+server variables are `GARAGE_S3_ENDPOINT_URL`, `GARAGE_S3_REGION`,
+`GARAGE_S3_BUCKET`, `GARAGE_S3_ACCESS_KEY_ID` and `GARAGE_S3_SECRET_ACCESS_KEY`.
+See [storage configuration](docs/garage-storage.md). Missing configuration shows a
+generic unavailable message. Do not enable boto3/botocore DEBUG logging or record
+signed URLs.
+
+The default ceiling is **250 MiB per owner** and **4,000,000,000 bytes for the
+project**. The project ceiling leaves 1 GB of headroom within the documented
+5 GB provider allowance. `GARAGE_PHOTO_OWNER_QUOTA_BYTES` and
+`GARAGE_PHOTO_PROJECT_QUOTA_BYTES` can set smaller positive integer ceilings in
+server environment variables or Django settings; neither may exceed the 4 GB
+application ceiling. Reservations, live photos and objects awaiting cleanup all
+count. Replacement temporarily reserves both objects and can fail when there is
+insufficient headroom. The owner lock serializes reservations; a singleton budget
+row also serializes reservations across owners for the project ceiling.
+
+Before a PUT, the service commits an object reservation containing its opaque key
+and a cleanup deadline. A second owner-locked transaction performs the bounded
+upload and finalizes the photo reference. A failed replacement preserves the old
+photo. Successful replacement/deletion marks the detached object for cleanup;
+failed cleanup remains durable and continues counting toward quota. Writes must
+start outside an enclosing transaction; photo endpoints do not use
+`ATOMIC_REQUESTS`. The ten-minute reservation deadline lets cleanup recover a
+process crash or an ambiguous PUT; cleanup shares the owner lock and never deletes
+an object with a database reference. Referenced bikes/items and accounts with
+tracked objects are protected from deletion, so raw deletion cannot discard
+cleanup metadata. Remove photos and finish cleanup before deleting those resources.
+
+When PUT has no confirmed response, an early best-effort DELETE does not release
+the key or quota: the PUT may persist afterward. Its reservation remains for a
+ten-minute settle window and requires another cleanup DELETE after that window.
+Expired reservations left by crashed uploaders follow the same protocol: the
+first acknowledged DELETE defers the job for another settle window and retains
+its key and quota. The command reports these jobs as `deferred`; a later due
+DELETE must succeed before they count as `deleted`.
+Confirmed uploads followed by a DB failure and detached previously live objects
+can be cleaned immediately.
+
+Retry only tracked, due objects with this management command; it never lists the
+bucket or prints object keys, URLs or credentials:
+
+```bash
+python manage.py cleanup_photos --dry-run
+python manage.py cleanup_photos --limit 100
+python manage.py cleanup_photos --owner OWNER_ID --limit 100
+```
+
+Failures increment a safe error code and retry after an increasing delay of up
+to one hour. Storage DELETE must succeed and the reservation row must be removed
+before application quota is released. Provider usage can differ from this count;
+DELETE acknowledgment does not establish physical removal or immediate provider
+quota recovery. Provider quotas, other objects and transfer charges still require
+deployment checks. No scheduler is installed by this command.
+
+Simulated tests cover upload/read/replace/delete, ownership, quotas, two-connection
+concurrency, rollback and recovery with PostgreSQL isolated under [TESTING.md](TESTING.md).
+**The real private-bucket test remains pending**: synthetic-image persistence
+from a second client, anonymous denial, signed GET, replacement and cleanup.
+`garage-010` stays open until the pending external integration is resolved and
+documented. No production environment file or Neon data was changed.

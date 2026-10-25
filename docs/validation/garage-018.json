@@ -1,0 +1,79 @@
+{
+  "task": "garage-018",
+  "status": "completed_and_adversarial_review_approved",
+  "started_at": "2026-10-10T09:41:35.588680+00:00",
+  "checked_at": "2026-10-10T09:44:57+00:00",
+  "duration_seconds": 87.926,
+  "pytest_cases_passed": 1640,
+  "subtests_passed": 12,
+  "junit_cases_including_subtests": 1652,
+  "focused_alert_cases_passed": 35,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "postgres": "18.6 local disposable 127.0.0.1:55434",
+  "application_role_superuser": false,
+  "migration": "0008",
+  "checks": [
+    "Django check passed",
+    "No pending migrations",
+    "git diff --check passed",
+    "Zero leftover test databases"
+  ],
+  "artifacts": {
+    "full_junit": "/private/tmp/garage018-validation-44qcqqna/full/pytest.xml",
+    "alerts_junit": "/private/tmp/garage018-validation-44qcqqna/alerts.xml",
+    "coverage": "/private/tmp/garage018-validation-44qcqqna/full/coverage.json"
+  },
+  "adversarial_review": {
+    "model": "gpt-6.1-sol",
+    "status": "approved",
+    "note": "Application reviewed independently; owner-lock concurrency regression strengthened and validated with pg_blocking_pids."
+  },
+  "coverage_measured_this_run": true,
+  "coverage_scope": "Garage runtime, test isolation and board; excludes tests/migrations and most legacy app",
+  "coverage_totals": {
+    "covered_lines": 4484,
+    "num_statements": 4732,
+    "percent_covered": 93.7780628608082,
+    "percent_covered_display": "94",
+    "missing_lines": 248,
+    "excluded_lines": 0,
+    "percent_statements_covered": 94.75908706677937,
+    "percent_statements_covered_display": "95",
+    "num_branches": 1504,
+    "num_partial_branches": 126,
+    "covered_branches": 1364,
+    "missing_branches": 140,
+    "percent_branches_covered": 90.69148936170212,
+    "percent_branches_covered_display": "91"
+  },
+  "coverage_alerts": {
+    "covered_lines": 123,
+    "num_statements": 126,
+    "percent_covered": 96.75324675324676,
+    "percent_covered_display": "97",
+    "missing_lines": 3,
+    "excluded_lines": 0,
+    "percent_statements_covered": 97.61904761904762,
+    "percent_statements_covered_display": "98",
+    "num_branches": 28,
+    "num_partial_branches": 2,
+    "covered_branches": 26,
+    "missing_branches": 2,
+    "percent_branches_covered": 92.85714285714286,
+    "percent_branches_covered_display": "93"
+  },
+  "external_photo_bucket_verified": false,
+  "browser_validation_this_session": true,
+  "browser_checks": [
+    "Synthetic login",
+    "Due/unknown/soon/current all displayed",
+    "Independent lubrication/replacement references"
+  ],
+  "limits": [
+    "Synthetic data and mocked external storage/HTTP",
+    "No Neon or production migrations",
+    "No external notifications"
+  ]
+}

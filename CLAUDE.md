@@ -1,294 +1,156 @@
-# CLAUDE.md
+# Continuar Stravagancia / Garage
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Estas instrucciones sustituyen la guía antigua de este archivo. El usuario pidió
+el 10 de octubre de 2026 que **Claude u otra IA continúe el proyecto**, conservando
+las decisiones, las tareas, las pruebas y el trabajo local sin commits.
 
-## Project Overview
+## Leer antes de actuar
 
-**Stravagancia** is a Django web application that syncs Strava cycling activities to a local database (PostgreSQL) for personal data analysis and visualization. It demonstrates token refresh mechanisms, webhook handling, activity detection, and batch synchronization with an external API.
+1. [Estado exacto y siguiente paso](docs/garage-handoff.md).
+2. [Contexto de la conversación y decisiones](docs/garage-context.md).
+3. [AGENTS.md](AGENTS.md), [GARAGE_PLAN.md](GARAGE_PLAN.md) y [GARAGE_TASKS.md](GARAGE_TASKS.md).
+4. Últimas entregas: `bd show garage-034`/`035`/`036` y sus especificaciones en
+   `.claude/specs/` (17–18 oct); antes `bd show garage-032`, `bd show garage-033`;
+   `bd show garage-020`, [formato de exportación](docs/garage-export.md) y [pruebas aisladas](TESTING.md).
+5. Para cálculos/modelos: [contrato de dominio](docs/garage-domain.md).
+   Para importación o exportación: [fuentes admitidas](docs/garage-data-sources.md).
 
-**Key Features:**
-- OAuth token management with automatic refresh
-- Strava API integration for fetching athlete info and activities
-- Detection and sync of missing activities
-- Webhook endpoint to receive real-time activity updates from Strava
-- Django admin interface for data management
-- Visualization dashboards via Grafana and Metabase
+Los documentos son complementarios. Los recuentos históricos de TESTING.md no
+validan código posterior. Los informes actuales están en docs/garage-validation.json.
 
-## Setup & Dependencies
+## Autorización y límites vigentes
 
-The project uses **uv** as the Python package manager (https://github.com/astral-sh/uv) and **pytest** for testing.
+- Repositorio: /Users/maxicombina/src/learning/django/stravagancia.
+- Rama obligatoria: `codex/garage-plan`. **Sin commits, staging, push ni despliegue**.
+- Hay muchísimo código nuevo sin seguimiento Git. No ejecutar git clean/reset,
+  checkout de archivos, stash ni borrar cambios para preparar el trabajo.
+- Continuar implementación necesaria, pruebas y revisión adversarial, en orden
+  de dependencias. No pedir permiso otra vez para acciones locales ya autorizadas.
+- Las referencias a Sol/Luna son preferencias históricas de delegación; el relevo
+  actual es Claude. No hace falta acceder a los subagentes de la sesión anterior.
+- Una tarea de producto y un escritor de modelos/migraciones a la vez.
+  Revisores independientes no editan los archivos compartidos.
+- Neon/producción: **sólo lectura** si hace falta contexto. Ninguna migración,
+  prueba, carga ni corrección allí. No leer/modificar .env para preparar pruebas.
+- No iniciar Docker Compose completo: su servicio Django apunta a Neon y ejecuta
+  migraciones en producción. **Ya ocurrió el 12 oct 2026**: `garage.0001`–`0008`
+  están aplicadas en Neon. No editar ni reordenar esas migraciones; las nuevas,
+  sólo aditivas. Usar únicamente PostgreSQL local aislado.
+- `.venv` es ahora de Linux (lo reconstruyó el contenedor): no tocarlo. En macOS
+  usar `GARAGE_TEST_PYTHON=/Users/maxicombina/.cache/stravagancia/venv-macos/bin/python`.
+- No añadir servicios de pago, SPA, nueva infraestructura, API comercial,
+  aplicaciones móviles ni cobros como ampliación rutinaria.
+- Bucket/credenciales de fotos y despliegue siguen pendientes de una propuesta
+  y autorización concretas. No crear credenciales ni hacer público un bucket.
+- Strava como fuente de Garage: decidido (garage-029, 12 oct 2026) pero **aplazado**
+  en garage-030. Hasta que el usuario la active: no implementarla, no crear sus
+  migraciones ni ejecutar sincronizaciones Strava para Garage. Nunca reutilizar las
+  tablas Activity del legado como histórico propio (opción descartada).
+- No copiar la muestra FIT personal al repositorio, fixtures, documentos o demo.
 
-**Installation:**
+## Retomar ahora
+
+**18 oct 2026 (Claude Fable 5.1 orquestando; agentes sólo Opus 5.5).** Cerradas
+las ideas de ProBikeGarage 034–036, 038 y 039 (comparación en
+docs/garage-vs-probikegarage.md), **garage-030 fases 1–2** (Strava en «modo
+token», spec `.claude/specs/2026-10-18-garage-strava-fase1-2-spec.md`),
+**garage-041** (juego inicial de 42 categorías con icono, spec
+`.claude/specs/2026-10-18-garage-categorias-iniciales-spec.md`) y **garage-030
+fase 3 = garage-037** (desnivel y potencia, spec
+`.claude/specs/2026-10-18-garage-strava-fase3-spec.md`; revisión en §5,
+re-verificación en §6) y **garage-030 fase 4** (operación diaria: `sync-all`
+con `GARAGE_SYNC_TOKEN`, ausencia como pista, revocación y purga a 30 días,
+Worker de Cloudflare; **sin migración**; spec
+`.claude/specs/2026-10-18-garage-strava-fase4-spec.md`; revisión en §5,
+re-verificación en §6) y, el 19 oct, **garage-042** (ciclo de vida del material
+visible: Montado · Disponible/Sin estrenar · En uso · Retirado, chips en
+Material; spec `.claude/specs/2026-10-18-garage-ciclo-vida-material-spec.md`
+§6–§8; **sin migración**; primer feedback de UI del usuario). Detalle en
+docs/garage-handoff.md. Suite **2618 + 45 subcasos**
+(docs/validation/garage-042.json; 2578 antes de la 042). **Todo lo que sea
+implementar lo hace un agente Opus** (regla del usuario, 18 oct); Fable
+orquesta, documenta, actualiza Beads/estado y verifica.
+
+**25 oct 2026: garage-043, importar ProBikeGarage.** El usuario quiere migrar
+sus datos de ProBikeGarage y replicar el estado. Volcado hecho ese día con su
+Chrome (sólo GET) en `~/.cache/stravagancia/probikegarage/` (**fuera del repo;
+nunca a fixtures, docs ni demo**). Spec con mapeo y decisiones D1–D12:
+`.claude/specs/2026-10-25-garage-probikegarage-import-spec.md`. Importador de
+un solo uso sobre un Garage vacío + verificación; las salidas se re-descargan
+de Strava (030). Sin migración. **Implementado, revisado y re-verificado el
+25 oct** (suite **2690 + 45**, docs/validation/garage-043.json). **Importación
+real hecha por el usuario el 25 oct** en el clúster demo 55433, usuario `maxi`
+(id 2), sin salidas aún. Falta el histórico de Strava (servidor arrancado por
+el usuario con `GARAGE_STRAVA_USER=maxi` y su token) y
+`garage_probikegarage_verify` (detalle en docs/garage-handoff.md).
+
+**Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
+`0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker
+Compose `web` las aplicaría en producción. La siguiente migración es la
+**0013**. Nota sólo para el despliegue (garage-023): la 0012 sustituye los
+CHECK `garage_maintenancerule_has_threshold` y `garage_snooze_has_amount` por
+versiones que admiten el desnivel (las filas actuales los cumplen; en Neon las
+tablas de Garage están vacías). No preguntar por ello antes de desplegar.
+
+**Orden fijado por el usuario (18 oct):** primero probar todo en local, después
+resolver la sincronización real desde Strava, y el despliegue es lo último.
+
+1. **Pruebas locales con el usuario**: está dando feedback sobre la UI de la
+   demo 8766 (demo / garage-demo); recogerlo en Beads y priorizarlo con él
+   antes de tocar nada (el primero, garage-042, ya implementado; falta que lo
+   pruebe y decida la nota menor de las acciones con retirada programada).
+   **garage-043** (25 oct, hecha y verificada; volcado real ya importado como
+   `maxi` en la demo 55433): falta el histórico de Strava y
+   `garage_probikegarage_verify`. Después, la sincronización real desde Strava en local
+   (su usuario de Garage para `GARAGE_STRAVA_USER`; el servidor lo arranca él
+   con su token de entorno, nunca leer `.env`; la muestra FIT, spec maestra
+   §7.3). Sin probar por nadie: Strava y Cloudflare reales. El despliegue
+   (garage-023) es lo último.
+2. Pendiente del usuario: su usuario de Garage para `GARAGE_STRAVA_USER`;
+   confirmar el cambio visible de la deducción de iconos (spec 041 §7.7–§8);
+   garage-040 (OAuth por usuario) anotado, no empezado.
+3. 031: falta sólo instalarla en un teléfono real tras desplegar (023).
+4. 010 espera a que el usuario cree bucket/credencial (propuesta y script listos).
+5. 022 depende de 010. 023: logger `garage`, `STORAGES`, docker-compose sin migrate.
+6. Antes de cualquier tarea: comprobar rama, cambios locales, procesos y entorno.
+   **25 oct**: `main` tiene dos commits nuevos del legado (`dd607f6`, `45a7cf6`,
+   renombrado/webhook; ya en Render) que `codex/garage-plan` debe integrar;
+   `strava_integration/views.py` dará conflicto. Detalle en docs/garage-handoff.md §Siguiente paso 7.
+7. En macOS, `cp`/`rm` piden confirmación (alias): usar `/bin/cp -f` y `/bin/rm -f`
+   en mutaciones y restauraciones, y comprobar el hash al restaurar.
+
+## Beads y tablero
+
 ```bash
-uv venv --seed
-source .venv/bin/activate
-uv sync
+bd list --all --limit 0
+bd ready --exclude-type epic
+bd show garage-020
+bd --sandbox --dolt-auto-commit off --actor claude update garage-020 --append-notes 'Resultado comprobado'
+bd --sandbox --dolt-auto-commit off --actor claude export --output .beads/issues.jsonl
 ```
 
-**Database Setup (local dev with Docker):**
-```bash
-docker compose up -d postgres
-python manage.py migrate
-python manage.py createsuperuser
-```
+Verificar que la exportación refleja el estado escrito. No ejecutar bd init,
+bd sync, bd dolt push/pull ni commits de Dolt. Beads usa Dolt local, independiente
+de PostgreSQL/Neon. Su JSONL contiene todas las tareas, también las cerradas.
 
-**Environment Variables** (in `.env`):
-```
-STRAVA_ACCESS_TOKEN=...
-STRAVA_CLIENT_ID=...
-STRAVA_CLIENT_SECRET=...
-STRAVA_REFRESH_TOKEN=...
-STRAVA_WEBHOOK_VERIFY_TOKEN=...  # for webhook verification
-DB_NAME=stravagancia
-DB_USER=strava
-DB_PASSWORD=strava
-DB_HOST=localhost
-DB_PORT=5432
-DEBUG=true  # for local development
-```
+Tablero: http://127.0.0.1:8765/ con detalles equivalentes a bd show y DAG clicable.
+Actualizar docs/garage-progress-state.json con hora UTC, agentes reales y última
+validación acreditada. No dejar agentes ficticios “en curso” entre sesiones.
+Demo ficticia: http://127.0.0.1:8766/garage/, credenciales en el estado guardado.
 
-## Running Tests
+## Pruebas
 
-Tests are configured in `pyproject.toml` using pytest with `pytest-django`:
+Leer TESTING.md. Usar `python -m pytest`, settings_test y PostgreSQL real dedicado;
+no SQLite, settings de producción ni HTTP/storage reales. El bootstrap bloquea
+.env, conexiones remotas y credenciales heredadas. No desactivar estas protecciones.
 
-```bash
-# Run all tests
-pytest
+Se conservan helpers reproducibles en tools/handoff/ (copias de los que se usaron
+en esta sesión); inspeccionarlos antes de reutilizar estado temporal. Comandos
+exactos, puertos y alternativas sin helpers están en docs/garage-handoff.md.
 
-# Run a single test file
-pytest strava_integration/tests.py
-
-# Run a specific test
-pytest strava_integration/tests.py::test_athlete_str
-
-# Run with verbose output
-pytest -v
-
-# Run with coverage
-pytest --cov=strava_integration
-```
-
-**Test Fixtures** (in `conftest.py`):
-- `athlete`: Creates a test Athlete instance
-- `activity`: Creates a test Activity instance
-- `strava_activity_payload`: Returns mock Strava API response data
-
-## Running the Dev Server
-
-```bash
-# Start Django development server
-python manage.py runserver
-
-# Access the app
-# - Admin interface: http://localhost:8000/admin
-# - Athlete test page: http://localhost:8000/archive/strava/test/
-# - Dashboard: http://localhost:8000/archive/strava/dashboard/
-# - Activities list: http://localhost:8000/activities/
-```
-
-## Common Management Commands
-
-These are custom Django management commands in `strava_integration/management/commands/`:
-
-```bash
-# Fetch and store the authenticated athlete from Strava
-python manage.py load_athlete
-
-# Detect missing activities in Strava (not yet in local DB)
-python manage.py detect_missing_activities
-# With dry-run (detect only, don't save):
-python manage.py detect_missing_activities --dry-run
-
-# Load all missing activities from Strava into the database
-# This respects API rate limits (100 requests per 15 minutes)
-python manage.py load_missing_activities
-# With delay between requests (in seconds):
-python manage.py load_missing_activities --delay 10
-# With limit on how many to load:
-python manage.py load_missing_activities --limit 50
-```
-
-## Architecture & Code Organization
-
-### Django Project Structure
-- `strava_app/`: Main Django project configuration
-  - `settings.py`: Database config (supports both `DATABASE_URL` and individual `DB_*` vars), installed apps, middleware
-  - `urls.py`: Root URL configuration; routes to strava_integration app
-  - `wsgi.py`, `asgi.py`: WSGI/ASGI entry points (gunicorn uses wsgi)
-
-- `strava_integration/`: Main Django app
-  - `models.py`: Three core models: **Athlete**, **Activity**, **MissingActivity**
-  - `services.py`: API calls and business logic
-  - `views.py`: HTTP views for API and webhook endpoints
-  - `admin.py`: Django admin customizations
-  - `management/commands/`: Custom management commands
-  - `urls.py`: URL patterns for API endpoints (`/archive/strava/*`)
-  - `ui_urls.py`: URL patterns for UI pages
-  - `utils.py`: Token refresh logic
-
-### Key Data Models
-
-**Athlete** (`models.py`):
-- Represents a Strava athlete with `strava_id` (unique)
-- Stores: name, username, location, profile URL
-- One Athlete can have many Activities
-
-**Activity** (`models.py`):
-- Represents a Strava activity with `strava_id` (unique)
-- Stores: name, distance, time, elevation, type, calories, heart rate, timestamps
-- Ordered by `-start_date` (newest first)
-- Properties: `activity_url` (link to Strava), `distance_km` (converted from meters)
-
-**MissingActivity** (`models.py`):
-- Temporary tracking of activities that exist in Strava but not in local DB
-- Fields: `strava_id` (unique), `start_date_local`, `loaded` (boolean)
-- Once loaded into Activity, the `loaded` flag is set to True
-
-### Key Services & API Integration
-
-**Token Management** (`utils.py`):
-- `refresh_access_token()`: Exchanges refresh token for new access token
-- Persists new tokens back to `.env` for local dev (in production, use environment secrets)
-- Called before every Strava API request
-
-**Strava API Integration** (`services.py`):
-- `fetch_and_store_athlete()`: Gets /athlete endpoint and stores/updates Athlete model
-- `get_activities(per_page=50, after=0)`: Paginated fetch of athlete's activities
-- `fetch_activity_detail(activity_id)`: Fetch single activity by ID
-- `store_activity_from_strava_data(data)`: Parse Strava JSON and create/update Activity model
-- `get_missing_ride_activities()`: Compare Strava vs local DB to find missing Ride-type activities
-- `detect_and_save_missing_activities(dry_run=False)`: Detect and optionally persist MissingActivity records
-
-### Activity Sync Workflow
-
-1. **Initial Load**: `python manage.py load_athlete` → stores Athlete data
-2. **Detect Missing**: `python manage.py detect_missing_activities` → finds activities in Strava not in local DB, saves as MissingActivity
-3. **Batch Sync**: `python manage.py load_missing_activities` → fetches each MissingActivity detail from Strava, stores as Activity, marks `loaded=True`
-4. **Real-time Updates**: Strava webhook endpoint (`/archive/strava/webhook/strava/`) receives create/update/delete events and syncs immediately
-
-### Webhook Implementation
-
-**Endpoint**: `POST /archive/strava/webhook/strava/` (in `views.py`)
-
-**Verification Flow**:
-1. Strava sends GET request with `hub.challenge` parameter
-2. Endpoint verifies `hub.verify_token` matches `STRAVA_WEBHOOK_VERIFY_TOKEN` env var
-3. Returns `{"hub.challenge": challenge}` to confirm subscription
-
-**Event Processing**:
-- `object_type`: "activity" or "athlete"
-- `aspect_type`: "create", "update", or "delete"
-- For activity events: fetches from Strava API and updates local Activity, or deletes if `aspect_type="delete"`
-- Returns 200 within 2 seconds (Strava requirement)
-
-### URL Routing
-
-**API Endpoints** (`strava_integration/urls.py`):
-- `GET /archive/strava/test/` → Show athlete JSON (test endpoint)
-- `GET /archive/strava/athlete/` → Display stored athlete info
-- `GET /archive/strava/activities_strava/` → Show Ride activities from Strava API
-- `POST /archive/strava/activities/load/<int:activity_id>/` → Fetch and store single activity
-- `GET /archive/strava/dashboard/` → Dashboard page with sync controls
-- `GET /archive/strava/detect_missing_activities/` → Trigger missing activity detection
-- `GET /archive/strava/load-athlete/` → Trigger athlete load (JSON response)
-- `GET /archive/strava/missing_activities/` → List missing activities (JSON)
-- `GET /archive/strava/missing/` → Missing activities list view (HTML)
-- `GET /archive/strava/activities/` → Activities list view (HTML)
-- `POST /archive/strava/webhook/strava/` → Webhook endpoint (GET for verification, POST for events)
-
-## Docker & Deployment
-
-**Local Development with Docker**:
-```bash
-# Start all services (Django, Postgres, Grafana, Metabase)
-docker compose up
-
-# Start only Postgres
-docker compose up -d postgres
-
-# View logs
-docker compose logs -f django
-```
-
-**Docker Compose Services**:
-- `postgres`: PostgreSQL 16 database (port 5432)
-- `django`: Django app container (port 8000) — runs `entrypoint.sh` which migrates, creates superuser, collects static files, then starts gunicorn
-- `grafana`: Grafana dashboards (port 3001) — queries Postgres directly
-- `metabase`: Metabase dashboards (port 3000)
-
-**Dockerfile**:
-- Uses Python 3.11 slim image
-- Installs uv from official image
-- Caches dependencies (pyproject.toml/uv.lock)
-- Exposes port 8000
-- Runs `entrypoint.sh` for initialization and starts gunicorn
-
-**Environment Variables for Docker** (in `docker-compose.yml`):
-- `DB_HOST=postgres` (container name, not localhost)
-- Superuser credentials can be set via `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`, `DJANGO_SUPERUSER_EMAIL`
-
-## Database
-
-Uses PostgreSQL (configured in `settings.py`):
-- Supports `DATABASE_URL` (for Render, Neon, etc.)
-- Falls back to individual `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` env vars
-
-**Migrations**:
-```bash
-# Create a new migration after model changes
-python manage.py makemigrations
-
-# Apply migrations
-python manage.py migrate
-
-# Reset database (caution!)
-python manage.py migrate strava_integration zero
-```
-
-## Admin Interface
-
-Accessible at `/admin/` with superuser credentials.
-
-**Customizations** (`admin.py`):
-- **AthleteAdmin**: Shows strava_id, name, location
-- **ActivityAdmin**: Shows clickable Strava link for strava_id, distance in km, filters by type and date
-- **MissingActivityAdmin**: Shows strava_id, detected_at, start_date_local, loaded flag; bulk actions to mark as loaded/not loaded
-
-## Static Files & Styling
-
-- Static files served by WhiteNoise middleware (`whitenoise.middleware.WhiteNoiseMiddleware`)
-- Collected to `staticfiles/` directory
-- Compressed and manifest-based storage for production
-
-## Notable Implementation Details
-
-**Token Refresh Mechanism** (`utils.py`):
-- Tokens expire within ~6 hours; refresh happens before every API call
-- New tokens are persisted to `.env` in local development (NOT recommended for production — use environment secrets)
-- In production, tokens should be managed via environment variables or a secrets manager
-
-**Activity Type Filtering**:
-- The app only syncs "Ride" type activities (filters by `type == "Ride"`)
-- This is hardcoded in `get_missing_ride_activities()` and can be extended if needed
-
-**API Rate Limiting**:
-- Strava allows ~100 requests per 15 minutes
-- `load_missing_activities` command auto-applies 9+ second delay when loading 100+ activities
-- Can be overridden with `--delay` flag
-
-**Dry-run Detection**:
-- `detect_missing_activities --dry-run` detects missing activities without persisting to DB
-- Useful for testing or previewing what would be synced
-
-**Admin Actions**:
-- Bulk actions on MissingActivity to mark items as loaded/not loaded without re-fetching from Strava
-- Useful if loading failed and needs retry, or if data is stale
-
-## Testing Patterns
-
-- Uses `@pytest.mark.django_db` to enable database access in tests
-- Fixtures in `conftest.py` for creating test data
-- Service functions are tested in isolation (e.g., `test_store_activity_creates_new`)
-- Mocking external Strava API calls with `@patch` decorator
-- Model constraints (unique strava_id) are tested to ensure data integrity
+Actualizar el estado al cambiar de tarea y antes de agotar contexto, sin esperar
+al cierre de una sesión larga. Al finalizar cada sesión, dejar estado suficiente
+para otra IA: tarea, archivos,
+hallazgos pendientes, pruebas realmente ejecutadas, límites, procesos activos
+y siguiente acción concreta. No hace falta volver a diseñar Garage desde cero.
 

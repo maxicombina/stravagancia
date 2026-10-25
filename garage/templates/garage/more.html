@@ -1,0 +1,32 @@
+{% extends "garage/base.html" %}
+{% block garage_content %}
+<h1>Más</h1>
+<section class="sec" aria-labelledby="more-inventory">
+  <div class="sec-h"><h2 id="more-inventory">Inventario</h2></div>
+  <ul class="menu">
+    <li><a href="{% url 'garage:bike-list' %}"><span class="glyph"><svg class="ic"><use href="#i-bike"/></svg></span><span>Bicis</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+    <li><a href="{% url 'garage:item-list' %}"><span class="glyph"><svg class="ic"><use href="#i-part"/></svg></span><span>Material<small>Componentes, equipación y piezas guardadas</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+    <li><a href="{% url 'garage:category-list' %}"><span class="glyph"><svg class="ic"><use href="#i-tag"/></svg></span><span>Categorías</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  </ul>
+</section>
+<section class="sec" aria-labelledby="more-usage">
+  <div class="sec-h"><h2 id="more-usage">Uso</h2></div>
+  <ul class="menu">
+    <li><a href="{% url 'garage:usage-profile-list' %}"><span class="glyph"><svg class="ic"><use href="#i-layers"/></svg></span><span>Perfiles de uso<small>Material habitual por bici o deporte</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  </ul>
+</section>
+<section class="sec" aria-labelledby="more-data">
+  <div class="sec-h"><h2 id="more-data">Datos y app</h2></div>
+  <ul class="menu">
+    <li><a href="{% url 'garage:strava' %}"><span class="glyph"><svg class="ic"><use href="#i-swap"/></svg></span><span>Strava<small>Sincronizar salidas y bicis</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+    <li><a href="{% url 'garage:export' %}"><span class="glyph"><svg class="ic"><use href="#i-download"/></svg></span><span>Exportar mis datos<small>JSON o CSV</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+    <li><a href="#instalar"><span class="glyph"><svg class="ic"><use href="#i-share"/></svg></span><span>Instalar Garage en el teléfono</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+    <li><form method="post" action="{% url 'logout' %}">{% csrf_token %}<input type="hidden" name="next" value="/accounts/login/?next=/garage/"><button type="submit" class="menu-btn"><span class="glyph"><svg class="ic"><use href="#i-logout"/></svg></span><span>Cerrar sesión</span><span></span></button></form></li>
+  </ul>
+</section>
+<section class="sec" id="instalar" aria-labelledby="more-install">
+  <div class="sec-h"><h2 id="more-install">Instalar</h2></div>
+  <p class="only-ios">En el iPhone, abre Garage en Safari, toca <svg class="ic xs"><use href="#i-share"/></svg> <b>Compartir</b> y elige <b>Añadir a pantalla de inicio</b>. Después ábrela desde su icono y entra una vez con tu usuario.</p>
+  <p class="only-android">En Android, abre Garage en Chrome, toca el menú <b>⋮</b> y elige <b>Instalar app</b> (o <b>Añadir a pantalla de inicio</b>).</p>
+</section>
+{% endblock %}

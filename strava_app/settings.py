@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Refuse production settings before dotenv, including pytest with its plugin disabled.
+if "pytest" in sys.modules:
+    raise RuntimeError("Tests require strava_app.settings_test; production settings are rejected")
 from pathlib import Path
 
 import dj_database_url
@@ -31,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'axes',
     'strava_integration',
+    'garage',
 ]
 
 # django-unfold admin theme. Minimal config; see https://unfoldadmin.com/docs/
@@ -194,3 +200,13 @@ LOGGING = {
 # Render Grafana service URL (the iframe loads in the user's browser, so it must be
 # a publicly reachable host, not localhost).
 GRAFANA_URL = os.getenv('GRAFANA_URL', 'http://localhost:3001')
+
+# Garage ↔ Strava in token mode (garage-030). GARAGE_STRAVA_USER: username of the Garage
+# user that owns Stravagancia's athlete (empty: Garage does not sync). STRAVA_WEBHOOK_SUBSCRIPTION_ID:
+# optional; when set, webhook events of any other subscription are dropped.
+GARAGE_STRAVA_USER = os.getenv('GARAGE_STRAVA_USER', '')
+STRAVA_WEBHOOK_SUBSCRIPTION_ID = os.getenv('STRAVA_WEBHOOK_SUBSCRIPTION_ID', '')
+# Shared secret of the daily sync (garage-030 phase 4): the Cloudflare Worker sends it as X-Sync-Token
+# to POST /garage/strava/sync-all/. At least 32 characters (`manage.py garage_sync_token` prints one);
+# empty or shorter, the endpoint answers 404. Never logged nor shown.
+GARAGE_SYNC_TOKEN = os.getenv('GARAGE_SYNC_TOKEN', '')

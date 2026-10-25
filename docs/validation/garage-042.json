@@ -1,0 +1,64 @@
+{
+ "task": "garage-042",
+ "title": "Ciclo de vida del material visible: Montado · Disponible/Sin estrenar · En uso · Retirado",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T22:20:10+00:00",
+ "updated_by": "Claude Fable 5.1 orquestando; implementación, revisión, corrección y verificación por agentes Opus 5.5 (flujo wf_860d7699)",
+ "spec": ".claude/specs/2026-10-18-garage-ciclo-vida-material-spec.md (decisiones §6, revisión §7, re-verificación §8)",
+ "migration": "ninguna (0001–0012 sin cambios; la 0013 sigue reservada)",
+ "files": [
+  "garage/services/lifecycle.py (nuevo)",
+  "garage/services/home.py",
+  "garage/services/service_usage.py",
+  "garage/sports.py",
+  "garage/templatetags/garage_ui.py (life_text)",
+  "garage/views.py",
+  "garage/templates/garage/list.html",
+  "garage/templates/garage/index.html",
+  "garage/templates/garage/item_detail.html",
+  "garage/templates/garage/_part_lives.html",
+  "garage/tests_lifecycle.py (nuevo, 40 pruebas tras la corrección)",
+  "garage/tests_mobile_home.py",
+  "garage/tests_mobile_lists.py",
+  "garage/tests_mobile_item.py",
+  "garage/tests_parts.py"
+ ],
+ "tests": {
+  "full_suite": {
+   "passed": 2618,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 183.91
+  },
+  "runs": "implementador 2605 + 45 (175,92 s); corrector 2618 + 45 (188,59 s); verificador 2618 + 45 (183,91 s)",
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "residual_test_databases": 0,
+  "query_budgets": "Material ≤ 7 fijas; ficha suelta ≤ 44; ficha montada ≤ 47; categoría ≤ 28; sin crecer con las filas"
+ },
+ "review": {
+  "findings": 8,
+  "important": 1,
+  "minor": 2,
+  "nit": 5,
+  "fixed": 7,
+  "rejected": [
+   "R042-5: «sin montar» en las alertas es el lugar, compartido con Taller"
+  ]
+ },
+ "reverification": {
+  "ready": true,
+  "verified": "8/8"
+ },
+ "open_notes": [
+  "Menor, anterior a garage-042: con una retirada programada, las acciones de la ficha leen retired_at sin mirar la fecha (muestran «Reactivar», ocultan «Montar» y «Añadir pieza»); funciona porque «Reactivar» cancela la retirada. Pendiente de decidir con el usuario.",
+  "Fuera de alcance por decisión del usuario: motivo al retirar (necesitaría la 0013), cantidades, renombrar «Retirado»."
+ ],
+ "user_decisions": [
+  "«Retirado» se queda",
+  "un juego de pastillas = una ficha, sin cantidades",
+  "lanzar la implementación con agentes Opus (18 oct)"
+ ],
+ "pending_user_check": "probar en la demo 8766: Material con chips Montados · Disponibles · En uso · Retirados · Todos; Inicio «Disponible/Sin estrenar»; ficha; «Cuánto dura cada uno»"
+}

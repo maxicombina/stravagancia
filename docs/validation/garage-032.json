@@ -1,0 +1,91 @@
+{
+ "task": "garage-032",
+ "title": "Resto de Garage en el móvil: Taller, ficha de bici, Estadísticas, formularios y listas",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-17T11:16:30+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026: «sigue sigue q es sabado» — seguir trabajando de forma autónoma tras 031."
+ ],
+ "spec": ".claude/specs/2026-10-17-garage-movil-2-spec.md",
+ "subtasks": [
+  "garage-032.1",
+  "garage-032.2",
+  "garage-032.3",
+  "garage-032.4"
+ ],
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 1959,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 96.11
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_mobile_workshop.py",
+    "garage/tests_mobile_bike.py",
+    "garage/tests_mobile_stats.py",
+    "garage/tests_mobile_lists.py"
+   ]
+  },
+  "intentional_test_changes": [
+   "tests_views.py: cookie de zona UTC explícita",
+   "tests_maintenance.py: «12,34» y «EUR»",
+   "tests_mobile_item.py: la bici tiene ficha propia"
+  ],
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "leftover_test_databases": 0,
+  "node_check": [
+   "garage/static/garage/garage.js"
+  ]
+ },
+ "mutation_checks": [
+  {
+   "change": "redondear km a 3 decimales en el formulario de reglas",
+   "result": "1 prueba falla"
+  },
+  {
+   "change": "no reasignar errores de distance_m al campo de km",
+   "result": "1 prueba falla"
+  },
+  {
+   "change": "sin show_hidden_initial en la moneda propuesta",
+   "result": "1 prueba falla"
+  },
+  {
+   "restored": "hash idéntico de garage/maintenance_forms.py (con /bin/cp -f)"
+  }
+ ],
+ "independent_reviews": [
+  {
+   "scope": "especificación 032",
+   "result": "2 bloqueantes (500 por errores del modelo en km/h, horas no siempre exactas) y 8 importantes; incorporados"
+  },
+  {
+   "scope": "032.1-032.2",
+   "result": "2 bloqueantes (moneda propuesta sin importe en el POST real; «3.000» leído como 3 km) y 2 importantes; corregidos con pruebas"
+  },
+  {
+   "scope": "032.3-032.4 y verificación",
+   "result": "sin bloqueantes; 4 importantes (Personalizado con filtros, mensajes del admin y orden de tipos, fechas que desbordan, pruebas de bordes) y menores; corregidos con pruebas"
+  },
+  {
+   "scope": "verificación de la segunda ronda",
+   "result": "confirmada; detalles menores (separadores, marca UTC, texto del período) corregidos"
+  }
+ ],
+ "screenshots": "Chrome sin interfaz a 390 px, claro/iPhone y oscuro/Android: Taller, formularios, intervención, ficha de bici, Salidas por bici, Estadísticas, listas, perfiles, histórico, exportar",
+ "limits": [
+  "Sin teléfono real (HTTPS, garage-023).",
+  "LANGUAGE_CODE en-us: mensajes en español en los formularios web de mantenimiento y vida útil.",
+  "Filtro del histórico en la zona del usuario (antes UTC)."
+ ]
+}

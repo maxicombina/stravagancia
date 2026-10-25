@@ -1,0 +1,6 @@
+{% if starter %}<section class="panel starter" aria-labelledby="starter-title">
+  <h2 id="starter-title">Categorías habituales</h2>
+  <p class="note">{% if starter.next == "item-create" or starter.next == "item-used-create" %}Cada objeto necesita una categoría. {% endif %}{% if starter.missing == starter.total %}Crea de una vez las {{ starter.total }} habituales{% elif starter.missing == 1 %}Te falta 1 de las {{ starter.total }} habituales{% else %}Te faltan {{ starter.missing }} de las {{ starter.total }} habituales{% endif %} (transmisión, ruedas, frenos, dirección, suspensión, pedales y equipación), cada una con su icono. No cambia ni borra las que ya tienes.</p>
+  <form method="post" action="{% url 'garage:category-starter' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ starter.next }}">
+    <button type="submit" class="btn{% if starter.missing != starter.total %} ghost{% endif %}"><svg class="ic sm" aria-hidden="true"><use href="#i-tag"/></svg>Crear las categorías habituales</button></form>
+</section>{% endif %}

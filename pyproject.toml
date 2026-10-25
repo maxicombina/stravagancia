@@ -5,11 +5,14 @@ description = "Django app to extract and display Strava activities."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "boto3==1.43.108",
     "dj-database-url>=3.1.2",
     "django>=5.2.7",
     "django-axes>=8.3.1",
     "django-unfold>=0.91.0",
+    "fitdecode==0.11.0",
     "gunicorn>=25.3.0",
+    "pillow>=12.3.0,<13",
     "psycopg2-binary>=2.9.11",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
@@ -17,7 +20,8 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "strava_app.settings"
+DJANGO_SETTINGS_MODULE = "strava_app.settings_test"
+addopts = "-p test_support.pytest_plugin"
 python_files = ["tests.py", "tests_*.py"]
 
 [dependency-groups]

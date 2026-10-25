@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "garage",
+  "project_id": "8be8202a-86b3-44ce-be9e-06722bebccaa"
+}

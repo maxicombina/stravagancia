@@ -1,0 +1,89 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn only-ios" href="{% url 'garage:service-event-create' %}" aria-label="Registrar mantenimiento"><svg class="ic"><use href="#i-plus"/></svg></a>{% endblock %}
+{% block garage_content %}
+<h1>Taller</h1>
+
+<section class="sec" aria-labelledby="attention-title">
+  <div class="sec-h"><h2 id="attention-title">Requiere atención</h2><span class="count">{{ shop.attention|length }}</span></div>
+  <ul class="rows">
+    {% for alert in shop.attention %}{% include "garage/_wear_row.html" %}{% empty %}
+    <li class="empty">{% if shop.snoozed %}Nada más: lo vencido o próximo está pospuesto.{% elif shop.rules %}Nada vencido ni próximo.{% else %}Aún no hay reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}">Crear una regla</a>.{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p class="note">Próximo significa alcanzar el 90 % de un umbral; vence con el primero que se alcance. Si el histórico está incompleto se indica lo registrado como mínimo (≥).</p>
+</section>
+
+{% if shop.snoozed %}
+<section class="sec" aria-labelledby="snoozed-title" id="snoozed">
+  <div class="sec-h"><h2 id="snoozed-title">Pospuestos</h2><span class="count">{{ shop.snoozed|length }}</span></div>
+  <ul class="rows">{% for alert in shop.snoozed %}{% with w=alert.wear %}
+    <li><a class="entry compact st-snoozed" href="{% url 'garage:maintenance-rule-snooze' w.rule.pk %}">
+      <span class="glyph"><svg class="ic"><use href="#i-clock"/></svg></span>
+      <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
+        <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left }} de aplazamiento</span></span>
+      <svg class="ic"><use href="#i-chev-right"/></svg>
+    </a></li>{% endwith %}{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if shop.nodata %}
+<section class="sec" aria-labelledby="nodata-title">
+  <div class="sec-h"><h2 id="nodata-title">Sin datos</h2><span class="count">{{ shop.nodata|length }}</span></div>
+  <ul class="rows">{% for alert in shop.nodata %}{% with w=alert.wear %}
+    <li><a class="entry compact st-nodata" href="{% if w.rule|is_life %}{% url 'garage:item-lifespan' w.rule.item_id %}{% else %}{% url 'garage:maintenance-rule-edit' w.rule.pk %}{% endif %}">
+      <span class="glyph"><svg class="ic"><use href="#i-help"/></svg></span>
+      <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
+        <span class="entry-sub">{{ w.due|nodata_reason }}</span></span>
+      <svg class="ic"><use href="#i-chev-right"/></svg>
+    </a></li>{% endwith %}{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if shop.calm %}
+<section class="sec" aria-labelledby="calm-title">
+  <div class="sec-h"><h2 id="calm-title">En curso y al día</h2><span class="count">{{ shop.calm|length }}</span></div>
+  <ul class="rows">{% for alert in shop.calm|slice:":6" %}{% include "garage/_wear_row.html" %}{% endfor %}</ul>
+  {% if shop.calm|length > 6 %}<details class="more"><summary>Ver {{ shop.calm|length|add:"-6" }} más</summary>
+    <ul class="rows">{% for alert in shop.calm|slice:"6:" %}{% include "garage/_wear_row.html" %}{% endfor %}</ul>
+  </details>{% endif %}
+</section>
+{% endif %}
+
+<section class="sec" aria-labelledby="events-title">
+  <div class="sec-h"><h2 id="events-title">Últimas intervenciones</h2><a class="link" href="{% url 'garage:service-event-create' %}">Registrar</a></div>
+  <ul class="rows">{% for event in shop.events %}
+    <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-{% if event.item_id %}{{ event.item|item_icon }}{% else %}bike{% endif %}"/></svg></span>
+      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% if event.item_id %}{{ event.item.name }}{% else %}{{ event.bike.name }}{% endif %} · {% local_date event.performed_at %}</span></span>
+      <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>
+    {% empty %}<li class="empty">Sin intervenciones registradas.</li>{% endfor %}
+  </ul>
+  {% if shop.events|length < shop.events_total %}<p><a class="link" href="{% url 'garage:maintenance' %}?all=1#events-title">Ver todas ({{ shop.events_total }})</a></p>{% endif %}
+</section>
+
+<section class="sec" aria-labelledby="rules-title">
+  <div class="sec-h"><h2 id="rules-title">Reglas</h2><a class="link" href="{% url 'garage:maintenance-rule-create' %}">Nueva regla</a></div>
+  <ul class="rows">{% for rule in shop.rules %}
+    <li><a class="entry compact" href="{% url 'garage:maintenance-rule-edit' rule.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
+      <span><span class="entry-name">{{ rule|rule_name }} · {% if rule.item_id %}{{ rule.item.name }}{% else %}{{ rule.bike.name }}{% endif %}</span><span class="entry-sub">{% with target=rule.item|default:rule.bike %}{% if target.retired_at %}Retirado · {% endif %}{% endwith %}{{ rule|thresholds }}</span></span>
+      <svg class="ic"><use href="#i-edit"/></svg></a></li>
+    {% empty %}<li class="empty">No hay reglas.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="types-title">
+  <div class="sec-h"><h2 id="types-title">Tipos de intervención</h2><a class="link" href="{% url 'garage:service-type-create' %}">Nuevo tipo</a></div>
+  <ul class="rows">{% for type in shop.types %}
+    <li><a class="entry compact" href="{% url 'garage:service-type-edit' type.pk %}"><span class="glyph"><svg class="ic"><use href="#i-tag"/></svg></span>
+      <span><span class="entry-name">{{ type.name }}</span></span><svg class="ic"><use href="#i-edit"/></svg></a></li>
+    {% empty %}<li class="empty">Sin tipos. Crea uno (por ejemplo «Lubricar cadena») antes de registrar intervenciones o reglas.</li>{% endfor %}
+  </ul>
+</section>
+
+{% if shop.dues %}<details class="more">
+  <summary>Detalles técnicos de los avisos</summary>
+  {% include "garage/maintenance_alerts.html" with alerts=shop.dues %}
+</details>{% endif %}
+{% endblock %}
+{% block fab %}<a class="fab only-android" href="{% url 'garage:service-event-create' %}"><svg class="ic"><use href="#i-plus"/></svg>Registrar</a>{% endblock %}

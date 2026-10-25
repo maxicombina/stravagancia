@@ -1,0 +1,13 @@
+{% load garage_ui %}<fieldset class="together" aria-describedby="together-help">
+  <legend>También en esta visita</legend>
+  <p class="note" id="together-help">Cada regla marcada registra otra intervención con la misma fecha y nota. El importe es sólo de la principal. Lo que está montado se calcula para la fecha elegida.</p>
+  <input type="hidden" name="together" value="1">{% for pk in together.shown %}<input type="hidden" name="shown_rules" value="{{ pk }}">{% endfor %}
+  {% for group in together.groups %}<details class="more"{% if group.open %} open{% endif %}>
+    <summary><svg class="ic sm" aria-hidden="true"><use href="#i-{% if group.target.category_id %}{{ group.target|item_icon }}{% else %}bike{% endif %}"/></svg><span>{{ group.target.name }}</span>{% if group.parent %}<span class="note">en {{ group.parent.name }}</span>{% endif %}<span class="count">{{ group.rows|length }}<span class="sr-only"> {% if group.rows|length == 1 %}regla{% else %}reglas{% endif %}</span></span></summary>
+    <ul class="checks">{% for row in group.rows %}
+      <li><label><input type="checkbox" name="also" value="{{ row.rule.pk }}"{% if row.checked %} checked{% endif %}>
+        <span>{% if not row.life %}<span class="sr-only">{{ group.target.name }}: </span>{% endif %}{{ row.label }}</span>{% if row.wear %} <span class="chip st-{{ row.wear.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% endif %}</label></li>{% endfor %}
+    </ul>
+  </details>{% empty %}<p class="empty">En esa fecha no hay otras reglas en lo montado.</p>{% endfor %}
+  <p class="note">¿Pieza nueva con ficha propia? Usa «Reemplazar» en su ficha: hereda la vida útil. <a class="link" href="{{ together.other_url }}">Registrar en otro destino</a></p>
+</fieldset>

@@ -1,0 +1,23 @@
+{% extends 'garage/base.html' %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:history' %}" aria-label="Histórico e importación FIT"><svg class="ic"><use href="#i-upload"/></svg></a>{% endblock %}
+{% block garage_content %}
+<h1>Salidas</h1>
+<p class="lede">Revisa con qué bici y con qué material hiciste cada salida. Una salida sin inicio confirmado queda pendiente, sin contador.</p>
+<p class="actions">{% if bike %}<a class="chip-link" href="{% url 'garage:usage-ride-list' %}{% if pending %}?pending=1{% endif %}" aria-label="Quitar el filtro de {{ bike.name }}"><svg class="ic xs"><use href="#i-bike"/></svg>{{ bike.name }}<svg class="ic xs"><use href="#i-x"/></svg></a>{% endif %}{% if pending %}<a class="link" href="{% url 'garage:usage-ride-list' %}">Ver todas</a>{% else %}<a class="link" href="?pending=1">Sólo las que están por revisar</a>{% endif %}</p>
+<form method="get" class="filters" role="search">{% if pending %}<input type="hidden" name="pending" value="1">{% endif %}{% if bike %}<input type="hidden" name="bike" value="{{ bike.pk }}">{% endif %}<label for="q" class="sr-only">Buscar nombre o modalidad</label><input name="q" id="q" maxlength="200" value="{{ q }}" placeholder="Buscar nombre o modalidad"><button>Buscar</button></form>
+<ul class="rows">
+{% for row in rows %}
+  <li><a class="entry compact" href="{% url 'garage:ride-review' row.ride.pk %}?next={{ request.get_full_path|urlencode }}">
+    <span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
+    <span><span class="entry-name">{{ row.ride.name|default:'Salida sin nombre' }}</span>
+      <span class="entry-sub">{% if row.ride.started_at %}{% local_date row.ride.started_at "weekday" %}{% else %}Inicio desconocido{% endif %} · {{ row.ride.bike.name|default:'Sin bici' }}{% if row.ride.elevation_gain_m is not None %} · ↑ {{ row.ride.elevation_gain_m|metric_m }}{% endif %}{% if row.ride.sport_type %} · {{ row.ride.sport_type|sport_label }}{% endif %} · {{ row.origin }}{% if row.duplicate %} · <span class="badge">Posible duplicado</span>{% endif %}</span>
+      {% if row.resolution.unknown_started_at %}<span class="entry-sub"><span class="badge">Pendiente: sin inicio confirmado; no genera contador.</span></span>{% else %}<span class="entry-sub">{% for item in row.items %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}Sin material{% endfor %}</span>{% endif %}</span>
+    <span class="big"><b>{{ row.ride.distance_m|km }}</b><small>km</small></span>
+  </a></li>
+{% empty %}
+  <li class="empty">No hay salidas propias. Las importaciones y las entradas manuales aportarán salidas a esta lista.</li>
+{% endfor %}
+</ul>
+{% if has_strava %}<p class="note">Powered by Strava</p>{% endif %}
+<nav class="pagination" aria-label="Páginas de salidas">{% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>
+{% endblock %}

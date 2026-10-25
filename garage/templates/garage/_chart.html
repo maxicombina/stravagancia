@@ -1,0 +1,17 @@
+{% load garage_ui %}  <div class="chart" data-chart>
+    <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="group" aria-label="{{ chart.summary }} Usa las flechas para ver cada mes." tabindex="0" data-left="34" data-band="{{ chart.band }}">
+      <g class="grid">{% for y, label_y, text in chart.ticks %}<line x1="34" x2="{{ chart.x_end }}" y1="{{ y }}" y2="{{ y }}"{% if forloop.first %} class="base"{% endif %}/>{% endfor %}</g>
+      <g class="ticks">{% for y, label_y, text in chart.ticks %}<text x="28" y="{{ label_y }}">{{ text }}</text>{% endfor %}</g>
+      {% for path in chart.areas %}<path class="area" d="{{ path }}"/>{% endfor %}
+      {% for line in chart.solid %}<polyline class="line" points="{{ line }}"/>{% endfor %}
+      {% if chart.dashed %}<line class="line dash" x1="{{ chart.dashed.0 }}" y1="{{ chart.dashed.1 }}" x2="{{ chart.dashed.2 }}" y2="{{ chart.dashed.3 }}"/>{% endif %}
+      <line class="hl" x1="0" x2="0" y1="20" y2="140"/>
+      <g class="pts">{% for p in chart.points %}<circle class="pt" cx="{{ p.x }}" cy="{% if p.y is not None %}{{ p.y }}{% else %}140{% endif %}" r="4" data-tip="{{ p.tip }}"{% if p.y is not None %} data-y="{{ p.y }}"{% endif %}/>{% endfor %}</g>
+      {% for p in chart.dots %}<circle class="dot" cx="{{ p.x }}" cy="{{ p.y }}" r="4"/>{% endfor %}
+      {% if chart.end_point %}<circle class="dot" cx="{{ chart.end_point.x }}" cy="{{ chart.end_point.y }}" r="4"/>{% endif %}
+      <g class="months">{% for p in chart.points %}<text x="{{ p.x }}" y="{{ chart.month_y }}">{{ p.label }}</text>{% endfor %}</g>
+      {% for x, y, text in chart.value_labels %}<text class="val" x="{{ x }}" y="{{ y }}">{{ text }}</text>{% endfor %}
+    </svg>
+    <span class="tip" hidden></span>
+  </div>
+  <table class="sr-only"><caption>{{ caption }}</caption><thead><tr><th>Mes</th><th>{% if chart_metric == "elevation_gain_m" %}Desnivel{% else %}Km{% endif %}</th></tr></thead><tbody>{% for b in monthly.buckets %}<tr><td>{{ b.name }}{% if b.partial %} (en curso){% endif %}</td><td>{% if b.value is None %}sin datos{% elif chart_metric == "elevation_gain_m" %}{{ b.value|metric_m }}{% else %}{{ b.value|km }}{% endif %}</td></tr>{% endfor %}</tbody></table>

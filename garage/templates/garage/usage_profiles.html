@@ -1,0 +1,16 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:usage-profile-create' %}" aria-label="Crear perfil"><svg class="ic"><use href="#i-plus"/></svg></a>{% endblock %}
+{% block garage_content %}
+<h1>Perfiles de uso</h1>
+<p class="lede">Material habitual que llevas sin montarlo (casco, zapatillas, luces), por bici o para cualquiera, con versiones y vigencia. Los cambios ordinarios afectan desde ahora; las correcciones del histórico son explícitas.</p>
+<ul class="rows">{% for profile in page %}
+  <li><a class="entry compact" href="{% url 'garage:usage-profile-detail' profile.pk %}"><span class="glyph"><svg class="ic"><use href="#i-layers"/></svg></span>
+    <span><span class="entry-name">{{ profile.name }}</span>
+      <span class="entry-sub">{{ profile.bike.name|default:'Todas mis bicis / sin bici' }} · {{ profile.sport_type|sport_label|default:'Todas las modalidades' }} · {% local_date profile.started_at %} → {% if profile.ended_at %}{% local_date profile.ended_at %}{% else %}sin final{% endif %}</span>
+      <span class="entry-sub">{% for item in profile.items.all %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}Sin material habitual{% endfor %}</span></span>
+    <svg class="ic"><use href="#i-chev-right"/></svg></a></li>
+  {% empty %}<li class="empty">No hay perfiles. Puedes crear uno para tu casco o zapatillas.</li>{% endfor %}
+</ul>
+{% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas de perfiles">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+<div class="actionbar"><a class="btn" href="{% url 'garage:usage-profile-create' %}"><svg class="ic sm"><use href="#i-plus"/></svg>Crear perfil</a></div>
+{% endblock %}

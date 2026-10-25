@@ -1,0 +1,56 @@
+{
+ "task": "garage-034",
+ "title": "Posponer vencimientos: km, horas, salidas o días, lo primero que llegue",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T00:50:00+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026, tras el análisis REA de ProBikeGarage: «posponer un venciemiento de algo, ya sea por dias, km, etc.».",
+  "17 oct 2026: «ante la duda, documenta las opciones y elige una» (decisiones en la especificación)."
+ ],
+ "spec": ".claude/specs/2026-10-17-garage-posponer-spec.md",
+ "migration": "garage/migrations/0009_maintenancesnooze.py (CreateModel aditivo; aplicada sólo en PostgreSQL local de pruebas y de la demo; nunca en Neon)",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2031,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 107.12,
+   "note": "incluye garage-035 en curso (tests_parts.py)"
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_snoozes.py"
+   ]
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios"
+ },
+ "independent_reviews": [
+  {
+   "scope": "especificación",
+   "result": "1 bloqueante (intervención con hora redondeada no terminaba el aplazamiento) y 7 importantes; resueltos antes de cerrar el código (referencia guardada, cierre al mover la regla, máximo de días, atajos sin JavaScript, sin solapes)"
+  },
+  {
+   "scope": "código",
+   "result": "sin bloqueantes; 1 importante (aplazamiento por adelantado mal descrito y sin poder terminarse) y 6 menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación",
+   "result": "7 correcciones verificadas; menores de redacción (concordancia, frases duplicadas, enlace para reglas de bici) corregidos con pruebas"
+  }
+ ],
+ "screenshots": "Página de aviso antes y después de posponer, ficha con «Pospuesto», Inicio y Taller con pospuestos; claro/oscuro, iOS/Android",
+ "limits": [
+  "Los km, horas y salidas observados son un mínimo: el aplazamiento puede seguir activo aunque el uso real lo haya superado; acotado por el máximo de días.",
+  "Agotarse o dejar de valer se calcula: cambiar salidas o el uso puede reactivar un aplazamiento agotado.",
+  "No hay posponer una bici o un componente entero de una vez (sólo regla a regla).",
+  "Docker Compose aplicaría 0009 en Neon al arrancar: no usarlo."
+ ]
+}

@@ -1,0 +1,35 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-{{ icon }}"/></svg></span>
+  <div><h1>Vida útil</h1><p class="lede">{{ item.name }} · {{ item.category.name }}</p></div>
+</div>
+<p class="lede">Avisa al llegar al 90 % y vence con <b>lo primero que llegue</b>: los km, las horas, el desnivel o el tiempo. Deja vacío lo que no uses.</p>
+{% if suggestion %}<p class="suggest"><span class="note">Orientativo para {{ suggestion.1 }}: <b>{{ suggestion.2 }}</b> (depende del uso y del terreno).</span>
+  <button type="button" class="chip-link" data-fill="{{ suggestion_json }}" hidden>Usar {{ suggestion.2 }}</button></p>{% endif %}
+<form method="post" novalidate class="form" data-lifespan aria-label="Vida útil de {{ item.name }}">{% csrf_token %}
+  {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% if form.distance_km %}{% include "garage/_field.html" with field=form.distance_km %}{% endif %}
+  <div class="field-row">
+    {% include "garage/_field.html" with field=form.time_value %}
+    {% include "garage/_field.html" with field=form.time_unit %}
+  </div>
+  <p class="note"><output data-days>{% if rule.calendar_days %}= {{ rule.calendar_days }} días. {% endif %}</output>1 mes = 30 días y 1 año = 365 días; se guarda en días.</p>
+  {% if form.moving_time_h %}{% include "garage/_field.html" with field=form.moving_time_h %}{% else %}<p class="note">Horas en movimiento: valor exacto en segundos; se edita en la regla del Taller.</p>{% endif %}
+  {% if form.elevation_gain_m %}{% include "garage/_field.html" with field=form.elevation_gain_m %}{% else %}<p class="note">Desnivel: {{ rule.elevation_gain_m|num:3 }} m, con decimales; se edita en la regla del Taller.</p>{% endif %}
+  {% include "garage/_field.html" with field=form.start %}
+  {% if reference_event %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Ahora cuenta desde la última sustitución registrada, el {% local_date reference_event.performed_at %}. «Cuenta desde» sólo se usa sin sustituciones.</span></p>{% endif %}
+  {% if rule.ride_count %}<p class="note">También vence a {{ rule.ride_count }} salidas: se edita en la regla del Taller.</p>{% endif %}
+  <details class="zone"{% if form.time_zone.errors %} open{% endif %}><summary>Zona horaria: {{ form.time_zone.value|default:"UTC" }} · Cambiar</summary>
+    {% include "garage/_field.html" with field=form.time_zone %}</details>
+  <p class="note">Los km cuentan desde esa fecha con las salidas registradas en Garage. Si la pieza es usada, sus km anteriores aún no se suman aquí.</p>
+  <div class="actionbar"><button type="submit" class="btn">Guardar vida útil</button><a class="btn ghost" href="{{ back_url }}">Cancelar</a></div>
+</form>
+{% if rule %}
+<section class="sec danger-zone" aria-labelledby="remove-title">
+  <div class="sec-h"><h2 id="remove-title">Quitar</h2></div>
+  <p class="note">Quita sólo la vida útil de {{ item.name }} ({{ rule|thresholds }}). Las intervenciones y el historial se conservan.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove"><button type="submit" class="btn danger">Quitar vida útil</button></form>
+</section>
+{% endif %}
+{% endblock %}

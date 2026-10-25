@@ -1,0 +1,3 @@
+{% load garage_ui %}<div class="grid">{% for metric in metrics %}<div><strong>{{ metric.label }}:</strong> {% if metric.value is None %}Desconocido{% else %}{{ metric.display_value|floatformat:3 }}{% endif %}
+<span class="muted">{% if metric.estimated %} · Lectura estimada{% endif %}{% if metric.complete %} · Completo en el corte{% else %} · Histórico parcial{% endif %}{% if metric.missing_values %} · {{ metric.missing_values }} valores desconocidos{% endif %}</span>
+{% if metric.baseline %}<p class="help">Lectura acumulada: {% local_datetime metric.baseline.cut_at %} · {{ metric.baseline.get_scope_display }} · {{ metric.baseline.source }}. El importe previo a este corte no se reparte entre períodos ni bicis.</p>{% endif %}</div>{% endfor %}</div>

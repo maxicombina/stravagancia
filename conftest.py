@@ -1,4 +1,7 @@
-import django
+from test_support.isolation import install
+
+# Defence in depth if pytest was launched with custom addopts.
+install()
 import pytest
 from django.utils import timezone
 

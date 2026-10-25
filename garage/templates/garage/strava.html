@@ -1,0 +1,72 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<h1>Strava</h1>
+<p class="lede">Garage lee de Strava tus salidas en bici y tus bicis con el mismo token que Stravagancia. Sólo ciclismo; nada de GPS, mapas ni datos de salud.</p>
+{% if not state.configured %}
+<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Sin configurar: GARAGE_STRAVA_USER. Indica en el servidor el usuario de Garage dueño del token de Stravagancia.</span></p>
+{% elif not state.is_owner %}
+<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Strava está configurado para otro usuario de Garage (GARAGE_STRAVA_USER). Esta cuenta no sincroniza.</span></p>
+{% endif %}
+
+{% if state.is_owner or account %}
+<section class="panel" aria-labelledby="strava-state">
+  <h2 id="strava-state">Estado</h2>
+  {% if account %}
+  <p>Conectado con el token de Stravagancia (atleta {{ account.athlete_name|default:account.athlete_id }}).</p>
+  <p class="note">Última sincronización: {% if account.last_sync_at %}{% local_datetime account.last_sync_at %}{% if sync_status %} · {{ sync_status }}{% endif %}{% else %}todavía ninguna{% endif %}.</p>
+  {% if revoked_at %}<p class="pending st-due"><svg class="ic sm"><use href="#i-alert"/></svg><span>Strava rechaza el token desde el {% local_date revoked_at %}. Renueva STRAVA_REFRESH_TOKEN en Render. Si sigue así, lo sincronizado desde Strava se borrará {% if auto_sync %}automáticamente el {% local_date purge_on %}.{% else %}en la primera sincronización diaria a partir del {% local_date purge_on %}; sin sincronización automática, sólo si alguien ejecuta manage.py garage_strava_sync.{% endif %}</span></p>{% endif %}
+  {% if error %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>{{ error }}</span></p>{% endif %}
+  {% else %}
+  <p>Todavía sin sincronizar. Al pulsar «Sincronizar ahora», Garage pide a Strava tu atleta y tus bicis.</p>
+  {% endif %}
+  {% if state.is_owner %}<p class="note">Sincronización automática: {% if auto_sync %}configurada. El Worker de Cloudflare la pide cada día a las 9:05 (hora de Madrid){% if not account %}, a partir de la primera sincronización manual{% endif %}.{% else %}no configurada (falta GARAGE_SYNC_TOKEN).{% endif %}</p>{% endif %}
+  <div class="stats">
+    <div><b>{{ strava_rides }}</b><span>salidas con datos de Strava</span></div>
+    <div><b>{{ duplicates }}</b><span>posibles duplicados</span></div>
+  </div>
+  {% if state.is_owner %}<form method="post" action="{% url 'garage:strava-sync' %}">{% csrf_token %}<button type="submit" class="btn">Sincronizar ahora</button></form>
+  <p class="note">Pide los últimos 7 días y confirma los avisos pendientes del webhook. Si una salida ya existe por un FIT (inicio a ±90 s y distancia a ±2 %), se une a ella; si hay dudas, queda aparte como «posible duplicado».</p>{% endif %}
+</section>
+{% endif %}
+
+{% if state.is_owner %}
+<section class="sec" aria-labelledby="strava-import">
+  <div class="sec-h"><h2 id="strava-import">Importar histórico</h2></div>
+  <form method="post" action="{% url 'garage:strava-import' %}" novalidate class="form">{% csrf_token %}
+    {% if import_form.non_field_errors %}<div role="alert">{{ import_form.non_field_errors }}</div>{% endif %}
+    {% for field in import_form %}{% include "garage/_field.html" %}{% endfor %}
+    <button type="submit" class="btn">Importar histórico</button>
+  </form>
+  <p class="note">Se hace por pasos: si se corta o Strava pide esperar, el trabajo guarda las páginas confirmadas y puedes continuar.</p>
+  {% if runs %}<ul class="rows">{% for run in runs %}
+    <li><a class="entry compact" href="{% url 'garage:history-run' run.pk %}"><span class="glyph"><svg class="ic"><use href="#i-download"/></svg></span>
+      <span><span class="entry-name">{{ run|run_state }}</span><span class="entry-sub">{% local_datetime run.created_at %} · desde {% local_date run.requested_from %}</span></span>
+      <span class="num">{{ run.items_imported|default_if_none:0 }}</span></a></li>{% endfor %}
+  </ul>{% endif %}
+</section>
+{% endif %}
+
+<section class="sec" aria-labelledby="strava-gear">
+  <div class="sec-h"><h2 id="strava-gear">Bicis de Strava</h2></div>
+  <p class="note">Cada bici de Strava cuenta como la bici de Garage que elijas. Cambiarla recalcula sus salidas y contadores; una corrección manual de la bici de una salida prevalece. Una bici retirada en Strava conserva su vínculo.</p>
+  {% for row in gear_rows %}{% with gear=row.gear form=row.form %}
+  <form method="post" action="{% url 'garage:strava-gear' gear.pk %}" class="card form">{% csrf_token %}
+    <p><b>{{ gear.name|default:gear.gear_id }}</b>{% if gear.retired %} <span class="badge">Retirada en Strava</span>{% endif %}<br><span class="muted">{% if gear.bike %}Cuenta como {{ gear.bike.name }}{% else %}Sin vincular: sus salidas quedan por revisar{% endif %}</span></p>
+    {% for field in form %}{% include "garage/_field.html" %}{% endfor %}
+    <button type="submit" class="btn ghost">Guardar vínculo</button>
+  </form>{% endwith %}
+  {% empty %}<p class="empty">Todavía no hay bicis de Strava. Aparecen al sincronizar.</p>{% endfor %}
+</section>
+
+{% if account or strava_rides %}
+<section class="sec danger-zone" aria-labelledby="strava-remove">
+  <div class="sec-h"><h2 id="strava-remove">Quitar lo sincronizado desde Strava</h2></div>
+  <p class="note">Borra todas las fuentes de Strava y los vínculos de sus bicis. Las salidas que sólo venían de Strava y no tienen correcciones de medida (inicio, deporte, distancia o tiempos) se borran con su uso; las demás se conservan y pueden quedar pendientes. Corregir sólo la bici o las notas no las conserva. No revoca nada en Strava.</p>
+  <form method="post" action="{% url 'garage:strava-remove' %}" novalidate class="form">{% csrf_token %}
+    {% for field in remove_form %}{% include "garage/_field.html" %}{% endfor %}
+    <button type="submit" class="btn danger">Quitar lo sincronizado</button>
+  </form>
+</section>
+{% endif %}
+<p class="note">Powered by Strava</p>
+{% endblock %}

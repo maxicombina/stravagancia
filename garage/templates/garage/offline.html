@@ -1,0 +1,10 @@
+{% extends "garage/shell.html" %}
+{% block title %}Sin conexión · Garage{% endblock %}
+{% block content %}
+<div class="hero offline-hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-garage"/></svg></span>
+  <h1>Sin conexión</h1>
+</div>
+<p class="lede">Garage necesita internet para mostrar tus datos. Comprueba la conexión y vuelve a intentarlo.</p>
+<p><a class="btn" href="{% url 'garage:index' %}">Reintentar</a></p>
+{% endblock %}

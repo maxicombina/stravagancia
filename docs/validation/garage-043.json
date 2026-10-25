@@ -1,0 +1,72 @@
+{
+ "task": "garage-043",
+ "title": "Importar el estado de ProBikeGarage en Garage (volcado JSON de un solo uso) y verificarlo contra el volcado",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-25T18:35:03+00:00",
+ "updated_by": "Claude Fable 5.1 orquestando; implementación, revisión, corrección y re-verificación por agentes Opus 5.5",
+ "spec": ".claude/specs/2026-10-25-garage-probikegarage-import-spec.md (implementación §9, revisión §10, correcciones §11, re-verificación §12)",
+ "migration": "ninguna (0001–0012 sin cambios; la 0013 sigue reservada)",
+ "files": [
+  "garage/importers/probikegarage.py (nuevo)",
+  "garage/services/probikegarage_import.py (nuevo)",
+  "garage/management/commands/garage_import_probikegarage.py (nuevo)",
+  "garage/management/commands/garage_probikegarage_verify.py (nuevo)",
+  "garage/tests_probikegarage_import.py (nuevo, 65 pruebas)",
+  "garage/tests_probikegarage_review.py (nuevo, 7 pruebas del revisor, test_r043_1…7)",
+  "TESTING.md",
+  "docs/garage-data-sources.md (ProBikeGarage como origen de inventario)",
+  "docs/garage-domain.md (§13, enmienda garage-043)"
+ ],
+ "tests": {
+  "full_suite": {
+   "passed": 2690,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 219.22
+  },
+  "garage_043_files": "tests_probikegarage_import.py + tests_probikegarage_review.py: 72 pasan (11,27 s)",
+  "runs": "implementador 2683 + 45 (199,95 s, antes de las 7 pruebas de revisión); re-verificador 2690 + 45 (219,22 s)",
+  "manage_check": "System check identified no issues (0 silenced).",
+  "makemigrations_check": "No changes detected",
+  "residual_test_databases": 0,
+  "postgresql": "PostgreSQL 18.6 (Homebrew), clúster local aislado 127.0.0.1:55434, base stravagancia_test_018 (settings_test)",
+  "query_budgets": "preview ≤ 6 lecturas constantes; aplicación ≤ 130 consultas por componente con montaje, regla, intervención y lectura, constante por fila"
+ },
+ "mutation_checks": {
+  "method": "quitar cada corrección por separado, ejecutar su test_r043_n y restaurar con /bin/cp -f, borrando los .pyc de los dos módulos; SHA-256 idéntico tras cada restauración",
+  "result": "7/7: con la corrección quitada, test_r043_1…7 fallan; con R043-2 quitada también falla test_differences_are_reported"
+ },
+ "real_dump_dry_run": {
+  "owner": "1 (usuario sintético pbg-dryrun, 0 filas de Garage antes y después)",
+  "errors": 0,
+  "warnings": 6,
+  "warning_kinds": "1 montaje «desde siempre» (resuelto al 13/03/2024 08:49 UTC); 2 intervenciones sin intervalo que reinician la regla de su mismo tipo; 2 piezas retiradas con uso inicial y vida útil (R043-6); 1 desnivel inicial que no se guarda (D10)",
+  "counts": "17 categorías nuevas; 2 bicis (2 vinculadas a Strava); 50 objetos (19 retirados); 62 montajes (23 anidados, 1 «desde siempre»); 30 tipos; 38 reglas; 21 vidas útiles; 184 intervenciones; 8 lecturas iniciales; 350 salidas sólo para verificar",
+  "applied": false
+ },
+ "review": {
+  "findings": 11,
+  "blocker": 0,
+  "important": 0,
+  "minor": 8,
+  "nit": 3,
+  "fixed_code": ["R043-1", "R043-2", "R043-3", "R043-4", "R043-5", "R043-6", "R043-7"],
+  "fixed_text": ["R043-9", "R043-10 (spec redactada por el orquestador)", "R043-11 (opción a; precisado en la re-verificación)"],
+  "accepted_unchanged": ["R043-8: la verificación sigue con tres summarize_item_usage por componente (sólo lectura)"]
+ },
+ "reverification": {
+  "ready": true,
+  "verified": "11/11",
+  "new_findings": [
+   "R043-12 · nit · texto: §13 del dominio y §9.2 de la spec decían que el único caso observable del volcado real «es coherente con ello» (con reiniciar la regla de mismo tipo). En ese caso ProBikeGarage reinició un intervalo repetible de otro título, que Garage no reinicia. Corregido el texto en los dos sitios; el código y el aviso del comando no cambian."
+  ],
+  "edge_cases_probed": "tres niveles anidados «desde siempre» en los dos órdenes (plan y aplicación); next negativo en una pieza sin montar (diferencia); target_id repetido en las listas (un evento); vida útil destino más otra vida útil listada (una «Sustitución»); intervención posterior a la retirada de la pieza (sin cambio: el volcado real no tiene ninguna y la verificación la enseña como diferencia)"
+ },
+ "open_notes": [
+  "Sin aplicar la importación real: le toca al usuario, en su Garage, con --mapping fuera del repositorio y después el histórico de Strava (spec §2.8).",
+  "La spec conserva títulos genéricos de intervalos e intervenciones del volcado (p. ej. «Max life», «Refresh kit», «Medición») y fechas; ningún nombre de bici, marca, modelo, gear_id, id de ProBikeGarage, strava_id ni nota.",
+  "Verificación del volcado real tras importar (simulación del revisor): 8 filas de reglas/componentes con diferencia, todas explicadas (R043-1 ×3, R043-2 ×2, R043-6 ×1, R043-11 ×1, D10 ×1). Con las correcciones de R043-1 y R043-2 sus 5 filas deberían cuadrar: no comprobado (exige aplicar la importación y bajar Strava)."
+ ],
+ "pending_user_check": "aplicar la importación en su Garage (sin --dry-run, con --mapping fuera del repositorio), importar el histórico de Strava desde 2012-01-01 y ejecutar garage_probikegarage_verify"
+}

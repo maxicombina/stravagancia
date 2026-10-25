@@ -1,0 +1,30 @@
+{% load garage_ui %}<!doctype html>
+<html lang="es" data-os="{% client_os %}" data-sw="{% url 'garage:service-worker' %}" data-sw-scope="{% url 'garage:index' %}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}{{ title|default:"Garage" }} · Garage{% endblock %}</title>
+<meta name="theme-color" content="#f1f2f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0c11" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-title" content="Garage">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="{% url 'garage:manifest' %}">
+<link rel="icon" href="{% asset 'garage/icons/icon.svg' %}" type="image/svg+xml">
+<link rel="icon" href="{% asset 'garage/icons/favicon-32.png' %}" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="{% asset 'garage/icons/apple-touch-icon.png' %}">
+<link rel="stylesheet" href="{% asset 'garage/garage.css' %}">
+<script src="{% asset 'garage/garage.js' %}" defer></script>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% include "garage/_icons.html" %}
+{% block appbar %}{% endblock %}
+<main class="page" id="main">
+{% block content %}{% endblock %}
+</main>
+{% block fab %}{% endblock %}
+{% block tabbar %}{% endblock %}
+</body>
+</html>

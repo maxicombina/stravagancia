@@ -1,0 +1,47 @@
+{
+ "task": "garage-033",
+ "title": "Vida útil por componente (km, horas, tiempo; lo primero que llegue)",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-17T11:16:30+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026: «cada componente ha de tener vida útil por tiempo o por km. o el primero de ambos. mejor que probikegarage»."
+ ],
+ "spec": ".claude/specs/2026-10-17-garage-vida-util-spec.md",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 1959,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 96.11
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_lifespan.py"
+   ]
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios"
+ },
+ "independent_reviews": [
+  {
+   "scope": "033",
+   "result": "sin bloqueantes; 5 importantes y menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación final",
+   "result": "1 bloqueante (500 con zona inválida al comparar el inicio) y 1 importante (aviso de sustitución sin regla); corregidos con pruebas, más menores"
+  }
+ ],
+ "screenshots": "Ficha con vida útil, formulario con sugerencias (cadena, casco), claro y oscuro",
+ "limits": [
+  "Los km previos de una pieza usada no cuentan aún.",
+  "1 mes = 30 días y 1 año = 365 días."
+ ]
+}

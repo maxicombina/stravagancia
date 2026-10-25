@@ -1,0 +1,9 @@
+{% load garage_ui %}{% with suggested=field.field.widget.suggested %}<fieldset class="field icon-field{% if field.errors %} has-error{% endif %}"{% if field.help_text %} aria-describedby="{{ field.auto_id }}_helptext"{% endif %}>
+  <legend>{{ field.label }}</legend>
+  {% if field.help_text %}<div class="help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {{ field.errors }}
+  <div class="choice icons">{% for radio in field %}
+    <span class="tile"><input type="radio" name="{{ radio.data.name }}" id="{{ radio.id_for_label }}" value="{{ radio.data.value }}" aria-label="{{ radio.choice_label }}{% if not radio.data.value and suggested %} ({{ suggested|icon_label }}){% endif %}"{% if radio.data.selected %} checked{% endif %}>
+    <label for="{{ radio.id_for_label }}"><svg class="ic" aria-hidden="true"><use href="#i-{{ radio.data.value|default:suggested|default:'tag' }}"/></svg><span>{{ radio.choice_label }}</span></label></span>{% endfor %}
+  </div>
+</fieldset>{% endwith %}

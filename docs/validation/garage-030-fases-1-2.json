@@ -1,0 +1,63 @@
+{
+ "task": "garage-030 (fases 1–2)",
+ "title": "Strava como fuente de Garage: modo token y fuente Strava",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T11:30:00+00:00",
+ "updated_by": "Claude Fable 5.1 (orquestación) con agentes Opus 5.5",
+ "user_decisions": [
+  "18 oct 2026: «vamos a tener sync desde strava, lo mismo que stravagancia»; «la potencia me interesa».",
+  "18 oct 2026: modo token (mismo refresh token que Stravagancia, sólo su cuenta), sólo ciclismo, nada de OAuth por ahora (garage-040); «hazlo con agentes, opus 5.5»."
+ ],
+ "spec": [
+  ".claude/specs/2026-10-18-garage-strava-oauth-sync-spec.md",
+  ".claude/specs/2026-10-18-garage-strava-fase1-2-spec.md"
+ ],
+ "migration": "garage/migrations/0010_strava_source.py (sustituye dos CHECK de source_kind; aplicada sólo en PostgreSQL local de pruebas y demo; nunca en Neon)",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2201,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "note": "según el agente de correcciones; la verificación final fue sólo lectura; la suite se vuelve a ejecutar al cerrar garage-041"
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_strava_client.py",
+    "garage/tests_strava_sources.py",
+    "garage/tests_strava_sync.py",
+    "garage/tests_strava_views.py",
+    "garage/tests_strava_migration.py"
+   ]
+  },
+  "legacy": "strava_integration/tests.py 42 pasan",
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "real_strava": "ninguna llamada real; pendiente con autorización del usuario"
+ },
+ "independent_reviews": [
+  {
+   "scope": "especificación",
+   "result": "seguridad/operación: 2 bloqueantes (revocar mataría el token del legado; webhook sin firmar) + 9 importantes; dominio/datos: 3 bloqueantes + 8 importantes; todo incorporado; re-verificación con 2 importantes más (perfiles por familia de deporte; falsa detección de borrado sin activity:read_all) incorporados"
+  },
+  {
+   "scope": "código",
+   "result": "1 bloqueante (variables de settings ausentes) + 3 importantes (coste del histórico, hilo por evento y deadlock, «Unir con…» borraba datos) + 9 menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación",
+   "result": "13/13 verificados; 4 menores nuevos (avisos que esperan tras la última ronda, más de 50 avisos, tiempo máximo de petición, claves de deporte en perfiles) → fase 3"
+  }
+ ],
+ "limits": [
+  "Modo token: sólo la cuenta del propietario; OAuth por usuario en garage-040.",
+  "refresh_access_token() del legado sin timeout (no se toca).",
+  "Dos procesos pueden confirmar el mismo aviso dos veces (idempotente).",
+  "La ausencia como pista de borrado y el disparo diario son de la fase 4; desnivel y potencia de la fase 3."
+ ]
+}

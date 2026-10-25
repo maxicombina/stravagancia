@@ -1,0 +1,8 @@
+{% load garage_ui %}{% with w=alert.wear metric=alert.wear.headline %}
+    <li><a class="entry st-{{ w.state }}" href="{% if w.rule.item_id %}{% url 'garage:item-detail' w.rule.item_id %}{% elif here and here == w.rule.bike_id %}{% if w.needs_attention or w.snooze %}{% url 'garage:maintenance-rule-snooze' w.rule.pk %}{% else %}{% url 'garage:maintenance-rule-edit' w.rule.pk %}{% endif %}{% else %}{% url 'garage:bike-detail' w.rule.bike_id %}{% endif %}">
+      {% include "garage/_ring.html" %}
+      <span><span class="entry-name">{{ alert.target.name }}</span>
+        <span class="entry-sub">{{ w.rule|rule_name }}{% if w.rule.item_id and alert.place %} · {{ alert.place }}{% endif %}</span>
+        <span class="entry-sub"><span class="chip st-{{ w.state }}"><svg class="ic xs"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}</span><span class="sr-only"> {{ metric.percent_text }}</span>{% if w.snoozed %} <span class="note">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left }}</span>{% endif %}{% if w.estimated %} <span class="note">estimado</span>{% endif %}{% if metric.missing_text %} <span class="note">{{ metric.missing_text }}</span>{% elif metric.unrecorded %} <span class="note">ninguna salida con desnivel</span>{% endif %}</span></span>
+      <span class="big"><b>{{ metric.big }}</b><small>{{ metric.big_caption }}</small></span>
+    </a></li>{% endwith %}

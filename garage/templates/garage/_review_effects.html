@@ -1,0 +1,7 @@
+{% load garage_ui %}{% if errors %}<p class="errorlist" role="alert">{% for message in errors %}{{ message }} {% endfor %}</p>{% else %}<ul class="effects">{% for effect in state.effects %}
+  <li><svg class="ic"><use href="#i-{% if effect.icon == 'bike' %}bike{% else %}{{ effect.target|item_icon }}{% endif %}"/></svg>
+    <span class="e-name">{{ effect.label }}</span>
+    <span class="e-val">{% if effect.sign > 0 %}Empieza a contar esta salida{% else %}Deja de contar esta salida{% endif %}{% if effect.moving_time_s is not None %} · {{ effect.moving_time_s|duration }}{% endif %}{% if effect.elevation_gain_m is not None %} · ↑ {{ effect.elevation_gain_m|metric_m }}{% endif %}</span>
+    <span class="delta{% if effect.sign < 0 %} minus{% endif %}">{% if effect.distance_m is None %}sin distancia{% else %}{% if effect.sign > 0 %}+{% else %}−{% endif %}{{ effect.distance_m|km }} km{% endif %}</span></li>
+{% empty %}<li class="empty">Sin cambios en los contadores.</li>{% endfor %}</ul>
+{% if state.stale_includes %}<p class="note">Siguen contando por una excepción anterior: {% for item in state.stale_includes %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}. Revísalas en las excepciones avanzadas.</p>{% endif %}{% endif %}

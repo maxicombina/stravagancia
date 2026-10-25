@@ -1,0 +1,13 @@
+{% load garage_ui %}<section class="sec" aria-labelledby="usage-title">
+  <div class="sec-h"><h2 id="usage-title">Uso</h2></div>
+  {% if usage.future %}<p class="empty">Programada para el {% local_date event.performed_at %}: aún sin uso.</p>{% else %}
+  <ul class="rows">
+    <li class="entry compact"><span class="glyph"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg></span>
+      <span><span class="entry-name">{% if usage.previous %}Desde la anterior, el {% local_date usage.previous.performed_at %}{% else %}Primera de este tipo registrada{% endif %}</span>
+        <span class="entry-sub">{% if usage.before %}{{ usage.before|span_text }}{% elif usage.previous %}Sin datos de uso{% else %}No hay ninguna intervención «{{ event.service_type.name }}» anterior en {{ target.name }}{% endif %}</span></span></li>
+    <li class="entry compact"><span class="glyph"><svg class="ic" aria-hidden="true"><use href="#i-chev-right"/></svg></span>
+      <span><span class="entry-name">{% if usage.next %}Hasta la siguiente, el {% local_date usage.next.performed_at %}{% elif usage.retired_at %}Hasta su retiro, el {% local_date usage.retired_at %}{% elif usage.upcoming %}Hasta hoy (la siguiente está programada para el {% local_date usage.upcoming.performed_at %}){% else %}Desde entonces, hasta hoy{% endif %}</span>
+        <span class="entry-sub">{% if usage.after %}{{ usage.after|span_text }}{% else %}Sin datos de uso{% endif %}</span></span></li>
+  </ul>
+  <p class="note">Km, horas, salidas y desnivel (↑) registrados en Garage: un mínimo (≥) salvo lecturas; «≈» si la lectura es estimada. Los días son exactos.</p>{% endif %}
+</section>

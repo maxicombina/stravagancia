@@ -1,0 +1,59 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<div class="ride-h">
+  <h1>{{ ride.name|default:"Salida sin nombre" }}</h1>
+  <p class="lede">{% if ride.started_at %}{% local_date ride.started_at "weekday" %} · {% local_time ride.started_at %}{% else %}Inicio desconocido{% endif %}{% if state.source %} · {{ state.source }}{% endif %}</p>
+</div>
+{% if "Strava" in state.source %}<p class="note">Powered by Strava</p>{% endif %}
+{% include "garage/_ride_measures.html" %}
+
+{% if not state.resolvable %}
+<section class="panel st-review">
+  <p class="pending"><svg class="ic sm"><use href="#i-alert"/></svg><span>Pendiente: sin inicio confirmado; no genera contador. Sin inicio no se puede saber qué material estaba montado.</span></p>
+  <p><a class="btn" href="{% url 'garage:history-manual-edit' ride.pk %}">Corregir la salida</a></p>
+</section>
+{% else %}
+<form method="post" action="{% url 'garage:ride-review' ride.pk %}" data-review data-preview="{% url 'garage:ride-review-preview' ride.pk %}" data-selected="{{ state.selected_key }}">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <input type="hidden" name="shown_bike" value="{{ state.selected_key }}">
+  {% if errors %}<div class="errorlist" role="alert">{% for message in errors %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+  {% if notice %}<p class="messages" role="status">{{ notice }}</p>{% endif %}
+
+  <section class="sec" aria-labelledby="bike-title">
+    <div class="sec-h"><h2 id="bike-title">¿Con qué bici?</h2></div>
+    {% if state.current_key == "none" and not state.bike_decided %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Esta salida no tiene bici. Al elegirla se marca su material habitual.</span></p>{% endif %}
+    <fieldset class="choice"><legend class="sr-only">Bici de la salida</legend>
+      {% for bike in state.bikes %}{% with key=bike.pk|stringformat:"s" %}
+      <input type="radio" name="bike" id="bike-{{ key }}" value="{{ key }}" data-name="{{ bike.name }}"{% if state.selected_key == key %} checked{% endif %}>
+      <label for="bike-{{ key }}"><svg class="ic"><use href="#i-bike"/></svg><span>{{ bike.name }}</span><svg class="ic sm tick"><use href="#i-check"/></svg></label>{% endwith %}
+      {% endfor %}
+      <input type="radio" name="bike" id="bike-none" value="none" data-name=""{% if state.selected_key == "none" and state.bike_decided or state.selected_key == "none" and state.explicit_bike %} checked{% endif %}>
+      <label for="bike-none"><svg class="ic"><use href="#i-help"/></svg><span>Otra o desconocida<small>No cuenta para ninguna bici</small></span><svg class="ic sm tick"><use href="#i-check"/></svg></label>
+    </fieldset>
+  </section>
+
+  <section class="sec" aria-labelledby="gear-title">
+    <div class="sec-h"><h2 id="gear-title">Material que llevaste</h2></div>
+    {% if rows %}<fieldset class="plain"><legend class="sr-only">Material que llevaste en esta salida</legend><ul class="switches">{% for row in rows %}{% with item=row.candidate.item %}
+      <li><label for="gear-{{ item.pk }}"><svg class="ic"><use href="#i-{{ item|item_icon }}"/></svg>
+        <span>{{ item.name }}<span class="tag{% if row.exception %} ex{% endif %}" data-tag="{{ item.pk }}">{{ row.tag }}</span></span>
+        <input class="sw" type="checkbox" role="switch" name="gear" value="{{ item.pk }}" id="gear-{{ item.pk }}" data-usual="{{ row.usual }}"{% if row.candidate.selected %} checked{% endif %}></label></li>{% endwith %}
+    {% endfor %}</ul></fieldset>
+    {% else %}<p class="empty">No hay equipación habitual en esta fecha. Los perfiles de uso (en Más) definen qué llevas con cada bici.</p>{% endif %}
+    <p class="note">{% if state.mounted %}{% if state.mounted == 1 %}1 componente montado{% else %}{{ state.mounted }} componentes montados{% endif %} en la bici también cuenta{{ state.mounted|pluralize:"n" }}. {% endif %}<a href="{% url 'garage:usage-ride-detail' ride.pk %}">Excepciones avanzadas</a></p>
+  </section>
+
+  <section class="sec" aria-labelledby="effects-title">
+    <div class="sec-h"><h2 id="effects-title">Al guardar</h2></div>
+    <div id="effects" aria-live="polite">{% include "garage/_review_effects.html" %}</div>
+    <p class="note">Sólo cambia esta salida. Los contadores se recalculan al guardar.</p>
+  </section>
+
+  <div class="actionbar">
+    <button type="submit" class="btn" name="action" value="save">Guardar salida</button>
+    <button type="submit" class="btn ghost" name="action" value="preview" data-preview-button>Ver efecto</button>
+    <a class="btn ghost" href="{{ next }}">Luego</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{% load garage_ui %}<section class="sec" aria-labelledby="lives-title">
+  <div class="sec-h"><h2 id="lives-title">Cuánto dura cada uno</h2><span class="count">{{ lives|length }}</span></div>
+  <ul class="rows">{% for part in lives %}
+    <li><a class="entry compact" href="{% url 'garage:item-detail' part.item.pk %}"><span class="glyph"><svg class="ic" aria-hidden="true"><use href="#i-{{ part.item|item_icon }}"/></svg></span>
+      <span><span class="entry-name">{{ part.item.name }}</span>
+        <span class="entry-sub">{% if part.state == 'retired' %}Retirado el {% local_date part.item.retired_at %}{% elif part.state == 'mounted' %}Montado{% else %}{% life_text part.lifecycle %}{% endif %}{% if part.days is not None %} · {{ part.days|whole_days }} {% if part.days_kind == 'mounted' %}montado{% elif part.days_kind == 'use' %}desde el inicio de uso{% else %}desde la compra{% endif %}{% endif %}</span></span>
+      <span class="big"><b>{{ part.distance|metric_km }}</b><small>{% if part.distance.value is None %}uso desconocido{% elif part.reading == 'lifetime' %}km de toda su vida{% elif part.reading == 'acquisition' %}km desde que es tuyo{% else %}km en Garage{% endif %}</small></span></a></li>
+    {% empty %}<li class="empty">Sin material en esta categoría.</li>{% endfor %}
+  </ul>
+  <p class="note">Ordenado por km. Con una lectura previa, los km de toda su vida o desde que es tuyo; si no, lo registrado en Garage. «≥» es un mínimo y «≈» una lectura estimada. Los días cuentan el tiempo montado (en una bici o dentro de otra pieza) hasta su retiro u hoy; el material que no se monta (casco, zapatillas) cuenta desde el inicio de uso o la compra.</p>
+</section>

@@ -1,0 +1,48 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<h1>Histórico propio</h1>
+<ul class="menu">
+  <li><a href="{% url 'garage:history-preview' %}"><span class="glyph"><svg class="ic"><use href="#i-upload"/></svg></span><span>Subir / previsualizar FIT<small>Archivos originales de tu Garmin u otro dispositivo</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  <li><a href="{% url 'garage:strava' %}"><span class="glyph"><svg class="ic"><use href="#i-swap"/></svg></span><span>Sincronizar con Strava<small>Salidas en bici y bicis, con el token de Stravagancia</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  <li><a href="{% url 'garage:history-manual-create' %}"><span class="glyph"><svg class="ic"><use href="#i-plus"/></svg></span><span>Añadir salida manual</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  <li><a href="{% url 'garage:history-bike-batch' %}"><span class="glyph"><svg class="ic"><use href="#i-bike"/></svg></span><span>Asignar bicis por lote</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+</ul>
+
+{% if coverage %}<section class="panel" aria-labelledby="coverage-title">
+  <h2 id="coverage-title">Cobertura observada</h2>
+  <div class="stats">
+    <div><b>{{ coverage.observed }}</b><span>salidas en el período</span></div>
+    <div><b>{{ coverage.missing_bike }}</b><span>con bici desconocida</span></div>
+    <div><b>{{ coverage.unknown_start }}</b><span>sin inicio confirmado</span></div>
+  </div>
+  <p class="note">Completitud del histórico: <strong>desconocida</strong>. Procesar todos los archivos enviados no acredita que estén todas las salidas. Un campo ausente no prueba una salida faltante. Las salidas sin inicio no pueden atribuirse a un período.</p>
+  <ul class="note">{% for field,count in coverage_fields %}<li>{{ field }}: {{ count }} valores desconocidos</li>{% endfor %}</ul>
+</section>{% endif %}
+
+<details class="more"{% if form.errors %} open{% endif %}><summary>Filtrar por período</summary>
+  <form method="get" class="card">{{ form.as_p }}<button>Consultar período</button></form>
+</details>
+
+<section class="sec" aria-labelledby="rides-title">
+  <div class="sec-h"><h2 id="rides-title">Salidas observadas</h2></div>
+  <ul class="rows">{% for ride in page %}
+    <li><a class="entry compact" href="{% url 'garage:usage-ride-detail' ride.pk %}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
+      <span><span class="entry-name">{{ ride.name|default:'Salida sin nombre' }}</span>
+        <span class="entry-sub">{% if ride.started_at %}{% local_datetime ride.started_at %}{% else %}Inicio desconocido{% endif %} · {{ ride.bike.name|default:'Bici pendiente / desconocida' }}{% if ride.elevation_gain_m is not None %} · ↑ {{ ride.elevation_gain_m|metric_m }}{% endif %} · {{ ride.sport_type|sport_label|default:'Modalidad desconocida' }}</span></span>
+      <span class="big"><b>{{ ride.distance_m|km }}</b><small>km</small></span></a></li>
+    {% empty %}<li class="empty">No hay salidas observadas con estos filtros; no demuestra que no hayas salido.</li>{% endfor %}
+  </ul>
+  {% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas del histórico">{% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+</section>
+
+<section class="sec" aria-labelledby="runs-title">
+  <div class="sec-h"><h2 id="runs-title">Trabajos recientes</h2></div>
+  <ul class="rows">{% for run in runs %}
+    <li><a class="entry compact" href="{% url 'garage:history-run' run.pk %}"><span class="glyph"><svg class="ic"><use href="#i-file"/></svg></span>
+      <span><span class="entry-name">{{ run|run_state }}</span><span class="entry-sub">{% if run.source_kind == 'strava' %}Strava{% else %}FIT{% endif %} · {% local_datetime run.created_at %}</span></span>
+      <span class="num">{% if run.source_kind == 'strava' %}{{ run.cursor }} pág.{% else %}{{ run.cursor }}/{{ run.total|default_if_none:'?' }}{% endif %}</span></a></li>
+    {% empty %}<li class="empty">No hay trabajos de importación.</li>{% endfor %}
+  </ul>
+  <p class="note">FIT: sesiones confirmadas / total de cada trabajo. Strava: páginas confirmadas (el total no se conoce).</p>
+</section>
+{% endblock %}

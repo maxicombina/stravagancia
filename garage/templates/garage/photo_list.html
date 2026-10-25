@@ -1,0 +1,9 @@
+<section class="sec" aria-labelledby="photos-title">
+  <div class="sec-h"><h2 id="photos-title">Fotos privadas</h2>{% with route='garage:'|add:kind|add:'-photo-create' %}<a class="link" href="{% url route object.pk %}">Añadir foto</a>{% endwith %}</div>
+  {% if photos %}<ul class="photos">{% for photo in photos %}
+    <li><img src="{% url 'garage:photo-content' photo.pk %}" alt="Foto de {{ object.name|default:title }}" loading="lazy" referrerpolicy="no-referrer" width="{{ photo.storage_object.width }}" height="{{ photo.storage_object.height }}" class="photo">
+      <div class="photo-actions"><span class="note">{{ photo.storage_object.width }} × {{ photo.storage_object.height }} · {{ photo.storage_object.size_bytes|filesizeformat }}</span>
+        <a class="link" href="{% url 'garage:photo-replace' photo.pk %}">Sustituir</a>
+        <form method="post" action="{% url 'garage:photo-delete' photo.pk %}">{% csrf_token %}<button type="submit" class="link-btn danger">Eliminar foto</button></form></div></li>
+  {% endfor %}</ul>{% else %}<p class="empty">Sin fotos.</p>{% endif %}
+</section>

@@ -1,0 +1,92 @@
+{
+  "task": "garage-020",
+  "status": "completed_and_independent_review_approved",
+  "started_at": "2026-10-11T08:15:15.934006+00:00",
+  "checked_at": "2026-10-11T08:16:35+00:00",
+  "duration_seconds": 78.535,
+  "pytest_cases_passed": 1730,
+  "subtests_passed": 12,
+  "junit_cases_including_subtests": 1742,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "postgres": "18.6 local disposable 127.0.0.1:55434",
+  "application_role_superuser": false,
+  "migration": "0008",
+  "checks": [
+    "Django check passed",
+    "No pending migrations",
+    "Zero leftover test databases",
+    "git diff --check passed (tracked files only; touched untracked files checked for trailing whitespace)"
+  ],
+  "artifacts": {
+    "full_junit": "/private/tmp/garage018-validation-44qcqqna/full-020/pytest.xml",
+    "export_junit": "/private/tmp/garage018-validation-44qcqqna/export-final.xml",
+    "coverage": "/private/tmp/garage018-validation-44qcqqna/full-020/coverage.json"
+  },
+  "user_decision": "2026-10-11: export baseline.value always and keep the declared source label verbatim; previous source allowlist (preventive, proposed by the AI) removed",
+  "adversarial_review": {
+    "model": "claude-opus-5-5 (independent read-only subagent, fresh context)",
+    "status": "approved",
+    "note": "No production defects in privacy, completeness or concurrency. Fixed: corruption cases that passed for the wrong reason (isolated), 12 new fail-closed cases (baseline with other item's event, non-live photo, foreign installation/retirement/profile/type/source refs, foreign bike without provenance, manual override without manual provenance), real superuser test, foreign IDs absent from JSON/CSV/log/responses, exact A-B-A, nested mount, current retirement, normalized provenance, CSV=JSON=manifest, exact row limit N/N-1, empty export over HTTP, inactive user. Server-side diagnostic log on 409 (table, own pk, error class). Docs aligned."
+  },
+  "mutation_checks": [
+    "Removing ride_id, withdrawn_at, bike-not-owned, baseline event item, photo live or manual-without-provenance checks makes its isolated case fail",
+    "Without 'source is None', foreign_source still fails closed via captured AttributeError (redundant guard)"
+  ],
+  "focused_export_cases_passed": 58,
+  "coverage_measured_this_run": true,
+  "coverage_scope": "Garage runtime, test isolation and board; excludes tests/migrations and most legacy app",
+  "coverage_totals": {
+    "covered_lines": 4890,
+    "num_statements": 5144,
+    "percent_covered": 94.08903301886792,
+    "percent_covered_display": "94",
+    "missing_lines": 254,
+    "excluded_lines": 0,
+    "percent_statements_covered": 95.06220839813375,
+    "percent_statements_covered_display": "95",
+    "num_branches": 1640,
+    "num_partial_branches": 131,
+    "covered_branches": 1493,
+    "missing_branches": 147,
+    "percent_branches_covered": 91.03658536585365,
+    "percent_branches_covered_display": "91"
+  },
+  "coverage_export": {
+    "covered_lines": 146,
+    "num_statements": 147,
+    "percent_covered": 99.06103286384976,
+    "percent_covered_display": "99",
+    "missing_lines": 1,
+    "excluded_lines": 0,
+    "percent_statements_covered": 99.31972789115646,
+    "percent_statements_covered_display": "99",
+    "num_branches": 66,
+    "num_partial_branches": 1,
+    "covered_branches": 65,
+    "missing_branches": 1,
+    "percent_branches_covered": 98.48484848484848,
+    "percent_branches_covered_display": "98"
+  },
+  "coverage_export_uncovered": "export.py line 140 (non-FIT source) unreachable: DB CHECK garage_activitysource_kind_fit",
+  "external_photo_bucket_verified": false,
+  "browser_validation_this_session": false,
+  "demo_http_checks": [
+    "Demo Django restarted (previous process had exited; demo PostgreSQL and fictitious seed preserved)",
+    "Anonymous export redirects to login",
+    "Synthetic login; export page 200 with nav link and both downloads",
+    "JSON 200 attachment v1: 2 bikes, 5 items, 4 installations incl. saddle A-B-A, baseline with value and source 'manual'",
+    "ZIP 200: CSV headers and row counts match manifest and JSON",
+    "Cache-Control private no-store, X-Content-Type-Options nosniff; no credentials, storage keys or owner_id"
+  ],
+  "limits": [
+    "Synthetic data and mocked external storage/HTTP",
+    "No Neon or production migrations",
+    "No byte limit: MAX_ROWS=100000 bounds rows, not note bytes (documented)",
+    "CSV not exactly restorable (formula apostrophe, \\N sentinel); JSON is the authority",
+    "No automatic restore; ItemUsage/ImportRun omitted; photo binaries not exported",
+    "Visual browser check not repeated this session (HTTP checks against running demo instead)",
+    "garage logger not configured in settings.py: diagnostic warning goes to Python last-resort stderr handler"
+  ]
+}

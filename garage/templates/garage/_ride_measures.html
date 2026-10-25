@@ -1,0 +1,9 @@
+{% load garage_ui %}<div class="stats{% if ride.elevation_gain_m is not None %} four{% endif %}">
+  <div><b>{{ ride.distance_m|km }}</b><span>km</span></div>
+  <div><b>{{ ride.moving_time_s|duration }}</b><span>en movimiento</span></div>
+  <div><b>{% if speed is not None %}{{ speed|num:1 }}{% else %}—{% endif %}</b><span>km/h media</span></div>
+  {% if ride.elevation_gain_m is not None %}<div><b>↑ {{ ride.elevation_gain_m|num }}</b><span>m de desnivel</span></div>{% endif %}
+</div>
+{% with power=ride|power_figures %}{% if power %}<div class="stats{% if power|length == 4 %} four{% elif power|length == 2 %} two{% endif %}" role="group" aria-label="Potencia y energía">
+  {% for figure, caption in power %}<div><b>{{ figure }}</b><span>{{ caption }}</span></div>{% endfor %}
+</div>{% endif %}{% endwith %}

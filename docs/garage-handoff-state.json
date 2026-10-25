@@ -1,0 +1,72 @@
+{
+  "handoff_at": "2026-10-17T11:16:58+00:00",
+  "updated_by": "Claude Opus 5.5",
+  "requested_successor": "Claude or another AI",
+  "branch": "codex/garage-plan",
+  "commits_ahead_of_main": 0,
+  "staged_files": [],
+  "active_agents": [],
+  "garage_pytest_running": false,
+  "last_full_validated_task": "garage-033",
+  "last_full_pytest_passed": 1959,
+  "last_full_subtests_passed": 45,
+  "unfinished_task": "garage-031 (sólo teléfono real, depende de garage-023); 032 y 033 cerradas",
+  "next_blocked_on_user": "Neon: decidir sobre migraciones garage aplicadas el 12 oct; garage-010 bucket real; ideas ProBikeGarage sin tareas",
+  "export_tests_passed": 58,
+  "export_final_review_approved": true,
+  "export_final_full_suite_run": true,
+  "runtime": {
+    "board": {
+      "url": "http://127.0.0.1:8765/",
+      "pid_last_seen": 56649
+    },
+    "demo": {
+      "url": "http://127.0.0.1:8766/garage/",
+      "django_pid_last_seen": 58875,
+      "postgres_pid_last_seen": 33239,
+      "port": 55433,
+      "db": "stravagancia_test_demo",
+      "state": "/private/tmp/garage_demo_pg_state.json",
+      "seed": "tools/garage_demo_seed.py",
+      "started_by": "Claude session background task; may stop when that session ends"
+    },
+    "test_postgres": {
+      "port": 55434,
+      "db": "stravagancia_test_018",
+      "pid_last_seen": 31536,
+      "state": "/private/tmp/garage018_pg_state.json",
+      "leftover_test_databases_checked": 0
+    }
+  },
+  "files_sha256": {
+    "garage/local_forms.py": "75768bbc1b556db92c221dfcad02e08e75e8be1eacaa3e498facf4744abaedc8",
+    "garage/maintenance_forms.py": "ee0ab1aa6eed7c375d3cce3aa8ecc2a840764f6d2f8a444f9d6df3b03728794d",
+    "garage/maintenance_views.py": "d50ef9adf2470836c79b79acb7f40990bf986be9732d252b863f4a949ab3a60b",
+    "garage/services/workshop.py": "8d4ec4e7271a38f2659e6dc31e40a1e17fbd47560fec70cd882aa43a14b3dc87",
+    "garage/services/home.py": "e64fa3fb83f7121269827be29957eaa70aab2cc21da56078d20f7add9a28c922",
+    "garage/services/lifespan.py": "f1499d611801f09e4d830858b6dcd26462184b84d88eb7180bae69d3e8807acd",
+    "garage/lifespan_forms.py": "8b6ff7b8147a34c8951b42b63d6077440de8ff6d19869e9bf7693d96334db997",
+    "garage/lifespan_views.py": "5def941775f922b9e94238a4196c86e02d236634da561ff3766ddca239cacc5c",
+    "garage/statistics_views.py": "b4aa669e67cebb59d63583a1205513c5d03693a0e603ed5c83e546517ec13cc7",
+    "garage/services/statistics.py": "965b4f6619140485d9e1ec9cb74d3343fc8973528ff997218b15862024dedff5",
+    "garage/services/monthly.py": "d07e31e30b196aeb073a9c06e2bcd21dd700bd5ea4397daac1bb121e0af1e16e",
+    "garage/views.py": "33c88063de2df6a1d16c5ad695e7703d404103118c34a2bf3b1b3d389f9810f1",
+    "garage/usage_views.py": "6d89eda24f7bccefcac77c1d83d75970ce6d6e28d6ff87936532a8a1bd101cb1",
+    "garage/history_views.py": "7ff09982736c009060b247cb7ac1a41fbcec4f0839b3e590687cb57525a109c0",
+    "garage/presentation.py": "07d1f0af83152ef2041f63f61568299963fb682c67514dc20ccf59ba80696515",
+    "garage/templatetags/garage_ui.py": "b4d3a33f65455ac08f5fd767424e235d823d1300343b45b863d692c05ffbec98",
+    "garage/static/garage/garage.css": "4ccca05eff890776990e84ed171b4e9c8681ed4e2a60549dd3b2be71042fa305",
+    "garage/static/garage/garage.js": "ddb58c8a047dd3b4d0e9415595a97097da947f051d866b295a9c182b34cca1e9",
+    "garage/urls.py": "7ab8d57917a1d53eb29f068841bffa6ee73ebe02f52340ca46705a8909c73372",
+    "garage/web_forms.py": "60837eb66f75f0bd4a16db389c52913f396583e851fdad9f7585b6d1fda72d04",
+    "garage/forms.py": "7b77f388312f9ed99af6f1dba9a5b1b5c743d03774c71e4e7bf40bfed45576dc",
+    "garage/review_views.py": "e5c23f092063601d0ba66fcc05e217a77788451f2e4c5dd109e1af54a2abf848",
+    ".claude/specs/2026-10-17-garage-movil-2-spec.md": "41f013376387432bcfaf3e4db1ac371af6321af5771e97c1cf43515b93cdb7cf",
+    ".claude/specs/2026-10-17-garage-vida-util-spec.md": "9539258ca8b67e6689f5af96dc774c22443dade2e8e717543156cbbff454828f",
+    "tools/handoff/garage_test_pg.py": "c17b86d34aec17823fbaab81ca7a1de7ffc29d800d120a14cc62721b723d7d5f",
+    "tools/handoff/garage_demo_pg.py": "e6162bdc0724b36c1a4ae5ddc56b58210b506686d58fd64ea2e3703925309432",
+    "tools/garage_demo_seed.py": "c47c130d04d9508d66f7590e568a6bec5b1d4bbf585cf01e8a02b6c2ad6fcfc5"
+  },
+  "macos_python": "/Users/maxicombina/.cache/stravagancia/venv-macos/bin/python (GARAGE_TEST_PYTHON)",
+  "updated_at": null
+}

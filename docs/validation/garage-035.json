@@ -1,0 +1,56 @@
+{
+ "task": "garage-035",
+ "title": "Piezas anidadas: verlas, montarlas y mantenerlas en grupo",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T02:10:00+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026, tras el análisis REA de ProBikeGarage: «o lo de componentes anidados».",
+  "17 oct 2026: «ante la duda, documenta las opciones y elige una» (decisiones en la especificación)."
+ ],
+ "spec": ".claude/specs/2026-10-18-garage-piezas-spec.md",
+ "migration": "ninguna",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2045,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 108.16,
+   "note": "incluye garage-036 en curso (tests_service_usage.py)"
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_parts.py"
+   ]
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios"
+ },
+ "independent_reviews": [
+  {
+   "scope": "especificación",
+   "result": "1 bloqueante (instante del alcance) y 5 importantes (atomicidad, destino fijo, vida útil como sustitución, lista larga, errores en inglés); resueltos en la especificación antes del código"
+  },
+  {
+   "scope": "código",
+   "result": "sin bloqueantes; 2 importantes (formulario trabado con lista vacía, casillas sin nombre de pieza) y menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación",
+   "result": "7 correcciones verificadas, sin regresiones; menores de documentación y pruebas añadidas"
+  }
+ ],
+ "screenshots": "Ficha de rueda con Piezas, ficha de casete con entradilla anidada, Añadir pieza, Registrar mantenimiento con «También en esta visita»; claro/oscuro, iOS/Android",
+ "limits": [
+  "Las intervenciones extra no quedan enlazadas a la principal: editarla o borrarla no las cambia.",
+  "El importe sólo se guarda en la intervención principal.",
+  "Un doble envío duplica todas las intervenciones.",
+  "El material que sólo cuenta por perfiles de uso no es una pieza montada."
+ ]
+}

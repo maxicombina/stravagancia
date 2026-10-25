@@ -1,0 +1,57 @@
+{
+ "task": "garage-030 fase 3 (= garage-037)",
+ "title": "Desnivel y potencia: Strava fase 3",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T16:02:00+00:00",
+ "updated_by": "Claude Fable 5.1 (orquestación) con agentes Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026: desnivel «lo podemos hacer luego»; 18 oct: «la potencia me interesa» → ambos en la fase 3 de Strava (spec maestra §7)."
+ ],
+ "spec": ".claude/specs/2026-10-18-garage-strava-fase3-spec.md",
+ "migration": "0012_elevation_power (columnas nulas y CHECK nuevos; sustituye garage_maintenancerule_has_threshold y garage_snooze_has_amount por versiones que admiten el desnivel; aplicada en las bases de prueba y en la demo 55433; nunca Neon; nota sólo para el despliegue, garage-023: no preguntar por ello antes)",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2474,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 164.02
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_elevation_power.py",
+    "garage/tests_elevation_migration.py",
+    "garage/tests_elevation_screens.py",
+    "garage/tests_elevation_review.py"
+   ],
+   "cases": 107,
+   "note": "más 75 casos parametrizados nuevos en tests_rides.py al ampliar a RIDE_METRICS"
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "residual_test_databases": 0
+ },
+ "independent_reviews": [
+  {
+   "scope": "código (Opus)",
+   "result": "0 bloqueantes; 1 importante (IntegerField leía «20.000» como 20 m) y 4 menores; corregidos con 39 pruebas (spec §5)"
+  },
+  {
+   "scope": "re-verificación (Opus)",
+   "result": "4/4 arreglos comprobados; 2 menores nuevos (campo exacto con decimales en la regla del teléfono; docstring) corregidos por el orquestador con 1 prueba (spec §6); CLAUDE.md actualizado"
+  }
+ ],
+ "screenshots": "22 a 390 px (claro y oscuro) con el cliente de pruebas: revisión con potencia, Salidas, bici, objeto, Estadísticas (km y desnivel), posponer, vida útil, regla, Inicio e intervención; demo 8766 migrada a 0012 y comprobada (118 páginas 200)",
+ "limits": [
+  "Las salidas anteriores no tienen desnivel hasta volver a importar los FIT o el histórico de Strava: el desnivel acumulado de una pieza es un mínimo («N sin desnivel», «↑ ≥»).",
+  "La potencia no se suma por período ni llega a ItemUsage; sólo se ve en la revisión y el detalle de la salida.",
+  "«Sincronizar ahora» responde en unos 30 s, no es un límite estricto (DNS, cuerpo a goteo y renovación del token sin timeout); techo duro: gunicorn 60 s.",
+  "Sin probar por nadie: el parser con la muestra FIT personal del usuario (spec maestra §7.3) y una sincronización contra Strava real.",
+  "El aro del indicador grande («+160 km de más como mín.») ya se desbordaba antes de esta fase."
+ ]
+}

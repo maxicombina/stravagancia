@@ -1,0 +1,27 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}{% with route='garage:'|add:kind|add:'-create' %}<a class="icon-btn" href="{% url route %}" aria-label="Añadir {% if kind == 'bike' %}bici{% elif kind == 'item' %}material{% else %}categoría{% endif %}"><svg class="ic"><use href="#i-plus"/></svg></a>{% endwith %}{% endblock %}
+{% block garage_content %}
+<h1>{{ title }}</h1>
+{% if kind == 'item' %}<p class="lede">Componentes, equipación y piezas guardadas. <a href="{% url 'garage:item-used-create' %}">Añadir material usado con lecturas previas</a>.</p>{% endif %}
+<form class="filters search" method="get" role="search">
+  <label for="q" class="sr-only">Buscar por nombre</label><input id="q" name="q" value="{{ q }}" maxlength="200" placeholder="Buscar por nombre">
+  <input type="hidden" name="state" value="{{ state }}"><button type="submit" class="btn ghost">Buscar</button>
+</form>
+<nav class="chips" aria-label="Estado">
+  {% for key, label in states %}<a class="chip-link{% if state == key %} on{% endif %}" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}state={{ key }}"{% if state == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+<ul class="rows">
+{% for object in page %}{% with route='garage:'|add:kind|add:'-detail' %}
+  <li><a class="entry compact" href="{% url route object.pk %}">
+    <span class="glyph{% if kind == 'bike' %} accent{% endif %}"><svg class="ic"><use href="#i-{% if kind == 'bike' %}bike{% elif kind == 'item' %}{{ object|item_icon }}{% else %}{{ object|category_icon }}{% endif %}"/></svg></span>
+    <span><span class="entry-name">{{ object.name }}</span>
+      <span class="entry-sub">{% if kind == 'item' %}{{ object.category.name }} · {% life_text object.lifecycle %}{% elif kind == 'bike' %}{{ object.brand }} {{ object.model }}{% endif %}</span></span>
+    {% if kind == 'item' %}{% if object.lifecycle.state == 'retired' %}<span class="chip st-nodata">Retirado</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}{% elif object.retired_at %}<span class="chip st-nodata">Retirada</span>{% elif object.is_archived %}<span class="chip st-nodata">Archivada</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
+  </a></li>{% endwith %}
+{% empty %}
+  <li class="empty">No hay resultados.{% if not q and state == 'all' %} {% with route='garage:'|add:kind|add:'-create' %}<a href="{% url route %}">{% if kind == 'item' %}Crear el primero{% else %}Crear la primera{% endif %}</a>.{% endwith %}{% endif %}</li>
+{% endfor %}
+</ul>
+{% include "garage/_starter.html" %}
+{% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas">{% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+{% endblock %}

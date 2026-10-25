@@ -178,7 +178,9 @@ def _handle_webhook_verification(request):
     hub_token = request.GET.get("hub.verify_token")
     hub_challenge = request.GET.get("hub.challenge")
 
-    if hub_mode == "subscribe" and hub_token == verify_token:
+    # Constant-time comparison; an unset verify token never matches (garage-030).
+    if (hub_mode == "subscribe" and verify_token and isinstance(hub_token, str)
+            and hmac.compare_digest(hub_token.encode(), verify_token.encode())):
         logger.info("Strava webhook verified successfully.")
         return JsonResponse({"hub.challenge": hub_challenge})
 
@@ -192,6 +194,24 @@ def _handle_webhook_event(request):
         event = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid json"}, status=400)
+    if not isinstance(event, dict):
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    # garage-030: one subscription per Strava app, shared with Garage and dispatched by athlete.
+    from garage.services.strava_sync import accept_event, subscription_matches
+    if not subscription_matches(event):
+        logger.warning("Strava webhook event dropped: unexpected subscription.")
+        return JsonResponse({"status": "ok"})
+    try:
+        # Garage only stores a hint (athletes with a StravaAccount) and confirms it later in a thread.
+        accept_event(event)
+    except Exception as exc:
+        logger.error("Garage webhook hint failed: %s", type(exc).__name__)
+    owner_id = event.get("owner_id")
+    # The legacy app only processes its own athlete's events (no Athlete.objects.first() fallback).
+    if type(owner_id) is not int or not Athlete.objects.filter(strava_id=owner_id).exists():
+        logger.info("Strava webhook event ignored by the legacy app: athlete not stored.")
+        return JsonResponse({"status": "ok"})
 
     object_type = event.get("object_type")   # "activity" or "athlete"
     aspect_type = event.get("aspect_type")   # "create", "update", "delete"

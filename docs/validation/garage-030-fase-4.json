@@ -1,0 +1,65 @@
+{
+ "task": "garage-030 fase 4",
+ "title": "Operación diaria: sync-all con token, ausencia como pista, revocación y purga, Worker de Cloudflare",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T17:38:38+00:00",
+ "updated_by": "Claude Fable 5.1 (orquestación) con agentes Opus 5.5",
+ "user_decisions": [
+  "18 oct 2026: orden fijado por el usuario: primero probar todo en local, luego la sincronización real desde Strava, el despliegue lo último.",
+  "18 oct 2026: todo lo que sea implementar lo hacen agentes Opus; Fable orquesta, documenta y verifica."
+ ],
+ "spec": ".claude/specs/2026-10-18-garage-strava-fase4-spec.md",
+ "migration": "ninguna (siguen 0001–0012; la siguiente es la 0013). Las 0009–0012 sólo están en PostgreSQL local, nunca en Neon.",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test",
+  "node": "v24 para keepalive/worker.test.mjs (sin red ni wrangler)"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2578,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 179.19
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_strava_operation.py",
+    "garage/tests_strava_views.py",
+    "keepalive/worker.test.mjs"
+   ],
+   "cases": "64 (operación) + 14 (pantalla) + 39 (Worker, node --test)",
+   "note": "2474 → 2552 pruebas de pytest con la fase 4; 2578 tras los arreglos de herramientas del mismo día (tablero y entorno de la demo). La suite incluye el legado."
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "node_check": "correcto",
+  "node_test": "39/39",
+  "residual_test_databases": 0,
+  "runs": "dos ejecuciones completas del orquestador el 18 oct: 2552 + 45 (169,63 s, tras la re-verificación) y 2578 + 45 (179,19 s, tras los arreglos de herramientas)"
+ },
+ "independent_reviews": [
+  {
+   "scope": "código (Opus)",
+   "result": "0 bloqueantes; 2 importantes (purga sin comprobar el token; un fallo de red reiniciaba el plazo de 30 días) y 7 menores; corregidos con pruebas (spec §5)"
+  },
+  {
+   "scope": "re-verificación (Opus)",
+   "result": "9/9 arreglos verificados; 1 menor nuevo (aserción «kJ» frágil frente al token CSRF en tests_elevation_screens, corregida) y 1 nimiedad documentada (aviso con fecha de purga ya pasada); ready (spec §6)"
+  }
+ ],
+ "screenshots": "Más → Strava a 390 px (claro y oscuro) en la demo 8766 reiniciada con GARAGE_STRAVA_USER=demo: panel Estado, «Sincronizar ahora», histórico y línea de sincronización automática (118 páginas 200)",
+ "limits": [
+  "Nada probado contra Strava ni Cloudflare reales; nada desplegado (orden del usuario: local → Strava real → despliegue).",
+  "La purga llega en la ejecución diaria de la fecha mostrada (09:05 Madrid) o en la primera posterior sin fallos de red/429; detectada con el botón de madrugada, hasta unas 9 h después de 30 días exactos.",
+  "La ausencia en la semana supone activity:read_all: comprobarlo a mano antes de activar el Worker (handoff, bloque «Despliegue»).",
+  "El logger garage no se ve en Render hasta garage-023.",
+  "Aviso de revocación con sincronización automática: si la fecha de purga pasó sin ejecución, el texto sigue diciendo «automáticamente el <fecha>» (cosmético, documentado)."
+ ],
+ "tooling_fixes_same_day": [
+  "tablero 8765: acepta ids jerárquicos de subtareas de Beads (garage-NNN.N); antes /state.json daba 503 (tests_progress.py +6)",
+  "demo: el helper deja pasar GARAGE_STRAVA_USER, settings_test la lee y bajo pytest isolation.install() la vacía junto con GARAGE_SYNC_TOKEN (tests_test_environment.py +2)"
+ ]
+}

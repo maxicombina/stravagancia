@@ -1,0 +1,8 @@
+{% extends "garage/shell.html" %}
+{% block body_class %}has-tabbar{% endblock %}
+{% block appbar %}<header class="appbar"><div class="appbar-row">{% block appbar_back %}{% if back_url %}{% include "garage/_back.html" with href=back_url label=back_label|default:"Volver" %}{% endif %}{% endblock %}<span class="spacer"></span>{% block appbar_actions %}{% endblock %}</div></header>{% endblock %}
+{% block content %}
+{% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+{% block garage_content %}{% endblock %}
+{% endblock %}
+{% block tabbar %}{% include "garage/_tabbar.html" %}{% endblock %}

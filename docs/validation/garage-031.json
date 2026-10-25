@@ -1,0 +1,94 @@
+{
+  "task": "garage-031",
+  "title": "Garage en el móvil: web instalable (PWA), estilo B",
+  "status": "implemented_reviewed_reverified_pending_real_device",
+  "updated_at": "2026-10-16T17:12:31+00:00",
+  "updated_by": "Claude Opus 5.5",
+  "user_decisions": [
+    "16 oct 2026: una sola web instalable (PWA) para iPhone (usuario) y Android (amigos); sin apps de tienda ni SPA.",
+    "16 oct 2026: estilo B «Instrumentos» del boceto docs/mockups/garage-movil.html.",
+    "16 oct 2026: «ve haciendo todo lo que puedas» — implementación autorizada tras el diseño aprobado."
+  ],
+  "spec": ".claude/specs/2026-10-16-garage-movil-spec.md",
+  "subtasks": [
+    "garage-031.1",
+    "garage-031.2",
+    "garage-031.3",
+    "garage-031.4"
+  ],
+  "environment": {
+    "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (uv sync --frozen; .venv es ahora de Linux)",
+    "postgres": "18.6 local desechable 127.0.0.1:55434 (recreado 16 oct)",
+    "settings": "strava_app.settings_test"
+  },
+  "tests": {
+    "full_suite": {
+      "passed": 1820,
+      "subtests_passed": 45,
+      "junit_cases": 1865,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 71.29,
+      "junit": "/private/tmp/garage018-validation-zhirv99e/full-031.xml (temporal)"
+    },
+    "new_mobile_tests": {
+      "count": 90,
+      "files": [
+        "garage/tests_mobile_shell.py",
+        "garage/tests_mobile_home.py",
+        "garage/tests_mobile_item.py",
+        "garage/tests_mobile_review.py"
+      ]
+    },
+    "manage_check": "sin problemas",
+    "makemigrations_check": "sin cambios",
+    "leftover_test_databases": 0,
+    "node_check": [
+      "garage/static/garage/garage.js",
+      "sw.js renderizado por /garage/sw.js"
+    ]
+  },
+  "mutation_checks": [
+    {
+      "change": "«Sin bici» sólo si cambia la bici (sin mirar la clave bike)",
+      "result": "1 prueba falla"
+    },
+    {
+      "change": "candidatos sin excluir lo montado",
+      "result": "1 prueba falla"
+    },
+    {
+      "restored": "hash idéntico de garage/services/ride_review.py"
+    }
+  ],
+  "independent_reviews": [
+    {
+      "scope": "especificación",
+      "result": "4 bloqueantes, 8 importantes; incorporados (orden con Sin datos, lecturas estimadas, Sin bici en FIT, reconstrucción única, candidatos, totales, savepoints, prefijado, SW, división)"
+    },
+    {
+      "scope": "031.1-031.2",
+      "result": "1 bloqueante (cookie de zona horaria nunca aplicada) y 5 importantes; corregidos con pruebas"
+    },
+    {
+      "scope": "031.3-031.4",
+      "result": "sin bloqueantes; 6 importantes (etiquetas JS en salidas sin decidir, Otra o desconocida sin JS, modalidad de perfiles, orden de intervenciones, volumen de statistics, errores del fetch) corregidos con pruebas"
+    },
+    {
+      "scope": "re-verificación de correcciones",
+      "result": "todas las correcciones confirmadas; 1 regresión nueva (botón flotante Android sin flex por especificidad CSS) y 3 menores (etiqueta «Volver a Volver», ignoreVary en la página sin conexión, fecha de fin futura en montajes): corregidas y con pruebas; huecos de prueba cubiertos (puntos del gráfico, Mover/Montar, montaje con fin futuro, filtro ?pending=1, index sólo GET y sin caché, paridad de statistics con filtro de objeto)."
+    }
+  ],
+  "browser_checks": [
+    "Chrome sin interfaz a 390 px (iframes): Inicio, Más, Añadir, Material, Taller, ficha de cadena y casco, revisión y Salidas; claro/iPhone y oscuro/Android.",
+    "Chrome real (extensión) con la demo: elegir Carretera marca casco y zapatillas habituales, etiqueta «Habitual en Carretera», recarga la vista previa; añadir zapatillas de gravel etiqueta «Añadido sólo en esta salida»; sin errores de consola; nada guardado.",
+    "Captura Android claro tras la corrección: botón flotante «Añadir» centrado y sin barra superior vacía."
+  ],
+  "limits": [
+    "Sin prueba en teléfono real: instalación y service worker requieren HTTPS (garage-023).",
+    "Estáticos sin hash en el nombre (STATICFILES_STORAGE obsoleto en Django 5.2); se usa ?v= derivado de los archivos.",
+    "Plantillas antiguas (Taller, Estadísticas, formularios) con el marco nuevo pero sin rediseño; fechas en inglés/UTC allí.",
+    "maintenance_due carga todas las filas de uso del propietario (consultas acotadas, volumen proporcional al histórico)."
+  ],
+  "incident_noted": "Las migraciones garage.0001-0008 constan aplicadas en Neon por el contenedor Docker el 12 oct (registros locales); decisión pendiente del usuario."
+}

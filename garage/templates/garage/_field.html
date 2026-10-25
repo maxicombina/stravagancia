@@ -1,0 +1,5 @@
+{% if field.widget_type == 'icongrid' %}{% include "garage/_icon_grid.html" %}{% else %}<div class="field{% if field.errors %} has-error{% endif %}{% if field.widget_type == 'checkbox' %} check{% endif %}">
+  {% if field.label %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% endif %}{{ field }}
+  {% if field.help_text %}<div class="help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {{ field.errors }}
+</div>{% endif %}

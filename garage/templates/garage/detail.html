@@ -1,0 +1,11 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:category-edit' object.pk %}" aria-label="Editar {{ object.name }}"><svg class="ic"><use href="#i-edit"/></svg></a>{% endblock %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-{{ object|category_icon }}"/></svg></span>
+  <div><h1>{{ object.name }}</h1><p class="lede">{% if object.is_archived %}Archivada{% else %}Activa{% endif %} · {{ lives|length }} {% if lives|length == 1 %}objeto{% else %}objetos{% endif %}</p></div>
+</div>
+{% if object.notes %}<p class="notes">{{ object.notes }}</p>{% endif %}
+{% include "garage/_part_lives.html" %}
+<div class="actionbar"><a class="btn ghost" href="{% url 'garage:category-edit' object.pk %}"><svg class="ic sm"><use href="#i-edit"/></svg>Editar categoría</a></div>
+{% endblock %}

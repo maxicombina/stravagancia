@@ -1,0 +1,9 @@
+# Seguimiento local. No hacer commits ni sincronizar remotos en esta fase.
+issue-prefix: garage
+dolt:
+  auto-commit: "off"
+  local-only: true
+export:
+  auto: true
+  path: issues.jsonl
+  git-add: false

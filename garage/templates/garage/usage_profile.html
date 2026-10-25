@@ -1,0 +1,22 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-layers"/></svg></span>
+  <div><h1>{{ profile.name }}</h1><p class="lede">{{ profile.bike.name|default:'Todas mis bicis / sin bici' }} · {{ profile.sport_type|sport_label|default:'Todas las modalidades' }}</p></div>
+</div>
+{% if profile.notes %}<p class="notes">{{ profile.notes }}</p>{% endif %}
+<section class="sec" aria-labelledby="versions-title">
+  <div class="sec-h"><h2 id="versions-title">Historial de versiones</h2></div>
+  <ul class="timeline">{% for version in versions %}
+    <li{% if version.ended_at is None %} class="open"{% endif %}><span><b><a href="{% url 'garage:usage-profile-detail' version.pk %}">{{ version.name }}</a>{% if version.pk == profile.pk %} · versión seleccionada{% endif %}</b>
+      <span>{% local_datetime version.started_at %} → {% if version.ended_at %}{% local_datetime version.ended_at %}{% else %}sin final{% endif %}</span><br>
+      <span>{% for item in version.items.all %}<a href="{% url 'garage:item-detail' item.pk %}">{{ item.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}Sin material.{% endfor %}</span></span><span></span></li>
+  {% endfor %}</ul>
+  <p class="note">Serie {{ profile.series_id }}. Cada versión conserva su identidad y material.</p>
+</section>
+<details class="more"><summary>Corregir el histórico</summary>
+  <p class="note">Aplicar o corregir el pasado puede cambiar el material de salidas anteriores; sus excepciones manuales se conservan.</p>
+  <p><a class="btn ghost" href="{% url 'garage:usage-profile-history' profile.pk %}">Corregir explícitamente esta versión histórica</a></p>
+</details>
+<div class="actionbar"><a class="btn" href="{% url 'garage:usage-profile-revise' profile.pk %}"><svg class="ic sm"><use href="#i-edit"/></svg>Nueva versión desde ahora o futura</a></div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{
+  "task": "garage-019",
+  "status": "completed_and_adversarial_review_approved",
+  "started_at": "2026-10-10T09:54:19.741257+00:00",
+  "checked_at": "2026-10-10T09:58:09+00:00",
+  "duration_seconds": 115.936,
+  "pytest_cases_passed": 1672,
+  "subtests_passed": 12,
+  "junit_cases_including_subtests": 1684,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "postgres": "18.6 local disposable 127.0.0.1:55434",
+  "application_role_superuser": false,
+  "migration": "0008",
+  "checks": [
+    "Django check passed",
+    "No pending migrations",
+    "git diff --check passed",
+    "Zero leftover test databases"
+  ],
+  "artifacts": {
+    "full_junit": "/private/tmp/garage018-validation-44qcqqna/full-019/pytest.xml",
+    "statistics_junit": "/private/tmp/garage018-validation-44qcqqna/statistics.xml",
+    "coverage": "/private/tmp/garage018-validation-44qcqqna/full-019/coverage.json"
+  },
+  "adversarial_review": {
+    "model": "gpt-6.1-sol",
+    "status": "approved",
+    "note": "Independent read-only review; corrected mounting attribution, known baseline subtotal, stale distribution, empty service intervals and unknown-cost deduplication."
+  },
+  "coverage_measured_this_run": true,
+  "coverage_scope": "Garage runtime, test isolation and board; excludes tests/migrations and most legacy app",
+  "coverage_totals": {
+    "covered_lines": 4717,
+    "num_statements": 4971,
+    "percent_covered": 93.87318563789152,
+    "percent_covered_display": "94",
+    "missing_lines": 254,
+    "excluded_lines": 0,
+    "percent_statements_covered": 94.89036411184873,
+    "percent_statements_covered_display": "95",
+    "num_branches": 1574,
+    "num_partial_branches": 131,
+    "covered_branches": 1427,
+    "missing_branches": 147,
+    "percent_branches_covered": 90.66073697585769,
+    "percent_branches_covered_display": "91"
+  },
+  "coverage_alerts": {
+    "covered_lines": 123,
+    "num_statements": 126,
+    "percent_covered": 96.75324675324676,
+    "percent_covered_display": "97",
+    "missing_lines": 3,
+    "excluded_lines": 0,
+    "percent_statements_covered": 97.61904761904762,
+    "percent_statements_covered_display": "98",
+    "num_branches": 28,
+    "num_partial_branches": 2,
+    "covered_branches": 26,
+    "missing_branches": 2,
+    "percent_branches_covered": 92.85714285714286,
+    "percent_branches_covered_display": "93"
+  },
+  "external_photo_bucket_verified": false,
+  "browser_validation_this_session": true,
+  "browser_checks": [
+    "Synthetic login",
+    "Due/unknown/soon/current alerts",
+    "Shared shoes bike-filter observed90km vs all-bike total1210km",
+    "Mobile alerts/statistics without horizontal overflow"
+  ],
+  "limits": [
+    "Synthetic data and mocked external storage/HTTP",
+    "No Neon or production migrations",
+    "No external notifications",
+    "Statistics cost/km only with complete positive nonestimated distance and known declared costs",
+    "Nested mount statistics identify parent; no full ancestor path"
+  ],
+  "focused_statistics_cases_passed": 32,
+  "coverage_statistics": {
+    "covered_lines": 189,
+    "num_statements": 191,
+    "percent_covered": 98.00796812749005,
+    "percent_covered_display": "98",
+    "missing_lines": 2,
+    "excluded_lines": 0,
+    "percent_statements_covered": 98.95287958115183,
+    "percent_statements_covered_display": "99",
+    "num_branches": 60,
+    "num_partial_branches": 3,
+    "covered_branches": 57,
+    "missing_branches": 3,
+    "percent_branches_covered": 95.0,
+    "percent_branches_covered_display": "95"
+  }
+}

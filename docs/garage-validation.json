@@ -1,0 +1,35 @@
+{
+ "task": "garage-042, garage-034..039, garage-030 fases 1–4 (037), garage-041",
+ "title": "Ciclo de vida del material visible; ideas de ProBikeGarage; Strava en modo token con desnivel, potencia y operación diaria; categorías con icono",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T22:20:10+00:00",
+ "updated_by": "Claude Fable 5.1 con agentes Opus 5.5",
+ "reports": [
+  "docs/validation/garage-042.json",
+  "docs/validation/garage-030-fase-4.json",
+  "docs/validation/garage-030-fase-3.json",
+  "docs/validation/garage-030-fases-1-2.json",
+  "docs/validation/garage-034.json",
+  "docs/validation/garage-035.json",
+  "docs/validation/garage-036.json",
+  "docs/validation/garage-038.json",
+  "docs/validation/garage-041.json"
+ ],
+ "migration": "0009_maintenancesnooze, 0010_strava_source, 0011_category_icon, 0012_elevation_power (garage-042 no añade ninguna; sólo PostgreSQL local de pruebas y demo; nunca Neon). La 0012 sustituye los CHECK garage_maintenancerule_has_threshold y garage_snooze_has_amount por versiones que admiten el desnivel (nota sólo para el despliegue, garage-023; no preguntar antes).",
+ "tests": {
+  "full_suite": {
+   "passed": 2618,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 183.91
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios",
+  "residual_test_databases": 0,
+  "node_test": "keepalive/worker.test.mjs 39/39 (node --test), node --check correcto"
+ },
+ "comparison": "docs/garage-vs-probikegarage.md (garage-039)",
+ "elevation_spec": ".claude/specs/2026-10-18-garage-desnivel-spec.md (garage-037) remite a la spec de la fase 3",
+ "order_of_work": "usuario (18 oct): probar todo en local → sincronización real desde Strava → despliegue al final"
+}

@@ -1,0 +1,115 @@
+{
+  "task": "garage-017",
+  "status": "completed_and_adversarial_review_approved",
+  "started_at": "2026-10-06T18:29:38.741087+00:00",
+  "checked_at": "2026-10-06T18:32:12+00:00",
+  "duration_seconds": 44.046,
+  "pytest_cases_passed": 1605,
+  "subtests_passed": 12,
+  "junit_cases_including_subtests": 1617,
+  "focused_maintenance_cases_passed": 97,
+  "new_concurrent_admin_regressions": 8,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "postgres": "18.6 local disposable 127.0.0.1:55435",
+  "application_role_superuser": false,
+  "migration": "0008",
+  "checks": [
+    "Django check passed",
+    "No pending migrations",
+    "git diff --check passed",
+    "Zero leftover test databases",
+    "Disposable PostgreSQL stopped and data removed"
+  ],
+  "artifacts": {
+    "full_junit": "/private/tmp/garage017-final-s0ln68yx/final-current.xml",
+    "maintenance_junit": "/private/tmp/garage017-final-s0ln68yx/final-maintenance.xml",
+    "note": "Temporary reports may disappear when the environment is renewed."
+  },
+  "adversarial_review": {
+    "model": "gpt-6.1-sol",
+    "status": "approved",
+    "resolved_finding": "Admin deletion conflict after protected-reference preflight; rollback includes all batch deletions and admin logs."
+  },
+  "coverage_measured_this_run": false,
+  "previous_coverage_measurement": {
+    "pytest_cases_passed": 1560,
+    "started_at": "2026-10-06T06:06:54.039615+00:00",
+    "scope": "Garage runtime, test isolation and progress board; excludes test modules, migrations and most legacy Stravagancia code",
+    "totals": {
+      "covered_lines": 4330,
+      "num_statements": 4589,
+      "percent_covered": 93.35312551542141,
+      "percent_covered_display": "93",
+      "missing_lines": 259,
+      "excluded_lines": 0,
+      "percent_statements_covered": 94.35606886031815,
+      "percent_statements_covered_display": "94",
+      "num_branches": 1474,
+      "num_partial_branches": 126,
+      "covered_branches": 1330,
+      "missing_branches": 144,
+      "percent_branches_covered": 90.23066485753053,
+      "percent_branches_covered_display": "90"
+    },
+    "maintenance": {
+      "garage/maintenance_forms.py": {
+        "covered_lines": 56,
+        "num_statements": 59,
+        "percent_covered": 94.8051948051948,
+        "percent_covered_display": "95",
+        "missing_lines": 3,
+        "excluded_lines": 0,
+        "percent_statements_covered": 94.91525423728814,
+        "percent_statements_covered_display": "95",
+        "num_branches": 18,
+        "num_partial_branches": 1,
+        "covered_branches": 17,
+        "missing_branches": 1,
+        "percent_branches_covered": 94.44444444444444,
+        "percent_branches_covered_display": "94"
+      },
+      "garage/maintenance_views.py": {
+        "covered_lines": 43,
+        "num_statements": 48,
+        "percent_covered": 88.0,
+        "percent_covered_display": "88",
+        "missing_lines": 5,
+        "excluded_lines": 0,
+        "percent_statements_covered": 89.58333333333333,
+        "percent_statements_covered_display": "90",
+        "num_branches": 2,
+        "num_partial_branches": 1,
+        "covered_branches": 1,
+        "missing_branches": 1,
+        "percent_branches_covered": 50.0,
+        "percent_branches_covered_display": "50"
+      },
+      "garage/services/maintenance.py": {
+        "covered_lines": 48,
+        "num_statements": 54,
+        "percent_covered": 85.71428571428571,
+        "percent_covered_display": "86",
+        "missing_lines": 6,
+        "excluded_lines": 0,
+        "percent_statements_covered": 88.88888888888889,
+        "percent_statements_covered_display": "89",
+        "num_branches": 16,
+        "num_partial_branches": 2,
+        "covered_branches": 12,
+        "missing_branches": 4,
+        "percent_branches_covered": 75.0,
+        "percent_branches_covered_display": "75"
+      }
+    },
+    "note": "Historical measurement before supplemental admin tests and final concurrent-deletion fix; not a coverage claim for the final code."
+  },
+  "external_photo_bucket_verified": false,
+  "browser_validation_this_session": false,
+  "limits": [
+    "Synthetic data and simulated HTTP/storage; concurrent photo test uses committed metadata only.",
+    "No Neon, production migrations or deployment.",
+    "Maintenance alerts belong to garage-018."
+  ]
+}

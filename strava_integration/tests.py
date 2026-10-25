@@ -309,6 +309,7 @@ def test_webhook_create_dispatches_rename_thread(athlete):
          patch("strava_integration.views.threading.Thread") as thread_cls:
         resp = _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "create",
             "object_id": 99001,
         })
@@ -336,6 +337,7 @@ def test_webhook_update_does_NOT_dispatch_rename_thread(athlete):
          patch("strava_integration.views.threading.Thread") as thread_cls:
         resp = _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "update",
             "object_id": 99001,
         })
@@ -352,6 +354,7 @@ def test_webhook_delete_does_NOT_dispatch_rename_thread(activity):
     with patch("strava_integration.views.threading.Thread") as thread_cls:
         resp = _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": activity.athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "delete",
             "object_id": activity.strava_id,
         })
@@ -382,6 +385,7 @@ def test_webhook_create_skips_non_ride(athlete):
          patch("strava_integration.views.threading.Thread") as thread_cls:
         resp = _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "create",
             "object_id": 99001,
         })
@@ -401,6 +405,7 @@ def test_webhook_update_skips_non_ride(athlete):
          patch("strava_integration.views.store_activity_from_strava_data") as store_mock:
         resp = _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "update",
             "object_id": 99001,
         })
@@ -601,6 +606,7 @@ def test_webhook_create_does_not_block_on_thread(athlete):
          patch("strava_integration.views.threading.Thread") as thread_cls:
         _post_webhook(client, {
             "object_type": "activity",
+            "owner_id": athlete.strava_id,  # garage-030: legacy only handles its own athlete
             "aspect_type": "create",
             "object_id": 99001,
         })
@@ -608,3 +614,64 @@ def test_webhook_create_does_not_block_on_thread(athlete):
     thread_instance = thread_cls.return_value
     thread_instance.start.assert_called_once()
     thread_instance.run.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Webhook dispatch by athlete (garage-030)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("owner_id", [None, 99999999, "12345678", True])
+def test_webhook_ignores_events_of_other_athletes(athlete, activity, owner_id):
+    """Closes the Athlete.objects.first() fallback: a foreign or missing owner_id never reaches the legacy tables."""
+    from strava_integration.models import Activity
+    client = Client()
+    event = {"object_type": "activity", "aspect_type": "delete", "object_id": activity.strava_id}
+    if owner_id is not None:
+        event["owner_id"] = owner_id
+    with patch("strava_integration.views.fetch_activity_detail") as fetch, \
+         patch("strava_integration.views.store_activity_from_strava_data") as store:
+        resp = _post_webhook(client, event)
+        create = _post_webhook(client, {**event, "aspect_type": "create"})
+    assert resp.status_code == create.status_code == 200
+    assert Activity.objects.filter(pk=activity.pk).exists()
+    fetch.assert_not_called()
+    store.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_webhook_drops_a_foreign_subscription(athlete, activity, settings):
+    from strava_integration.models import Activity
+    settings.STRAVA_WEBHOOK_SUBSCRIPTION_ID = "777"
+    client = Client()
+    event = {"object_type": "activity", "aspect_type": "delete", "object_id": activity.strava_id,
+             "owner_id": athlete.strava_id, "subscription_id": 778}
+    assert _post_webhook(client, event).status_code == 200
+    assert Activity.objects.filter(pk=activity.pk).exists()
+    assert _post_webhook(client, {**event, "subscription_id": 777}).status_code == 200
+    assert not Activity.objects.filter(pk=activity.pk).exists()
+
+
+@pytest.mark.django_db
+def test_webhook_rejects_non_object_json():
+    resp = Client().post(WEBHOOK_URL, data="[1, 2]", content_type="application/json")
+    assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("token,status", [("synthetic-webhook", 200), ("synthetic-webhooK", 403), ("", 403), (None, 403)])
+def test_webhook_verification_uses_the_configured_token(token, status):
+    params = {"hub.mode": "subscribe", "hub.challenge": "abc"}
+    if token is not None:
+        params["hub.verify_token"] = token
+    resp = Client().get(WEBHOOK_URL, params)
+    assert resp.status_code == status
+    if status == 200:
+        assert resp.json() == {"hub.challenge": "abc"}
+
+
+@pytest.mark.django_db
+def test_webhook_verification_never_matches_an_unset_token(monkeypatch):
+    monkeypatch.setenv("STRAVA_WEBHOOK_VERIFY_TOKEN", "")
+    resp = Client().get(WEBHOOK_URL, {"hub.mode": "subscribe", "hub.challenge": "abc", "hub.verify_token": ""})
+    assert resp.status_code == 403

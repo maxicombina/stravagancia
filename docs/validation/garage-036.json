@@ -1,0 +1,49 @@
+{
+ "task": "garage-036",
+ "title": "Uso en cada intervención y comparar cuánto duró cada pieza",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T03:40:00+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026: incorporar lo que falta de ProBikeGarage; «ante la duda, documenta las opciones y elige una»."
+ ],
+ "spec": ".claude/specs/2026-10-18-garage-uso-intervenciones-spec.md",
+ "migration": "ninguna",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2068,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 114.86
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_service_usage.py"
+   ]
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios"
+ },
+ "independent_reviews": [
+  {
+   "scope": "especificación y código",
+   "result": "4 importantes (intervenciones futuras, km exactos que no lo eran, mínimos redondeados hacia arriba, días engañosos) y menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación (dos rondas)",
+   "result": "todo verificado; menores añadidos: fin en el retiro, lectura desde la adquisición"
+  }
+ ],
+ "screenshots": "Uso de una intervención, «Cuánto dura cada uno» (Sillines, Cadenas); claro/oscuro",
+ "limits": [
+  "El acumulado de toda la vida no se guarda en cada intervención; se muestra el uso entre intervenciones.",
+  "La comparación lee todo el uso del propietario (escala personal).",
+  "Una bici retirada con efecto retroactivo sigue contando las salidas que tenga asignadas."
+ ]
+}

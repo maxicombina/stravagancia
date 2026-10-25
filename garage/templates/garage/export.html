@@ -1,0 +1,18 @@
+{% extends "garage/base.html" %}
+{% block garage_content %}
+<h1>Exportar tu Garage</h1>
+<p class="lede">Descarga tu inventario e historial propio, con montajes, lecturas, intervenciones, reglas, perfiles y correcciones manuales. Los UUID conservan las relaciones y las fechas se expresan en UTC.</p>
+<ul class="menu">
+  <li><a href="{% url 'garage:export-json' %}"><span class="glyph accent"><svg class="ic"><use href="#i-download"/></svg></span><span>Descargar JSON<small>Recomendado: conserva los valores exactos, decimales y correcciones nulas (versión 1)</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+  <li><a href="{% url 'garage:export-csv' %}"><span class="glyph"><svg class="ic"><use href="#i-file"/></svg></span><span>Descargar CSV (ZIP)<small>Una tabla por archivo, con manifiesto</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
+</ul>
+<section class="sec" aria-labelledby="export-notes">
+  <div class="sec-h"><h2 id="export-notes">Qué incluye y qué no</h2></div>
+  <p class="note">CSV protege fórmulas con un apóstrofo y puede transformar texto. Usa JSON para conservarlo exactamente.</p>
+  <p class="note">Las fotos incluyen referencias privadas que requieren iniciar sesión y solo funcionan mientras existan en esta aplicación; no incluyen imágenes. Tampoco se incluyen archivos FIT originales, datos de la integración antigua ni el progreso operativo de importaciones. Los usos calculados se reconstruyen desde las salidas y las asignaciones temporales.</p>
+  <p class="note">Las lecturas previas incluyen su valor, su instante de referencia y la procedencia declarada tal como la escribiste.</p>
+  <p class="note">Las fuentes de Strava se exportan como las de FIT (con el id de la actividad) y tus bicis de Strava con la bici de Garage que representan. Nunca se exportan el token, los permisos ni los avisos de Strava.</p>
+  <p class="note">Esta copia no es un backup completo. Aún no hay una herramienta automática de restauración. Un histórico incompleto continúa incompleto. Los campos sin procedencia propia acreditada se omiten y se indican en cada salida.</p>
+  <p class="note">Límite: 100 000 registros. Si se supera, la descarga se rechaza completa, sin recortar datos.</p>
+</section>
+{% endblock %}

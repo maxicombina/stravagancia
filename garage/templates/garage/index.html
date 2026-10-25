@@ -1,0 +1,80 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn only-ios" href="{% url 'garage:add' %}" aria-label="Añadir"><svg class="ic"><use href="#i-plus"/></svg></a>{% endblock %}
+{% block garage_content %}
+<h1>Garaje</h1>
+
+<aside class="install" data-install hidden>
+  <svg class="ic"><use href="#i-download"/></svg>
+  <p data-install-ios hidden>Instala Garage en tu iPhone: toca <svg class="ic xs"><use href="#i-share"/></svg> <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>.</p>
+  <p data-install-row hidden>Instala Garage como una app más. <button type="button" class="link-btn" data-install-prompt>Instalar</button></p>
+  <button type="button" class="icon-btn" data-install-dismiss aria-label="Cerrar aviso"><svg class="ic sm"><use href="#i-x"/></svg></button>
+</aside>
+
+<section class="sec" aria-labelledby="attention-title">
+  <div class="sec-h"><h2 id="attention-title">Requiere atención</h2><span class="count">{{ home.attention_total|add:home.pending_count }}</span></div>
+  <ul class="rows">
+    {% for alert in home.attention %}{% include "garage/_wear_row.html" %}{% endfor %}
+    {% if home.pending_count %}
+    <li><a class="entry st-review" href="{% if home.pending_count == 1 %}{% url 'garage:ride-review' home.pending_first.pk %}?next={% url 'garage:index' %}{% else %}{% url 'garage:usage-ride-list' %}?pending=1{% endif %}">
+      <span class="ring-ic"><svg class="ic"><use href="#i-route"/></svg></span>
+      <span><span class="entry-name">{% if home.pending_count == 1 %}1 salida por revisar{% else %}{{ home.pending_count }} salidas por revisar{% endif %}</span>
+        <span class="entry-sub">{% if home.pending_count == 1 %}{{ home.pending_first.name|default:"Sin nombre" }} · {% local_date home.pending_first.started_at "weekday" %} · sin bici{% else %}La última: {{ home.pending_first.name|default:"Sin nombre" }} · {% local_date home.pending_first.started_at "weekday" %}{% endif %}</span>
+        <span class="entry-sub"><span class="chip st-review"><svg class="ic xs"><use href="#i-alert"/></svg>Revisar</span></span></span>
+      <span class="big"><b>{{ home.pending_distance_m|km }}</b><small>km sin contar</small></span>
+    </a></li>
+    {% endif %}
+    {% if home.nodata %}
+    <li><a class="entry compact st-nodata" href="{% url 'garage:maintenance' %}">
+      <span class="glyph"><svg class="ic"><use href="#i-help"/></svg></span>
+      <span><span class="entry-name">{% if home.nodata == 1 %}1 regla sin datos{% else %}{{ home.nodata }} reglas sin datos{% endif %}</span>
+        <span class="entry-sub">Falta una referencia o el uso aún no está calculado.</span></span>
+      <svg class="ic"><use href="#i-chev-right"/></svg>
+    </a></li>
+    {% endif %}
+    {% if home.snoozed %}
+    <li><a class="entry compact st-snoozed" href="{% url 'garage:maintenance' %}#snoozed">
+      <span class="glyph"><svg class="ic"><use href="#i-clock"/></svg></span>
+      <span><span class="entry-name">{% if home.snoozed == 1 %}1 aviso pospuesto{% else %}{{ home.snoozed }} avisos pospuestos{% endif %}</span>
+        <span class="entry-sub">Vuelven a avisar al agotarse lo pospuesto.</span></span>
+      <svg class="ic"><use href="#i-chev-right"/></svg>
+    </a></li>
+    {% endif %}
+  </ul>
+  {% if home.attention_hidden %}<p><a class="link" href="{% url 'garage:maintenance' %}">Ver {{ home.attention_hidden }} más en Taller</a></p>{% endif %}
+  {% if not home.attention and not home.pending_count and not home.nodata and not home.snoozed %}<p class="empty">{% if home.rules %}Nada pendiente.{% else %}Aún no hay reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}">Crear una regla</a>.{% endif %}</p>{% endif %}
+  <p class="note">Próximo significa alcanzar el 90 % de un umbral. Si el histórico está incompleto se indica lo registrado como mínimo (≥). {% if home.calm %}<a href="{% url 'garage:maintenance' %}">{{ home.calm }} en curso o al día en Taller</a>.{% endif %}</p>
+</section>
+
+<section class="sec" aria-labelledby="bikes-title">
+  <div class="sec-h"><h2 id="bikes-title">Bicis</h2><a class="link" href="{% url 'garage:bike-list' %}">Ver todas</a></div>
+  <ul class="rows">
+    {% for entry in home.bikes %}
+    <li><a class="entry compact" href="{% url 'garage:bike-detail' entry.bike.pk %}">
+      <span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
+      <span><span class="entry-name">{{ entry.bike.name }}</span>
+        <span class="entry-sub">{{ entry.moving_time_s|hours }} h{% if entry.elevation_gain_m is not None %} · ↑ {% if entry.no_elevation %}≥ {% endif %}{{ entry.elevation_gain_m|metric_m }}{% endif %}{% if entry.alerts %} · {% if entry.alerts == 1 %}1 aviso{% else %}{{ entry.alerts }} avisos{% endif %}{% endif %}</span></span>
+      <span class="big"><b class="odo">{{ entry.distance_m|km }}</b><small>km registrados</small></span>
+    </a></li>
+    {% empty %}
+    <li class="empty">Aún no tienes bicis. <a href="{% url 'garage:bike-create' %}">Añadir bici</a>.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="gear-title">
+  <div class="sec-h"><h2 id="gear-title">Equipación y material sin montar</h2><a class="link" href="{% url 'garage:item-list' %}">Ver todo</a></div>
+  <ul class="rows">
+    {% for entry in home.gear %}
+    <li><a class="entry compact" href="{% url 'garage:item-detail' entry.item.pk %}">
+      <span class="glyph"><svg class="ic"><use href="#i-{{ entry.item|item_icon }}"/></svg></span>
+      <span><span class="entry-name">{{ entry.item.name }}</span>
+        <span class="entry-sub">{% life_text entry.life %}</span></span>
+      <span class="big">{% if entry.distance_m is None %}<b>—</b><small>uso pendiente</small>{% else %}<b>{{ entry.distance_m|km }}</b><small>km registrados</small>{% endif %}</span>
+    </a></li>
+    {% empty %}
+    <li class="empty">Todo tu material está montado.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
+{% block fab %}<a class="fab only-android" href="{% url 'garage:add' %}"><svg class="ic"><use href="#i-plus"/></svg>Añadir</a>{% endblock %}

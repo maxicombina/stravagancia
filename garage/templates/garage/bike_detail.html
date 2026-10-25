@@ -1,0 +1,82 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:bike-edit' object.pk %}" aria-label="Editar {{ object.name }}"><svg class="ic"><use href="#i-edit"/></svg></a>{% endblock %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
+  <div><h1>{{ object.name }}</h1>
+    <p class="lede">{% if object.brand or object.model %}{{ object.brand }} {{ object.model }} · {% endif %}{% if object.retired_at %}Retirada el {% local_date object.retired_at %}{% elif object.acquired_on %}Desde {{ object.acquired_on|date:"Y" }}{% else %}En uso{% endif %}</p></div>
+</div>
+
+<section class="sec" aria-labelledby="usage-title">
+  <div class="sec-h"><h2 id="usage-title">Registrado en Garage</h2></div>
+  <div class="stats{% if totals.elevation is not None %} four{% endif %}">
+    <div><b>{{ totals.distance|km }}</b><span>km</span></div>
+    <div><b>{{ totals.moving|hours }}</b><span>h en movimiento</span></div>
+    <div><b>{{ totals.count|num }}</b><span>salidas</span></div>
+    {% if totals.elevation is not None %}<div><b>↑ {{ totals.elevation|num }}</b><span>m de desnivel</span></div>{% endif %}
+  </div>
+  <p class="note">Salidas con esta bici e inicio conocido.{% if totals.no_distance %} {{ totals.no_distance }} sin distancia: los km son un mínimo.{% endif %}{% if totals.no_time %} {{ totals.no_time }} sin tiempo en movimiento: las horas son un mínimo.{% endif %}{% if totals.elevation is not None and totals.no_elevation %} {{ totals.no_elevation }} sin desnivel: el desnivel es un mínimo. {% include "garage/_elevation_hint.html" %}{% endif %}</p>
+</section>
+
+<section class="sec" aria-labelledby="attention-title">
+  <div class="sec-h"><h2 id="attention-title">Requiere atención</h2><span class="count">{{ attention|length }}</span></div>
+  <ul class="rows">{% for alert in attention %}{% include "garage/_wear_row.html" with here=object.pk %}{% empty %}<li class="empty">{% if snoozed %}Nada más: lo vencido o próximo está pospuesto.{% else %}Nada vencido ni próximo en la bici ni en lo que lleva montado.{% endif %}</li>{% endfor %}</ul>
+  {% if snoozed %}<h3 class="sub-h">Pospuestos</h3><ul class="rows">{% for alert in snoozed %}{% include "garage/_wear_row.html" with here=object.pk %}{% endfor %}</ul>{% endif %}
+  {% if calm %}<details class="more"><summary>{{ calm|length }} {% if calm|length == 1 %}regla en curso, al día o sin datos{% else %}reglas en curso, al día o sin datos{% endif %}</summary>
+    <ul class="rows">{% for alert in calm %}{% include "garage/_wear_row.html" with here=object.pk %}{% endfor %}</ul></details>{% endif %}
+</section>
+
+<section class="panel" aria-labelledby="chart-title">
+  <div class="c-head"><h2 id="chart-title">Km por mes</h2><span>Últimos 12 meses · el actual, en curso</span></div>
+  {% if chart.empty %}<p class="empty">Aún no hay salidas con esta bici en estos meses.</p>{% else %}
+  {% include "garage/_chart.html" with caption="Km por mes" %}
+  {% endif %}
+</section>
+
+<section class="sec" aria-labelledby="mounted-title">
+  <div class="sec-h"><h2 id="mounted-title">Montado ahora</h2><span class="count">{{ mounted|length }}</span></div>
+  <ul class="rows">{% for row in mounted %}{% with m=row.mount %}
+    <li><a class="entry compact{% if row.nested %} nested{% endif %}" href="{% url 'garage:item-detail' m.item_id %}"><span class="glyph"><svg class="ic"><use href="#i-{{ m.item|item_icon }}"/></svg></span>
+      <span><span class="entry-name">{{ m.item.name }}</span>
+        <span class="entry-sub">{% if row.nested %}Sobre {{ m.parent_item.name }} · {% elif m.slot %}{{ m.slot }} · {% endif %}desde el {% local_date m.started_at %}</span></span>
+      {% if row.wear %}<span class="chip st-{{ row.wear.state }}"><svg class="ic xs"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
+    </a></li>{% endwith %}
+    {% empty %}<li class="empty">Nada montado. Monta componentes desde su ficha (Material).</li>{% endfor %}
+  </ul>
+  <p class="note">El material habitual que no se monta (casco, zapatillas) se define en los perfiles de uso.</p>
+</section>
+
+<section class="sec" aria-labelledby="rides-title">
+  <div class="sec-h"><h2 id="rides-title">Últimas salidas</h2><a class="link" href="{% url 'garage:usage-ride-list' %}?bike={{ object.pk }}">Ver todas</a></div>
+  <ul class="rows">{% for ride in recent %}
+    <li><a class="entry compact" href="{% url 'garage:ride-review' ride.pk %}?next={{ request.get_full_path|urlencode }}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
+      <span><span class="entry-name">{{ ride.name|default:"Salida sin nombre" }}</span><span class="entry-sub">{% local_date ride.started_at "weekday" %}{% if ride.elevation_gain_m is not None %} · ↑ {{ ride.elevation_gain_m|metric_m }}{% endif %}</span></span>
+      <span class="big"><b>{{ ride.distance_m|km }}</b><small>km</small></span></a></li>
+    {% empty %}<li class="empty">Sin salidas con esta bici.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="events-title">
+  <div class="sec-h"><h2 id="events-title">Intervenciones en la bici</h2><a class="link" href="{% url 'garage:service-event-create' %}?bike={{ object.pk }}">Registrar</a></div>
+  <ul class="rows">{% for event in events %}
+    <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>
+      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% local_date event.performed_at %}{% if event.since %} · a {{ event.since|span_short }} de la anterior{% endif %}{% if event.notes %} · {{ event.notes|truncatechars:40 }}{% endif %}</span></span>
+      <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>
+    {% empty %}<li class="empty">Sin intervenciones en la bici. Las de sus componentes están en cada ficha.</li>{% endfor %}
+  </ul>
+</section>
+
+{% include 'garage/photo_list.html' %}
+
+<details class="more">
+  <summary>Detalles e historial de montajes</summary>
+  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:bike-reactivate' object.pk %}">{% csrf_token %}<button>Reactivar</button></form>{% else %}<a href="{% url 'garage:bike-retire' object.pk %}">Retirar</a>{% endif %}</div>
+  <p class="notes">{{ object.notes }}</p>
+  <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if object.retired_at %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% endif %}</dd></dl>
+  <h2>Historial de montajes directos en la bici</h2><p class="muted">Lo montado sobre otros componentes figura en la ficha de cada uno.</p>{% include 'garage/periods.html' %}
+</details>
+
+<div class="actionbar">
+  <a class="btn" href="{% url 'garage:service-event-create' %}?bike={{ object.pk }}"><svg class="ic sm"><use href="#i-wrench"/></svg>Registrar mantenimiento</a>
+</div>
+{% endblock %}

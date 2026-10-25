@@ -1,0 +1,49 @@
+{
+ "task": "garage-038",
+ "title": "Retirar el reemplazado y retirar con lo montado",
+ "status": "implemented_reviewed_reverified",
+ "updated_at": "2026-10-18T03:40:00+00:00",
+ "updated_by": "Claude Opus 5.5",
+ "user_decisions": [
+  "17 oct 2026: incorporar lo que falta de ProBikeGarage; «ante la duda, documenta las opciones y elige una»."
+ ],
+ "spec": ".claude/specs/2026-10-18-garage-retirar-spec.md",
+ "migration": "ninguna",
+ "environment": {
+  "python": "/Users/maxicombina/.cache/stravagancia/venv-macos (GARAGE_TEST_PYTHON)",
+  "postgres": "18.6 local desechable 127.0.0.1:55434",
+  "settings": "strava_app.settings_test"
+ },
+ "tests": {
+  "full_suite": {
+   "passed": 2068,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 114.86
+  },
+  "new_tests": {
+   "files": [
+    "garage/tests_retire_parts.py"
+   ]
+  },
+  "manage_check": "sin problemas",
+  "makemigrations_check": "sin cambios"
+ },
+ "independent_reviews": [
+  {
+   "scope": "especificación y código",
+   "result": "2 importantes (conflicto en inglés sin nombrar la pieza; piezas desmontadas sin aviso) y menores; corregidos con pruebas"
+  },
+  {
+   "scope": "re-verificación",
+   "result": "1 importante (casilla imposible con retiro programado: ahora no se ofrece) y menores; corregidos con pruebas"
+  }
+ ],
+ "screenshots": "Retirar con lo montado; Reemplazar con «Retirar lo que sale»",
+ "limits": [
+  "Cada objeto retirado reconstruye el uso (una bici con cuatro piezas: cinco reconstrucciones).",
+  "Con un retiro ya programado no se ofrece retirar las piezas: se retiran desde su ficha.",
+  "Reactivar no reactiva ni vuelve a montar las piezas."
+ ]
+}

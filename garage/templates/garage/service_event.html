@@ -1,0 +1,35 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:service-event-edit' event.pk %}" aria-label="Editar intervención"><svg class="ic"><use href="#i-edit"/></svg></a>{% endblock %}
+{% block garage_content %}
+<div class="hero">
+  <span class="glyph accent"><svg class="ic"><use href="#i-wrench"/></svg></span>
+  <div><h1>{{ event.service_type.name }}</h1>
+    <p class="lede"><a href="{% if event.item_id %}{% url 'garage:item-detail' event.item_id %}{% else %}{% url 'garage:bike-detail' event.bike_id %}{% endif %}">{{ target.name }}</a> · {% local_date event.performed_at "weekday" %}, {% local_time event.performed_at %}</p></div>
+</div>
+
+<div class="stats two">
+  <div><b>{% if event.amount is not None %}{{ event.amount|money }}{% else %}—{% endif %}</b><span>{% if event.amount is not None %}{{ event.currency }}{% else %}sin importe{% endif %}</span></div>
+  <div><b>{{ readings|length }}</b><span>{% if readings|length == 1 %}lectura{% else %}lecturas{% endif %} desde aquí</span></div>
+</div>
+
+{% if event.notes %}<section class="panel"><h3>Notas</h3><p class="notes">{{ event.notes }}</p></section>{% endif %}
+
+{% include "garage/_event_usage.html" %}
+
+<section class="sec" aria-labelledby="readings-title">
+  <div class="sec-h"><h2 id="readings-title">Lecturas desde aquí</h2>{% if event.item_id %}<a class="link" href="{% url 'garage:baseline-create' event.item_id %}">Registrar lectura</a>{% endif %}</div>
+  <ul class="rows">{% for reading in readings %}
+    <li><a class="entry compact" href="{% url 'garage:baseline-edit' reading.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
+      <span><span class="entry-name">{{ reading.get_metric_display }}</span><span class="entry-sub">{% local_date reading.cut_at %}{% if reading.is_estimated %} · estimada{% endif %}</span></span>
+      <span class="num">{% if reading.metric == "distance_m" %}{{ reading.value|km }} km{% elif reading.metric == "moving_time_s" %}{{ reading.value|hours }} h{% else %}{{ reading.value|num }}{% endif %}</span></a></li>
+    {% empty %}<li class="empty">Lecturas desconocidas; no se asume cero.</li>{% endfor %}
+  </ul>
+</section>
+
+{% include 'garage/photo_list.html' %}
+
+<div class="actionbar">
+  <a class="btn" href="{% url 'garage:service-event-edit' event.pk %}"><svg class="ic sm"><use href="#i-edit"/></svg>Editar</a>
+  <a class="btn ghost" href="{% url 'garage:service-event-photo-create' event.pk %}"><svg class="ic sm"><use href="#i-camera"/></svg>Añadir foto</a>
+</div>
+{% endblock %}

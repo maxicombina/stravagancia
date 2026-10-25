@@ -1,0 +1,95 @@
+{% extends "garage/base.html" %}{% load garage_ui %}
+{% block garage_content %}
+<h1>Estadísticas</h1>
+<nav class="chips" aria-label="Período">
+  {% for key, label in periods %}<a class="chip-link{% if period == key %} on{% endif %}" href="?period={{ key }}{% if chart_key != 'km' %}&amp;chart={{ chart_key }}{% endif %}"{% if period == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+  {% if period == "custom" %}<span class="chip-link on" aria-current="page">Personalizado</span>{% endif %}
+</nav>
+
+{% if not report and period != "custom" %}<p class="empty">Aún no hay datos en este período.</p>{% endif %}
+{% if report and filtered %}
+<p class="lede">Filtrado por bici, categoría u objeto: el resultado está en el informe detallado, abajo.</p>
+{% elif report %}
+<p class="lede">{% if period == "last" %}Año {{ last_year }}{% elif period == "custom" %}{% if report.start %}Del {% local_bound report.start %} {% else %}Desde el principio {% endif %}{% if open_end %}hasta hoy{% else %}hasta el {% local_bound report.end %} (sin incluir){% endif %}{% elif report.start %}Del {% local_date report.start %} a hoy{% else %}Todo lo registrado{% endif %} · salidas con inicio conocido.</p>
+{% with km=report.overall.0 h=report.overall.1 n=report.overall.2 e=report.overall.3 %}
+<div class="stats{% if e.value is not None %} four{% endif %}">
+  <div><b>{{ km.value|km }}</b><span>km</span></div>
+  <div><b>{{ h.value|hours }}</b><span>h en movimiento</span></div>
+  <div><b>{{ n.value|num }}</b><span>salidas</span></div>
+  {% if e.value is not None %}<div><b>↑ {{ e.value|num }}</b><span>m de desnivel</span></div>{% endif %}
+</div>
+<p class="note">Registrado en Garage.{% if km.missing_values %} {{ km.missing_values }} sin distancia: los km son un mínimo.{% endif %}{% if h.missing_values %} {{ h.missing_values }} sin tiempo en movimiento: las horas son un mínimo.{% endif %}{% if e.value is not None and e.missing_values %} {{ e.missing_values }} sin desnivel: el desnivel es un mínimo. {% include "garage/_elevation_hint.html" %}{% endif %}{% if report.pending_started_rides %} {{ report.pending_started_rides }} sin inicio no cuentan en ningún período.{% endif %}</p>
+{% endwith %}
+
+{% if chart %}
+<section class="panel" aria-labelledby="chart-title">
+  <div class="c-head"><h2 id="chart-title">{% if chart_key == "elevation" %}Desnivel por mes{% else %}Km por mes{% endif %}</h2><span>{% if period == "all" %}Últimos 12 meses{% elif period == "last" %}Año {{ last_year }}{% else %}{{ monthly.buckets.0.name }} – hoy{% endif %}</span></div>
+  <nav class="chips" aria-label="Qué se suma por mes">{% for key, label in charts %}<a class="chip-link{% if chart_key == key %} on{% endif %}" href="?period={{ period }}{% if key != 'km' %}&amp;chart={{ key }}{% endif %}"{% if chart_key == key %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+  {% if chart.empty %}<p class="empty">{% if chart_key == "elevation" %}Aún no hay desnivel registrado en estos meses.{% else %}Aún no hay salidas en estos meses.{% endif %}</p>{% elif chart_key == "elevation" %}{% include "garage/_chart.html" with caption="Desnivel por mes (m)" %}{% else %}{% include "garage/_chart.html" with caption="Km por mes" %}{% endif %}
+  {% if chart_key == "elevation" and chart_missing %}<p class="note">{{ chart_missing }} salida{{ chart_missing|pluralize }} de estos meses no registra{{ chart_missing|pluralize:"n" }} desnivel: lo mostrado es un mínimo. {% include "garage/_elevation_hint.html" %}</p>{% endif %}
+</section>
+{% endif %}
+
+<section class="sec" aria-labelledby="bikes-title">
+  <div class="sec-h"><h2 id="bikes-title">Por bici</h2></div>
+  <ul class="rows">{% for entry in bikes %}{% with row=entry.row %}
+    <li><a class="entry compact" href="{% url 'garage:bike-detail' row.target.pk %}"><span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
+      <span><span class="entry-name">{{ row.target.name }}</span>
+        <span class="entry-sub">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }} · {{ row.observed.1.value|hours }} h{% if row.observed.3.value is not None %} · ↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}{% endif %}{% if row.observed.0.missing_values %} · {{ row.observed.0.missing_values }} sin distancia{% endif %}{% if row.observed.1.missing_values %} · {{ row.observed.1.missing_values }} sin tiempo{% endif %}</span>
+        <svg class="bar share" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ entry.share }}" height="5" rx="2.5"/></svg></span>
+      <span class="big"><b>{{ row.observed.0.value|km }}</b><small>km</small></span></a></li>{% endwith %}
+    {% endfor %}
+    {% if report.unknown_bike_rides %}{% with km=report.no_bike.0 %}
+    <li><a class="entry compact st-review" href="{% url 'garage:usage-ride-list' %}?pending=1"><span class="glyph"><svg class="ic"><use href="#i-help"/></svg></span>
+      <span><span class="entry-name">Sin bici</span><span class="entry-sub">{{ report.unknown_bike_rides }} salida{{ report.unknown_bike_rides|pluralize }}{% if km.missing_values %} · {{ km.missing_values }} sin distancia{% endif %} · revisar</span>
+        <svg class="bar share" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ no_bike_share }}" height="5" rx="2.5"/></svg></span>
+      <span class="big"><b>{{ km.value|km }}</b><small>km</small></span></a></li>{% endwith %}{% endif %}
+    {% if not bikes and not report.unknown_bike_rides %}<li class="empty">Sin salidas en este período.</li>{% endif %}
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="items-title">
+  <div class="sec-h"><h2 id="items-title">Material más usado</h2></div>
+  {% if not report.materialization_current %}<p class="empty">Uso del material pendiente de calcular: reconstruye el uso desde el histórico.</p>{% else %}
+  <ul class="rows">{% for row in items %}
+    <li><a class="entry compact" href="{% url 'garage:item-detail' row.target.pk %}"><span class="glyph"><svg class="ic"><use href="#i-{{ row.target|item_icon }}"/></svg></span>
+      <span><span class="entry-name">{{ row.target.name }}</span><span class="entry-sub">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }} · {{ row.observed.1.value|hours }} h{% if row.observed.3.value is not None %} · ↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}{% endif %}</span></span>
+      <span class="big"><b>{{ row.observed.0.value|km }}</b><small>km</small></span></a></li>
+    {% empty %}<li class="empty">Ningún material con uso en este período.</li>{% endfor %}
+  </ul>{% endif %}
+</section>
+
+<section class="sec" aria-labelledby="spending-title">
+  <div class="sec-h"><h2 id="spending-title">Gasto en mantenimiento</h2></div>
+  <ul class="rows">{% for row in spending %}
+    <li class="entry compact"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>
+      <span><span class="entry-name">{{ row.currency }}</span><span class="entry-sub">{{ row.count }} {% if row.count == 1 %}intervención{% else %}intervenciones{% endif %} con importe</span></span>
+      <span class="big"><b>{{ row.total|money }}</b><small>{{ row.currency }}</small></span></li>
+    {% empty %}<li class="empty">Sin importes declarados en este período.</li>{% endfor %}
+  </ul>
+  <p class="note">Intervenciones del período, cada una una vez y sin convertir monedas. No incluye compras.{% if unknown_costs %} {{ unknown_costs }} sin importe: el gasto real es al menos esto.{% endif %}</p>
+</section>
+{% endif %}
+
+<details class="more"{% if period == "custom" %} open{% endif %}>
+  <summary>Informe detallado y filtros</summary>
+  <p class="note">Kilómetros, horas en movimiento, salidas y desnivel. El temporizador no sustituye al movimiento. El desnivel no tiene lecturas previas: su total de vida es desconocido. La potencia media no se suma entre salidas y no se muestra aquí. Intervalos [desde, hasta); las fechas del filtro se interpretan en la zona IANA indicada.</p>
+  <form method="get" class="card">{{ form.as_p }}<button>Filtrar</button></form>
+  {% if report %}
+  <p>Período observado: {% if report.start %}{% local_datetime report.start %}{% else %}Todo lo registrado{% endif %} → {% local_datetime report.end %}. Calcular el uso no acredita un histórico real completo.</p>
+  {% if not report.materialization_current %}<p role="status">El uso del material aún no está calculado. Reconstruir el histórico antes de interpretarlo.</p>{% endif %}
+  <p class="help">Contexto del propietario: {{ report.pending_started_rides }} salidas sin inicio (no atribuibles al período) y {{ report.unknown_bike_rides }} con bici desconocida en el período. No se atribuyen a un objeto o bici.</p>
+  {% for row in report.rows %}
+  <article class="card"><h2><a href="{% if row.kind == 'item' %}{% url 'garage:item-detail' pk=row.target.pk %}{% else %}{% url 'garage:bike-detail' pk=row.target.pk %}{% endif %}">{{ row.target.name }}</a></h2>
+  <h3>Uso observado del período</h3>{% include "garage/statistics_metrics.html" with metrics=row.observed %}
+  {% if row.totals %}<h3>Totales acumulados a {% local_datetime report.end %}</h3><p class="help">Ámbito completo del destino. Para material abarca todas las bicis. Estos totales no responden al inicio ni a la bici del filtro.</p>{% for block in row.totals %}<h4>{{ block.label }}</h4>{% include "garage/statistics_metrics.html" with metrics=block.metrics %}{% endfor %}{% endif %}
+  {% if row.bikes %}<h3>Observado por bici</h3>{% for block in row.bikes %}<h4>{{ block.label }}</h4>{% include "garage/statistics_metrics.html" with metrics=block.metrics %}{% endfor %}{% endif %}
+  {% if row.installations %}<details><summary>Montajes en el período</summary><p class="help">Cada intervalo conserva su destino histórico; en montajes anidados se muestra el objeto padre. Los hechos se asignan por el inicio de la salida.</p>{% for block in row.installations %}<h4>{{ block.label }} · {% local_datetime block.start %} → {% local_datetime block.end %}</h4>{% include "garage/statistics_metrics.html" with metrics=block.metrics %}{% endfor %}</details>{% endif %}
+  {% if row.interventions %}<details><summary>Períodos entre intervenciones</summary><p class="help">Historial completo hasta el corte, mismo destino y tipo. Cada tipo tiene su propia última intervención; no se limita al inicio o bici filtrados.</p>{% for block in row.interventions %}<h4>{{ block.label }} · {% local_datetime block.start %} → {% local_datetime block.end %}</h4>{% include "garage/statistics_metrics.html" with metrics=block.metrics %}{% endfor %}</details>{% endif %}
+  <h3>Costes declarados</h3><p class="help">Monedas separadas sin conversión. El cociente requiere distancia completa, positiva y sin estimación; desconocido no significa cero.</p>
+  {% for cost in row.costs %}<p>{{ cost.amount|floatformat:2 }} {{ cost.currency }} · {{ cost.scope }}<br>{% if cost.per_km is None %}Coste/km no calculable: {{ cost.reason }}.{% else %}{{ cost.per_km|floatformat:4 }} {{ cost.currency }}/km (costes declarados).{% endif %}</p>{% empty %}<p>No hay importes con moneda en este ámbito.</p>{% endfor %}
+  {% if row.unknown_costs %}<p class="help">{{ row.unknown_costs }} entradas distintas sin coste conocido en los ámbitos mostrados.</p>{% endif %}
+  </article>{% empty %}<p>No hay destinos que coincidan con los filtros.</p>{% endfor %}
+  {% endif %}
+</details>
+{% endblock %}

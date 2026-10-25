@@ -1,0 +1,1 @@
+{% extends 'garage/base.html' %}{% block garage_content %}<h1>Ejecutar importación</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Importar selección previsualizada</button></form><p><a href="{% url 'garage:history-preview' %}">Volver a previsualizar</a></p>{% endblock %}

@@ -8,6 +8,34 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _force_ipv4_outbound(env) -> bool:
+    """
+    Whether outbound HTTP (requests/urllib3) must resolve IPv4 (A) records only.
+
+    GEOCODING_FORCE_IPV4=1/true/yes forces it on, 0/false/no forces it off
+    (case-insensitive); otherwise it is on only on Render, which sets
+    RENDER=true in every service.
+    """
+    override = (env.get("GEOCODING_FORCE_IPV4") or "").strip().lower()
+    if override in ("1", "true", "yes"):
+        return True
+    if override in ("0", "false", "no"):
+        return False
+    return bool(env.get("RENDER"))
+
+
+if _force_ipv4_outbound(os.environ):
+    # Render has no outbound IPv6 route. By default urllib3 resolves both A and
+    # AAAA records and tries each address, reporting only the last error, so
+    # the Overpass outage of 2026-10-25 surfaced as "[Errno 101] Network is
+    # unreachable" (an IPv6 attempt). With HAS_IPV6 = False urllib3 asks
+    # getaddrinfo for AF_INET only. Deliberately process-wide (Strava API,
+    # Overpass, Nominatim; psycopg2/Neon doesn't use urllib3), and only on
+    # Render unless GEOCODING_FORCE_IPV4 overrides it.
+    import urllib3.util.connection as _urllib3_connection
+    _urllib3_connection.HAS_IPV6 = False  # urllib3 then resolves A records only
+
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-only')
 
 DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'

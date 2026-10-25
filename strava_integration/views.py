@@ -136,6 +136,8 @@ import hmac
 import logging
 import threading
 
+from django.db import connections
+
 from .renaming import auto_rename_from_strava_data
 
 logger = logging.getLogger(__name__)
@@ -143,8 +145,8 @@ logger = logging.getLogger(__name__)
 
 def _safe_auto_rename(data: dict) -> None:
     """
-    Wrapper to run `auto_rename_from_strava_data` inside a daemon thread.
-    Catches any exception and logs it — must not propagate silently.
+    Run `auto_rename_from_strava_data` from a background thread (the `create`
+    worker below). Catches any exception and logs it — must not propagate silently.
     """
     try:
         new_name = auto_rename_from_strava_data(data)
@@ -154,6 +156,38 @@ def _safe_auto_rename(data: dict) -> None:
             logger.info("Activity %s skipped auto-rename.", data.get("id"))
     except Exception as exc:
         logger.error("Auto-rename failed for activity %s: %s", data.get("id"), exc)
+
+
+def _process_created_activity(object_id) -> None:
+    """
+    Body of the `create-<id>` daemon thread: fetch the activity from Strava,
+    store it if it is a Ride, then try the auto-rename. Never raises.
+    """
+    try:
+        data = fetch_activity_detail(object_id)
+        if (data.get("type") or "").strip() != "Ride":
+            logger.info(
+                "Activity %s skipped (create): type=%r is not 'Ride'",
+                object_id, data.get("type"),
+            )
+            return
+        store_activity_from_strava_data(data)
+        logger.info("Activity %s stored from webhook.", object_id)
+        _safe_auto_rename(data)
+    except Exception as exc:
+        logger.error(
+            "Failed to process created activity %s: %s", object_id, exc, exc_info=True,
+        )
+    finally:
+        # DB connections are per thread: this thread opened its own and nothing
+        # else will close it. close_old_connections() would keep it (it only
+        # closes connections past CONN_MAX_AGE, 600 s in prod), so close all.
+        try:
+            connections.close_all()
+        except Exception as exc:
+            logger.warning(
+                "Closing DB connections after activity %s failed: %s", object_id, exc,
+            )
 
 
 @csrf_exempt
@@ -201,38 +235,29 @@ def _handle_webhook_event(request):
 
     if object_type == "activity":
         if aspect_type == "create":
-            try:
-                data = fetch_activity_detail(object_id)
-                if (data.get("type") or "").strip() != "Ride":
-                    logger.info(
-                        "Activity %s skipped (create): type=%r is not 'Ride'",
-                        object_id, data.get("type"),
-                    )
-                else:
-                    store_activity_from_strava_data(data)
-                    logger.info("Activity %s stored from webhook.", object_id)
-                    # Auto-rename in the background — Strava allows 2s, geocoding
-                    # takes longer. Daemon thread: if the worker dies, the work is
-                    # lost (a manual admin action will be the future backup). If
-                    # Strava retries the webhook, this is idempotent: the second
-                    # time is_generic_name() returns False (because the first
-                    # attempt's PUT already changed the name) and nothing happens.
-                    # Only on `create`, NEVER on `update` — our PUT triggers an
-                    # `update` webhook, and acting on that would cause an infinite loop.
-                    threading.Thread(
-                        target=_safe_auto_rename,
-                        args=(data,),
-                        daemon=True,
-                        name=f"rename-{object_id}",
-                    ).start()
-            except Exception as exc:
-                logger.error("Failed to store activity %s: %s", object_id, exc)
+            # Answer first, work later. Strava allows 2 s and retries on timeout;
+            # fetch + store alone took 2.1 s on 2026-10-25 (Strava re-sent the
+            # `create`), and geocoding takes far longer. So the fetch, the store
+            # and the auto-rename all run in a daemon thread. If the worker dies
+            # mid-way the work is lost (the admin auto-rename action is the
+            # backup). A Strava retry is harmless: the store is an
+            # update_or_create, and after the first PUT the name is no longer
+            # generic, so is_generic_name() makes the rename a no-op.
+            # Only on `create`, NEVER on `update` — our PUT triggers an
+            # `update` webhook, and acting on that would cause an infinite loop.
+            threading.Thread(
+                target=_process_created_activity,
+                args=(object_id,),
+                daemon=True,
+                name=f"create-{object_id}",
+            ).start()
         elif aspect_type == "delete":
             # Idempotent: filter().delete() on a missing row is a no-op, so this is
             # safe even if the deleted activity was a non-Ride we never stored.
             Activity.objects.filter(strava_id=object_id).delete()
             logger.info("Activity %s deleted from webhook.", object_id)
         # "update" events: re-fetch and update — but only if it's still a Ride.
+        # Synchronous, and NEVER renames (loop guard: our own PUT lands here).
         elif aspect_type == "update":
             try:
                 data = fetch_activity_detail(object_id)

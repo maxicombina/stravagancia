@@ -174,13 +174,24 @@ Especificación con el mapeo y las decisiones D1–D12:
   D2: dos intervalos **repetibles** titulados «Max Life»/«Check Max Life»,
   ambos de piezas retiradas, quedan como reglas normales); después,
   `garage_probikegarage_verify`.
-- **Procesos activos al cerrar la sesión (26 oct 07:00 UTC)**: PostgreSQL
-  55434 (pruebas, `/private/tmp/garage018-validation-q9x6iq36`) y 55433 (demo,
-  `/private/tmp/garage018-demo-jtz9zq_9`), demo 8766 (`GARAGE_STRAVA_USER=demo`,
-  `settings_test`, lanzada con el helper) y tablero 8765; ninguno sobrevive a un
-  reinicio del Mac (recrear con los helpers: `garage_test_pg.py`,
-  `garage_demo_pg.py`; la base demo 55433 contiene la importación real de
-  `maxi`, que habría que repetir con el comando de arriba si se pierde).
+- **Todo lo local apagado al cerrar la sesión (26 oct 07:15 UTC, «apaga el
+  docker, todo lo local»)**: demo 8766 y tablero 8765 parados; PostgreSQL 55433
+  (demo) y 55434 (pruebas) parados con `pg_ctl -m fast stop` **conservando los
+  directorios de datos** (`/private/tmp/garage018-demo-jtz9zq_9/data`,
+  `/private/tmp/garage018-validation-q9x6iq36/data`) y los ficheros de estado
+  `/private/tmp/garage_demo_pg_state.json` y `/private/tmp/garage018_pg_state.json`;
+  no se usó la acción `stop` de los helpers porque borra los datos
+  (`shutil.rmtree`), y la base demo 55433 contiene la importación real de `maxi`.
+  Un reinicio del Mac los borra. Para volver a levantarlos sin perder la demo:
+  `pg_ctl -D <root>/data -l <root>/postgres.log -w -o '-h 127.0.0.1 -p 55433 -k
+  <root> -c max_connections=30 -c shared_buffers=32MB' start` (55434 igual con
+  su root y puerto); después `garage_demo_pg.py run manage.py runserver
+  127.0.0.1:8766 --noreload --insecure --settings=strava_app.settings_test` con
+  `GARAGE_STRAVA_USER=demo` y `tools/garage_progress.py` para el tablero. Si
+  los datos se perdieron, `garage_demo_pg.py start` crea un clúster nuevo con el
+  seed ficticio y hay que repetir la importación de `maxi` (comando de arriba).
+  OrbStack/Docker también parado (`orbctl stop`; sólo corrían contenedores
+  `mcp/grafana` de Claude).
 
 ## Entrega anterior: garage-042, ciclo de vida del material visible (18–19 oct)
 

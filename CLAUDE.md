@@ -21,10 +21,12 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
 ## Autorización y límites vigentes
 
 - Repositorio: /Users/maxicombina/src/learning/django/stravagancia.
-- Rama obligatoria: `garage`. **Sin push ni despliegue.** Commits
-  sólo cuando el usuario los pida (el 25 oct 2026 pidió «commit de todo»:
-  `5e422c8`, un commit con todo el trabajo de Garage; quedaron fuera la base
-  binaria de Metabase modificada y `.serena/`).
+- Rama obligatoria: `garage` (antes `codex/garage-plan`; renombrada el 25 oct
+  2026 a petición del usuario). **Sin despliegue.** Commits y push sólo cuando
+  el usuario los pida: el 25 oct 2026 pidió «commit de todo» (`5e422c8`, todo
+  el trabajo de Garage; quedaron fuera la base binaria de Metabase modificada y
+  `.serena/`) y autorizó un push de `garage` a `origin` (repo público; sin PR;
+  `main` intacto). Ningún push ni commit posterior sin que lo pida.
 - Hay muchísimo código nuevo sin seguimiento Git. No ejecutar git clean/reset,
   checkout de archivos, stash ni borrar cambios para preparar el trabajo.
 - Continuar implementación necesaria, pruebas y revisión adversarial, en orden
@@ -83,9 +85,13 @@ un solo uso sobre un Garage vacío + verificación; las salidas se re-descargan
 de Strava (030). Sin migración. **Implementado, revisado y re-verificado el
 25 oct** (suite **2690 + 45**, docs/validation/garage-043.json). **Importación
 real hecha por el usuario el 25 oct** en el clúster demo 55433, usuario `maxi`
-(id 2), sin salidas aún. Falta el histórico de Strava (servidor arrancado por
-el usuario con `GARAGE_STRAVA_USER=maxi` y su token) y
-`garage_probikegarage_verify` (detalle en docs/garage-handoff.md).
+(id 2), sin salidas aún; entra con `maxi` (contraseña en
+`~/.cache/stravagancia/garage-demo-users.json`, fuera del repo). Falta el
+histórico de Strava, **bloqueado por garage-044** (26 oct: `settings_test`
+elimina las variables `STRAVA_*` y prohíbe el HTTP real, y `strava_app.settings`
+apunta a Neon; hace falta un módulo de ajustes local con PostgreSQL 55433 y las
+variables Strava del usuario), y `garage_probikegarage_verify` (detalle en
+docs/garage-handoff.md).
 
 **Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
 `0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker
@@ -103,7 +109,9 @@ resolver la sincronización real desde Strava, y el despliegue es lo último.
    antes de tocar nada (el primero, garage-042, ya implementado; falta que lo
    pruebe y decida la nota menor de las acciones con retirada programada).
    **garage-043** (25 oct, hecha y verificada; volcado real ya importado como
-   `maxi` en la demo 55433): falta el histórico de Strava y
+   `maxi` en la demo 55433): falta que el usuario revise el inventario,
+   **garage-044** (ajustes locales con Strava real; diseñar la spec, acordarla
+   con él, implementar con Opus), el histórico de Strava y
    `garage_probikegarage_verify`. Después, la sincronización real desde Strava en local
    (su usuario de Garage para `GARAGE_STRAVA_USER`; el servidor lo arranca él
    con su token de entorno, nunca leer `.env`; la muestra FIT, spec maestra

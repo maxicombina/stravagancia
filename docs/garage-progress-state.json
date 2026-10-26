@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-10-25T19:06:51+00:00",
-  "focus": "25 oct: garage-043 (importar ProBikeGarage) implementada, revisada, corregida y re-verificada (suite 2690 + 45, docs/validation/garage-043.json; sin migración). Importación real aplicada por el usuario en el clúster demo 55433 como maxi (id 2): 2 bicis, 50 objetos, 62 montajes, 59 reglas, 184 intervenciones, 8 lecturas, 2 StravaGear, 0 salidas. Queda: histórico de Strava (el usuario arranca el servidor con GARAGE_STRAVA_USER=maxi y su token), garage_probikegarage_verify, confirmar D1–D12. Nada en curso.",
+  "updated_at": "2026-10-26T07:00:00+00:00",
+  "focus": "26 oct (cierre de sesión): garage-043 implementada, revisada y re-verificada (suite 2690 + 45, docs/validation/garage-043.json; sin migración); importación real aplicada por el usuario en la demo 55433 como maxi (id 2; staff; contraseña en el fichero local fuera del repo): 2 bicis, 50 objetos, 62 montajes, 59 reglas, 184 intervenciones, 8 lecturas, 2 StravaGear, 0 salidas. Rama garage (renombrada desde codex/garage-plan) con push autorizado a origin en e09bfb0. Bloqueo nuevo: garage-044, ajustes locales con Strava real (settings_test elimina STRAVA_* y prohíbe HTTP; settings apunta a Neon). Queda: revisión del usuario en la demo, garage-044, histórico de Strava, garage_probikegarage_verify, confirmar D1–D12. Ningún agente en curso.",
   "agents": [
     {
       "name": "Claude Fable 5.1 (sesión principal)",
       "role": "orquestación, documentación, Beads y verificación",
-      "status": "en espera del usuario",
-      "task": "garage-043"
+      "status": "sesión cerrada el 26 oct 07:00 UTC; nada en curso",
+      "task": "garage-043 / garage-044 (pendiente del usuario)"
     }
   ],
   "validation": {
@@ -23,5 +23,5 @@
     "garage-013",
     "garage-021"
   ],
-  "demo_users_file": "~/.cache/stravagancia/garage-demo-users.json (fuera del repo, 0600): contraseñas de los usuarios locales de la demo 55433 (demo y maxi)"
+  "demo_users_file": "~/.cache/stravagancia/garage-demo-users.json (fuera del repo, 0600): contraseña del usuario local maxi de la demo 55433 (demo / garage-demo para el usuario ficticio)"
 }

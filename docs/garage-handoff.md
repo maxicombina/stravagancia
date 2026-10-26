@@ -1,13 +1,18 @@
 # Estado de Garage para Claude u otra IA
 
-Actualización: 25 de octubre de 2026, Claude. Empezar por CLAUDE.md y
+Actualización: 26 de octubre de 2026 (07:00 UTC), Claude. Empezar por CLAUDE.md y
 garage-context.md; no rediseñar el proyecto ni ignorar cambios locales. Rama
-garage: desde el 25 oct, **un commit sobre main** (`5e422c8`, todo el
-trabajo de Garage, pedido por el usuario); sin push. Fuera del commit, a
-propósito: `metabase-data/metabase.db/metabase.db.mv.db` (base binaria
-modificada por Metabase, ya ignorada pero rastreada) y `.serena/` (caché de
-herramienta). Los dos commits del legado en `main` (`dd607f6`, `45a7cf6`)
-siguen sin integrar (sección «Siguiente paso», punto 7).
+`garage` (renombrada desde `codex/garage-plan` el 25 oct porque el usuario no
+quería «codex» en el nombre). Commits sobre `main`: `5e422c8` (todo el trabajo
+de Garage, pedido por el usuario), `24fa1dc` y `e09bfb0` (docs) y el commit de
+cierre de esta sesión (estado; ver `git log`). **Push hecho el 25 oct con
+autorización expresa del usuario**: `origin/garage` está en `e09bfb0` (repo
+público maxicombina/stravagancia; sin PR; `main` intacto). El commit de cierre
+queda sin push salvo que el usuario lo pida. Fuera de los commits, a propósito:
+`metabase-data/metabase.db/metabase.db.mv.db` (base binaria modificada por
+Metabase, ya ignorada pero rastreada) y `.serena/` (caché de herramienta). Los
+dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
+(sección «Siguiente paso», punto 7).
 
 ## Aviso importante: migraciones de Garage aplicadas en producción (Neon)
 
@@ -117,8 +122,8 @@ Especificación con el mapeo y las decisiones D1–D12:
   ```
 
   Después, en la demo 8766 como `maxi`: Más → Strava → «Importar histórico»
-  desde 2012-01-01 (necesita arrancar el servidor con `GARAGE_STRAVA_USER=maxi`
-  y su token de Strava en el entorno; nunca leer `.env`) y, al terminar,
+  desde 2012-01-01 (**no es posible con `settings_test`**: ver «Aviso para el
+  histórico de Strava» más abajo y la tarea garage-044) y, al terminar,
   `garage_probikegarage_verify <volcado> --owner 2 --mapping <mapa>` con el
   helper de la demo. La verificación compara en `exported_at` del volcado;
   se esperan 8 diferencias explicadas (spec §10, final).
@@ -128,14 +133,54 @@ Especificación con el mapeo y las decisiones D1–D12:
   (migrada a 0012 y con el seed ficticio; demo / garage-demo). Demo 8766
   (`GARAGE_STRAVA_USER=demo`) y tablero 8765 relanzados en segundo plano
   (logs en `/private/tmp/garage-demo-8766.log` y `/private/tmp/garage-board-8765.log`).
-- **Pendiente del usuario**: confirmar `maxi` como usuario de Garage para
-  `GARAGE_STRAVA_USER`; parar el servidor demo 8766 (arrancado con
-  `GARAGE_STRAVA_USER=demo` y sin token) y arrancarlo él con
-  `GARAGE_STRAVA_USER=maxi` y su token de Strava en el entorno (nunca leer
-  `.env`); en Más → Strava, «Importar histórico» desde 2012-01-01; confirmar D1–D12 (en especial D2: dos intervalos
-  **repetibles** titulados «Max Life»/«Check Max Life», ambos de piezas
-  retiradas, quedan como reglas normales); después,
+- **Acceso del usuario a la demo (25 oct, tarde)**: no podía entrar. Causas
+  encontradas y resueltas, en orden: (1) usaba `/admin/` (exige staff): `maxi`
+  es ahora staff y superusuario; (2) django-axes lo bloqueó (5 intentos, 1 h):
+  `manage.py axes_reset` con el helper de la demo; (3) causa de fondo: el helper
+  `tools/handoff/garage_demo_pg.py run` limpia el entorno (sólo deja pasar
+  `GARAGE_STRAVA_USER`), así que la contraseña generada por Fable nunca llegó a
+  `create_user` (quedó `x`). A petición expresa del usuario («ponele maxi de
+  password y dale») la contraseña de `maxi` en la demo local es ahora el propio
+  nombre de usuario (anotado en `~/.cache/stravagancia/garage-demo-users.json`,
+  fuera del repo). Entrada verificada por HTTP en `/accounts/login/` (302 →
+  `/garage/`, con sus dos bicis). Sólo vale para el clúster local 55433.
+- **Aviso para el histórico de Strava (hallazgo del 26 oct, al cerrar)**: con
+  `strava_app.settings_test` **no se puede hablar con Strava**:
+  `test_support/isolation.py` (`install()`) elimina todas las variables
+  `STRAVA_*` del entorno, pone valores sintéticos, bloquea `.env` y sustituye
+  `requests.sessions.Session.send` por una función que lanza «Real HTTP is
+  disabled in tests». Además el helper de la demo sólo deja pasar
+  `GARAGE_STRAVA_USER`. El modo token de Garage obtiene el access token con
+  `strava_integration.utils.refresh_access_token()` (lee `STRAVA_CLIENT_ID`,
+  `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN` del entorno y, si existe
+  `.env`, reescribe en él el refresh/access token: comportamiento del legado).
+  Los únicos ajustes alternativos son `strava_app.settings` (producción: cargan
+  `.env` y apuntan a Neon por `DATABASE_URL`; **prohibidos para esto**). Por
+  tanto el paso «el usuario arranca el servidor con su token» documentado hasta
+  ahora **no tiene ajustes con los que hacerse**: hace falta un módulo de
+  ajustes local nuevo (p. ej. `strava_app.settings_local`): base PostgreSQL local
+  (55433) obligatoria, variables `STRAVA_*` reales tomadas del entorno que
+  exporte el usuario (nunca leer `.env` desde la IA), HTTP permitido sólo hacia
+  `www.strava.com`, `DEBUG` y `axes` como la demo, y que `refresh_access_token`
+  no reescriba `.env` (o que el usuario lo acepte). Registrado como
+  **garage-044** (abierta, depende de 030 y 043; implementación por agente Opus
+  tras diseñar la spec y acordarla con el usuario). Hasta entonces, `maxi` en la
+  demo tiene el inventario completo pero 0 salidas, y `garage_probikegarage_verify`
+  mostrará las diferencias de uso esperadas por falta de salidas.
+- **Pendiente del usuario**: entrar en la demo 8766 como `maxi` y revisar el
+  inventario migrado; confirmar `maxi` como usuario de Garage para
+  `GARAGE_STRAVA_USER`; decidir garage-044 (ajustes locales con Strava real) y
+  después «Importar histórico» desde 2012-01-01; confirmar D1–D12 (en especial
+  D2: dos intervalos **repetibles** titulados «Max Life»/«Check Max Life»,
+  ambos de piezas retiradas, quedan como reglas normales); después,
   `garage_probikegarage_verify`.
+- **Procesos activos al cerrar la sesión (26 oct 07:00 UTC)**: PostgreSQL
+  55434 (pruebas, `/private/tmp/garage018-validation-q9x6iq36`) y 55433 (demo,
+  `/private/tmp/garage018-demo-jtz9zq_9`), demo 8766 (`GARAGE_STRAVA_USER=demo`,
+  `settings_test`, lanzada con el helper) y tablero 8765; ninguno sobrevive a un
+  reinicio del Mac (recrear con los helpers: `garage_test_pg.py`,
+  `garage_demo_pg.py`; la base demo 55433 contiene la importación real de
+  `maxi`, que habría que repetir con el comando de arriba si se pierde).
 
 ## Entrega anterior: garage-042, ciclo de vida del material visible (18–19 oct)
 
@@ -655,11 +700,13 @@ Límites declarados:
    y cree bucket/credencial en `~/.config/garage-s3-test.env`.
 4. **garage-022** depende de 010; **garage-023**: logger `garage`, `STORAGES`,
    docker-compose sin migrate contra Neon.
-5. **garage-043** (25 oct): importador de ProBikeGarage en curso (sección
-   «Última entrega» arriba). Al terminar el agente: revisión independiente
-   (spec §5), re-verificación (§6), `--dry-run` y aplicación del volcado real
-   en local para el usuario de Garage del propietario, y después el histórico
-   de Strava + `garage_probikegarage_verify`.
+5. **garage-043** (25 oct): importador de ProBikeGarage implementado, revisado,
+   re-verificado y **aplicado al volcado real** por el usuario en la demo 55433
+   (usuario `maxi`; sección «Última entrega» arriba). Queda: que el usuario
+   entre en la demo y revise el inventario; **garage-044** (ajustes locales
+   con Strava real: sin ellos el histórico no puede descargarse, ver el aviso
+   en «Última entrega»); después el histórico desde 2012-01-01,
+   `garage_probikegarage_verify` y confirmar D1–D12.
    **garage-042** implementada y verificada (19 oct); falta que el usuario la
    pruebe en la demo y decida la nota menor de las acciones con retirada
    programada. **garage-030**: fases 1–4 hechas en modo token (la 4, sin migración).

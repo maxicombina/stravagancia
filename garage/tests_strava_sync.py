@@ -275,17 +275,24 @@ def test_legacy_and_garage_both_receive_the_owner_athlete(strava, django_capture
     from strava_integration.models import Athlete
     connected(strava)
     Athlete.objects.create(strava_id=ATHLETE, first_name="Ana")
-    from strava_integration.views import _safe_auto_rename
-    # Both modules use the same threading.Thread: one patch sees the legacy rename and the Garage worker.
+    from strava_integration.views import _process_created_activity
+    # Both modules use the same threading.Thread: one patch sees the legacy create worker and the Garage worker.
     with patch("threading.Thread") as thread, \
          patch("strava_integration.views.fetch_activity_detail", return_value={"id": 7, "type": "Ride"}) as fetch, \
          patch("strava_integration.views.store_activity_from_strava_data") as store, \
+         patch("strava_integration.views.auto_rename_from_strava_data", return_value=None), \
+         patch("strava_integration.views.connections"), \
          django_capture_on_commit_callbacks(execute=True):
         assert post(event()).status_code == 200
+        # The legacy app answers a create before fetching (main 45a7cf6): fetch, store and rename run in create-<id>.
+        fetch.assert_not_called()
+        (legacy,) = [call.kwargs for call in thread.call_args_list if call.kwargs["target"] is _process_created_activity]
+        assert legacy["args"] == (7,) and legacy["name"] == "create-7" and legacy["daemon"] is True
+        legacy["target"](*legacy["args"])  # the legacy worker, inline (connections mocked: it closes its own)
     fetch.assert_called_once_with(7)
     store.assert_called_once()
-    # Outside a test transaction the Garage worker starts at once; here on_commit runs it after the legacy rename.
-    assert sorted(call.kwargs["target"].__name__ for call in thread.call_args_list) == ["_process_in_thread", "_safe_auto_rename"]
+    # Outside a test transaction the Garage worker starts at once; here on_commit runs it after the request.
+    assert sorted(call.kwargs["target"].__name__ for call in thread.call_args_list) == ["_process_created_activity", "_process_in_thread"]
     assert StravaEvent.objects.count() == 1
 
 

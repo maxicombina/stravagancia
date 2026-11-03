@@ -16,10 +16,13 @@ marks the point furthest from the start.
 import logging
 import math
 import re
+import socket
 import time
 from typing import Optional
+from urllib.parse import urlsplit
 
 import requests
+import urllib3.util.connection
 
 from .utils import refresh_access_token
 
@@ -36,6 +39,31 @@ SPACING_KM = 8
 RENAME_MARKER = " ~8km spacing"
 
 GEOCODE_SLEEP_S = 1.1
+
+# Overpass endpoints, tried in order (starting from the last one that worked).
+# The main instance has been flaky: on 2026-10-25 it was unreachable from
+# Render for hours ("[Errno 101] Network is unreachable") and answered 502 /
+# timed out even from a laptop, while the French mirror answered fine.
+OVERPASS_ENDPOINTS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.openstreetmap.fr/api/interpreter",
+)
+OVERPASS_TIMEOUT_S = 15
+
+# How much of an unexpected response body to put in a WARNING (enough to tell
+# an HTML error page or a rate-limit notice apart, short enough for one line).
+BODY_SNIPPET_CHARS = 200
+
+# Index in OVERPASS_ENDPOINTS of the endpoint that last answered properly; the
+# next lookup starts there, so after one fallback the remaining points of a
+# route go straight to the working mirror instead of paying the failure again.
+# Per process (like _GEO_CACHE). Rename threads may race on it; the worst case
+# is one extra failed attempt, so no lock.
+_overpass_preferred_idx = 0
+
+# Hosts for which the getaddrinfo() diagnostic has already been logged in this
+# process (logged once per host, on the first ConnectionError).
+_CONNECTION_DIAG_REPORTED_HOSTS: set[str] = set()
 
 GENERIC_PATTERNS = [
     r'^(Morning|Afternoon|Evening|Night|Lunch)\s+(Ride|Run|Walk|Hike|Workout)$',
@@ -78,6 +106,9 @@ GENERIC_PATTERNS = [
 # volume is ~1 activity every 2-3 days — the cache rarely survives between
 # uploads. Acceptable for now; if persistence is needed, move to Django cache
 # or a DB table.
+# Only complete lookups are stored (see geocode_point): a failure is never
+# cached, otherwise one provider outage poisons every later retry of the same
+# route in this process (what happened on 2026-10-25).
 _GEO_CACHE: dict[tuple[float, float], tuple[Optional[str], bool]] = {}
 
 
@@ -131,8 +162,118 @@ def haversine(p1: tuple[float, float], p2: tuple[float, float]) -> float:
     return R * 2 * math.asin(math.sqrt(a))
 
 
-def overpass_natural(lat: float, lon: float, radius: int = 600) -> Optional[str]:
-    """Return the name of the nearest saddle/peak/mountain_pass within radius m, or None."""
+def _body_snippet(response) -> str:
+    """First BODY_SNIPPET_CHARS of a response body, repr()'d so it stays on one log line."""
+    try:
+        text = response.text or ""
+    except Exception as exc:  # undecodable body, closed stream, ...
+        return f"<unreadable body: {exc}>"
+    return repr(text[:BODY_SNIPPET_CHARS])
+
+
+def _log_connection_diagnostic_once(url: str) -> None:
+    """
+    Log, once per host and process, what getaddrinfo() returns for the host.
+
+    Called after a ConnectionError. urllib3 tries every resolved address in
+    order and only reports the last error, so "[Errno 101] Network is
+    unreachable" alone doesn't say whether the host resolved to IPv6 only or
+    whether IPv4 also failed. The resolved families answer that. Never raises.
+    """
+    try:
+        host = urlsplit(url).hostname
+        if not host or host in _CONNECTION_DIAG_REPORTED_HOSTS:
+            return
+        _CONNECTION_DIAG_REPORTED_HOSTS.add(host)
+        # What the outbound HTTP stack is allowed to use (False = A records
+        # only; set in settings.py on Render).
+        ipv6_enabled = getattr(urllib3.util.connection, "HAS_IPV6", None)
+        try:
+            infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        except Exception as exc:
+            logger.warning(
+                "Connection diagnostic for %s: getaddrinfo failed: %s: %s "
+                "(urllib3 HAS_IPV6=%s)",
+                host, type(exc).__name__, exc, ipv6_enabled,
+            )
+            return
+        summary = [
+            (getattr(family, "name", str(family)), sockaddr[0])
+            for family, _type, _proto, _canonname, sockaddr in infos
+        ]
+        logger.warning(
+            "Connection diagnostic for %s: getaddrinfo -> %s (urllib3 HAS_IPV6=%s)",
+            host, summary, ipv6_enabled,
+        )
+    except Exception as exc:
+        logger.warning("Connection diagnostic for %s itself failed: %s", url, exc)
+
+
+def _overpass_attempt(endpoint: str, query: str, lat: float, lon: float) -> Optional[list]:
+    """
+    POST the query to one Overpass endpoint.
+
+    Returns the response's `elements` list, or None if this endpoint failed:
+    request exception, non-200 status, non-JSON body, or JSON without an
+    `elements` list. Each failure is logged at WARNING.
+    """
+    try:
+        r = requests.post(
+            endpoint,
+            data={"data": query},
+            headers={"User-Agent": USER_AGENT},
+            timeout=OVERPASS_TIMEOUT_S,
+        )
+    except requests.RequestException as exc:
+        logger.warning(
+            "Overpass %s failed at (%.5f,%.5f): %s: %s",
+            endpoint, lat, lon, type(exc).__name__, exc,
+        )
+        if isinstance(exc, requests.exceptions.ConnectionError):
+            _log_connection_diagnostic_once(endpoint)
+        return None
+    except Exception as exc:  # defensive: anything else also means "try the next one"
+        logger.warning(
+            "Overpass %s unexpected error at (%.5f,%.5f): %s: %s",
+            endpoint, lat, lon, type(exc).__name__, exc,
+        )
+        return None
+
+    if r.status_code != 200:
+        logger.warning(
+            "Overpass %s at (%.5f,%.5f) -> HTTP %s, body=%s",
+            endpoint, lat, lon, r.status_code, _body_snippet(r),
+        )
+        return None
+    try:
+        payload = r.json()
+    except ValueError as exc:
+        logger.warning(
+            "Overpass %s at (%.5f,%.5f) -> HTTP %s, body is not JSON (%s), body=%s",
+            endpoint, lat, lon, r.status_code, exc, _body_snippet(r),
+        )
+        return None
+    elements = payload.get("elements") if isinstance(payload, dict) else None
+    if not isinstance(elements, list):
+        logger.warning(
+            "Overpass %s at (%.5f,%.5f) -> HTTP %s, JSON without an 'elements' list, body=%s",
+            endpoint, lat, lon, r.status_code, _body_snippet(r),
+        )
+        return None
+    return elements
+
+
+def overpass_natural(lat: float, lon: float, radius: int = 600) -> tuple[Optional[str], bool]:
+    """
+    Look up the nearest saddle/peak/mountain_pass within `radius` m.
+
+    Returns (name_or_None, lookup_ok). lookup_ok=True means some endpoint
+    answered properly, including "0 elements" (a valid "nothing here");
+    lookup_ok=False means every endpoint in OVERPASS_ENDPOINTS failed, so the
+    absence of a feature is unknown (and must not be cached).
+    """
+    global _overpass_preferred_idx
+
     query = f"""
     [out:json][timeout:10];
     (
@@ -142,28 +283,40 @@ def overpass_natural(lat: float, lon: float, radius: int = 600) -> Optional[str]
     );
     out body;
     """
-    try:
-        r = requests.post(
-            "https://overpass-api.de/api/interpreter",
-            data={"data": query},
-            headers={"User-Agent": USER_AGENT},
-            timeout=15,
-        )
-        elements = [e for e in r.json().get("elements", []) if e.get("tags", {}).get("name")]
-        if elements:
-            name = elements[0]["tags"]["name"]
+    count = len(OVERPASS_ENDPOINTS)
+    start = _overpass_preferred_idx % count
+    for offset in range(count):
+        idx = (start + offset) % count
+        endpoint = OVERPASS_ENDPOINTS[idx]
+        elements = _overpass_attempt(endpoint, query, lat, lon)
+        if elements is None:
+            continue
+
+        if idx != _overpass_preferred_idx:
+            logger.info("Overpass: preferred endpoint is now %s", endpoint)
+            _overpass_preferred_idx = idx
+
+        named = [
+            e for e in elements
+            if isinstance(e, dict) and (e.get("tags") or {}).get("name")
+        ]
+        if named:
+            name = named[0]["tags"]["name"]
             logger.info(
-                "Overpass (%.5f,%.5f) HTTP %s -> %r (%d elements)",
-                lat, lon, r.status_code, name, len(elements),
+                "Overpass (%.5f,%.5f) via %s HTTP 200 -> %r (%d elements)",
+                lat, lon, endpoint, name, len(named),
             )
-            return name
+            return name, True
         logger.info(
-            "Overpass (%.5f,%.5f) HTTP %s -> 0 elements",
-            lat, lon, r.status_code,
+            "Overpass (%.5f,%.5f) via %s HTTP 200 -> 0 elements",
+            lat, lon, endpoint,
         )
-    except Exception as exc:
-        logger.warning("Overpass exception at (%.5f,%.5f): %s", lat, lon, exc)
-    return None
+        return None, True
+
+    logger.warning(
+        "Overpass (%.5f,%.5f): all %d endpoints failed", lat, lon, count,
+    )
+    return None, False
 
 
 def nominatim_reverse(lat: float, lon: float) -> str:
@@ -175,7 +328,29 @@ def nominatim_reverse(lat: float, lon: float) -> str:
             headers={"User-Agent": USER_AGENT},
             timeout=10,
         )
-        addr = r.json().get("address", {})
+        if r.status_code != 200:
+            logger.warning(
+                "Nominatim (%.5f,%.5f) -> HTTP %s, body=%s",
+                lat, lon, r.status_code, _body_snippet(r),
+            )
+            return "?"
+        try:
+            payload = r.json()
+        except ValueError as exc:
+            logger.warning(
+                "Nominatim (%.5f,%.5f) -> HTTP %s, body is not JSON (%s), body=%s",
+                lat, lon, r.status_code, exc, _body_snippet(r),
+            )
+            return "?"
+        if not isinstance(payload, dict):
+            logger.warning(
+                "Nominatim (%.5f,%.5f) -> HTTP %s, JSON is not an object, body=%s",
+                lat, lon, r.status_code, _body_snippet(r),
+            )
+            return "?"
+        addr = payload.get("address")
+        if not isinstance(addr, dict):
+            addr = {}
         result = (
             addr.get("town")
             or addr.get("village")
@@ -198,6 +373,11 @@ def geocode_point(lat: float, lon: float) -> tuple[Optional[str], bool]:
     """
     Return (name, is_natural). Cached by ~100m grid.
     Priority: Overpass (natural features) → Nominatim (municipality).
+
+    Only complete lookups are cached: a natural feature, or a municipality
+    when Overpass did answer (so "no feature here" is known). A municipality
+    obtained while Overpass was down is returned but not cached, so a later
+    run can still find the peak; (None, False) is never cached.
     """
     key = (round(lat, 3), round(lon, 3))
     if key in _GEO_CACHE:
@@ -206,7 +386,8 @@ def geocode_point(lat: float, lon: float) -> tuple[Optional[str], bool]:
         return cached
 
     time.sleep(GEOCODE_SLEEP_S)
-    natural = overpass_natural(lat, lon)
+    natural, overpass_ok = overpass_natural(lat, lon)
+    not_cached_reason: Optional[str] = None
     if natural:
         result: tuple[Optional[str], bool] = (natural, True)
     else:
@@ -214,11 +395,23 @@ def geocode_point(lat: float, lon: float) -> tuple[Optional[str], bool]:
         muni = nominatim_reverse(lat, lon)
         if muni and muni != "?":
             result = (shorten_municipality(muni), False)
+            if not overpass_ok:
+                not_cached_reason = "Overpass unavailable"
         else:
             result = (None, False)
+            not_cached_reason = (
+                "no municipality from Nominatim" if overpass_ok
+                else "Overpass unavailable and no municipality from Nominatim"
+            )
 
-    _GEO_CACHE[key] = result
-    logger.info("Geocode result (%.5f,%.5f) -> %r", lat, lon, result)
+    if not_cached_reason is None:
+        _GEO_CACHE[key] = result
+        logger.info("Geocode result (%.5f,%.5f) -> %r", lat, lon, result)
+    else:
+        logger.info(
+            "Geocode result (%.5f,%.5f) -> %r (not cached: %s)",
+            lat, lon, result, not_cached_reason,
+        )
     return result
 
 

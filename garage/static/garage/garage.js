@@ -50,6 +50,8 @@
         ? `garage_theme=${theme}; Max-Age=31536000; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
         : 'garage_theme=; Max-Age=0; Path=/; SameSite=Lax';
       showTheme(theme);
+      // What «Guardar» would have sent: Safari caps a cookie written by a script to seven days, not one the server sets.
+      fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), keepalive: true }).catch(() => {});
     });
   }
 

@@ -2,7 +2,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles import finders
 from django.template import Context, Template
-from django.test import Client, RequestFactory, TestCase
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from test_support import contrast
@@ -307,3 +307,17 @@ class AppearanceSectionTests(TestCase):
         html = self.page()
         self.assertNotIn(' style="', html)
         self.assertEqual(len(find_all(parse(html), "script")), 1)
+
+
+class ThemeScriptTests(SimpleTestCase):
+    """The suite does not run JavaScript: these only keep in place what a browser was seen doing."""
+
+    def setUp(self):
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            self.source = script.read()
+
+    def test_a_choice_also_goes_through_the_server(self):
+        # Safari caps a cookie written by a script to seven days, whatever its Max-Age; one set by the server keeps its year.
+        # And a person who chooses and leaves at once still has it sent: hence keepalive.
+        handler = self.source.partition("themeForm.addEventListener('change'")[2]
+        self.assertIn("fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), keepalive: true })", handler)

@@ -295,6 +295,7 @@ html[data-os="android"] .tab[aria-current="page"] .tab-ic { background: var(--pr
 .page input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page select, .page textarea {
   width: 100%; max-width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .page textarea { min-height: 96px; height: 96px; resize: vertical; }
+::placeholder { color: var(--ink-2); opacity: 1; }
 .page input[type="checkbox"]:not(.sw), .page input[type="radio"] { width: 20px; height: 20px; accent-color: var(--primary); }
 .page .field, .page form p { margin: 0 0 16px; }
 .page label { font-weight: 600; }

@@ -284,6 +284,11 @@ class StylesheetTests(SimpleTestCase):
         self.assertEqual(self.rule(".page table.sr-only").get("width"), "1px")
         self.assertNotIn("display", self.rule(".page table.sr-only"))  # As a block it may stop being a table for some screen readers.
 
+    def test_placeholders_paint_with_a_pair_that_was_checked(self):
+        # It is the only visible name of the search boxes, and the browser's own gray gives 3,72:1 on a dark field (pairs 9 to 11).
+        self.assertEqual(self.rule("::placeholder").get("color"), "var(--ink-2)")
+        self.assertEqual(self.rule("::placeholder").get("opacity"), "1")  # Some browsers lower it by default, and the pair would not hold.
+
     def test_error_text_and_delete_buttons_have_their_own_token(self):
         # D16: --due as text gives 4,49:1 on --bg.
         self.assertEqual(self.rule(".page .errorlist").get("color"), "var(--danger-ink)")

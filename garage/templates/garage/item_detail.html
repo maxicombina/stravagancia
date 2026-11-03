@@ -22,7 +22,8 @@
     <div class="trio">{% for m in w.metrics %}
       <div class="st-{{ m.state }}"><b>{{ m.value_text }}</b>
         <svg class="bar" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ m.bar_width }}" height="5" rx="2.5"/></svg>
-        <span>{{ m.unit_text }} de {{ m.threshold_text }}{% if m.lower_bound %} · mínimo{% endif %}{% if m.estimated %} · estimado{% endif %}{% if m.missing_text %} · {{ m.missing_text }}{% elif m.unrecorded %} · sin desnivel{% endif %}</span></div>{% endfor %}
+        <span>{{ m.unit_text }} de {{ m.threshold_text }}{% if m.lower_bound %} · mínimo{% endif %}{% if m.estimated %} · estimado{% endif %}{% if m.missing_text %} · {{ m.missing_text }}{% elif m.unrecorded %} · sin desnivel{% endif %}</span>
+        {% if w.metrics|length > 1 %}<span class="trio-state"><svg class="ic xs"><use href="#i-{{ m.icon }}"/></svg>{{ m.word }}</span>{% endif %}</div>{% endfor %}
     </div>
   </div>
   {% if w.rule|is_life %}<p class="note">Vence con lo primero que llegue: {{ w.rule|thresholds_or }}. {% if w.due.reference_at %}Cuenta desde el {% local_date w.due.reference_at %}{% if w.due.event %} (última sustitución){% endif %}.{% elif w.rule.anchor_at %}Empieza el {% local_date w.rule.anchor_at %}.{% else %}Sin fecha de inicio.{% endif %} Avisa al 90 %.</p>

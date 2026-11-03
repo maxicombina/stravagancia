@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from .lifespan_forms import LifespanForm, split_days
 from .models import Installation, Item, MaintenanceRule, ServiceEvent, ServiceType
-from .presentation import wear
+from .presentation import STATES, wear
 from .services.installations import create_installation
 from .services.lifespan import LIFE_TYPE, default_start, inherit_lifespan, is_life, lifespan_rule, remove_lifespan, set_lifespan
 from .services.maintenance import save_maintenance
@@ -180,6 +180,31 @@ class TestPage:
 
 
 class TestScreens:
+    def test_each_metric_of_a_rule_says_its_own_state(self, garage, client):
+        # The chip speaks of the rule's main metric. The others only had the color of a bar hidden from screen readers.
+        set_lifespan(garage.owner, garage.chain, distance_m=Decimal(100000000), calendar_days=30, start=at(200))
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
+        trio = find_all(parse(html), cls="trio")[0]
+        metrics = [node for node in find_all(trio, "div") if node.attrs.get("class", "").startswith("st-")]
+        states = [node.attrs["class"].removeprefix("st-") for node in metrics]
+        assert len(metrics) == 2 and len(set(states)) == 2, states  # Two metrics, in two different states: else this proves nothing.
+        for node, state in zip(metrics, states):
+            word, icon = STATES[state]
+            said = find_all(node, cls="trio-state")
+            assert len(said) == 1, state
+            assert visible_text(said[0]) == word
+            assert [use.attrs["href"] for use in find_all(said[0], "use")] == [f"#i-{icon}"]
+
+    def test_a_rule_with_one_metric_does_not_say_its_state_twice(self, garage, client):
+        # The chip right above already speaks of that metric.
+        set_lifespan(garage.owner, garage.chain, calendar_days=30, start=at(200))
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
+        trio = find_all(parse(html), cls="trio")[0]
+        assert find_all(trio, cls="trio-state") == []
+        assert visible_text(find_all(parse(html), "span", cls="chip st-due")[0]).startswith("Vencido")
+
     def test_item_home_and_workshop_say_vida_util(self, garage, client):
         client.force_login(garage.owner)
         html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()

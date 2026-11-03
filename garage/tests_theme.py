@@ -267,6 +267,16 @@ class AppearanceSectionTests(TestCase):
         labels = [find_all(groups[0], "label", **{"for": radio.attrs["id"]}) for radio in radios]
         self.assertEqual([visible_text(found[0]) for found in labels], ["Automático", "Claro", "Oscuro"])
 
+    def test_each_radio_shares_its_tile_with_its_own_label(self):
+        # The stylesheet stretches each radio over its tile: together they have to be one option, not three radios on one spot.
+        tiles = find_all(find_all(self.form(), "fieldset", cls="seg")[0], cls="tile")
+        self.assertEqual(len(tiles), 3)
+        for tile, value in zip(tiles, ("auto", "light", "dark")):
+            with self.subTest(value=value):
+                radios, labels = find_all(tile, "input", type="radio"), find_all(tile, "label")
+                self.assertEqual([radio.attrs["value"] for radio in radios], [value])
+                self.assertEqual([label.attrs["for"] for label in labels], [radios[0].attrs["id"]])
+
     def test_the_mark_is_on_the_option_the_cookie_says(self):
         for cookie, marked in ((None, "auto"), ("light", "light"), ("dark", "dark"), ("DARK", "auto"), ("auto", "auto")):
             self.client.cookies.pop(COOKIE, None)

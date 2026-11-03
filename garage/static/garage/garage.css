@@ -239,6 +239,9 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 /* Segmented choice: the theme in Más → Apariencia. */
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 4px; border: 0; min-width: 0; border-radius: var(--r-pill); background: var(--surface-2); }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
+/* Each radio covers its own option, as in .choice.icons: the browser brings it into view on focus and a screen reader's box matches it. */
+.seg .tile { position: relative; display: grid; min-width: 0; }
+.seg .tile input[type="radio"] { inset: 0; width: 100%; height: 100%; margin: 0; }
 .seg label { display: grid; place-items: center; min-height: 44px; border-radius: var(--r-pill); font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .seg input:checked + label { background: var(--primary); color: var(--on-primary); font-weight: 700; }
 .seg input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }

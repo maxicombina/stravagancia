@@ -270,6 +270,14 @@ class StylesheetTests(SimpleTestCase):
         self.assertEqual(self.rule(".seg input:checked + label").get("font-weight"), "700")
         self.assertEqual(self.rule(".seg input:focus-visible + label").get("outline"), "3px solid var(--focus)")
 
+    def test_each_radio_of_the_segmented_choice_covers_its_own_label(self):
+        # Out of sight, but it is what a screen reader outlines and what the browser brings into view on focusing it.
+        # The rule has to outweigh `.page input[type="radio"]`, which comes later and sets 20 px.
+        self.assertEqual(self.rule(".seg .tile").get("position"), "relative")
+        radio = self.rule('.seg .tile input[type="radio"]')
+        self.assertEqual({name: radio.get(name) for name in ("inset", "width", "height", "margin")},
+                         {"inset": "0", "width": "100%", "height": "100%", "margin": "0"})
+
     def test_the_switch_paints_with_the_pairs_that_were_checked(self):
         # Spec §3.2: pairs 13, 15, 25 and 36, the four contrasts of the switch.
         self.assertEqual(self.rule(".sw").get("background"), "var(--field)")

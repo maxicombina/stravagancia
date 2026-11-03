@@ -30,9 +30,9 @@
   {% client_theme as theme %}<form method="post" action="{% url 'garage:appearance' %}" class="form" data-theme-form autocomplete="off">{% csrf_token %}
     <input type="hidden" name="next" value="{% url 'garage:more' %}">
     <fieldset class="seg"><legend class="sr-only">Apariencia</legend>
-      <input type="radio" name="theme" id="theme-auto" value="auto"{% if not theme %} checked{% endif %}><label for="theme-auto">Automático</label>
-      <input type="radio" name="theme" id="theme-light" value="light"{% if theme == "light" %} checked{% endif %}><label for="theme-light">Claro</label>
-      <input type="radio" name="theme" id="theme-dark" value="dark"{% if theme == "dark" %} checked{% endif %}><label for="theme-dark">Oscuro</label>
+      <span class="tile"><input type="radio" name="theme" id="theme-auto" value="auto"{% if not theme %} checked{% endif %}><label for="theme-auto">Automático</label></span>
+      <span class="tile"><input type="radio" name="theme" id="theme-light" value="light"{% if theme == "light" %} checked{% endif %}><label for="theme-light">Claro</label></span>
+      <span class="tile"><input type="radio" name="theme" id="theme-dark" value="dark"{% if theme == "dark" %} checked{% endif %}><label for="theme-dark">Oscuro</label></span>
     </fieldset>
     <button type="submit" class="btn" data-theme-save>Guardar</button>
   </form>

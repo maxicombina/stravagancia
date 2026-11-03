@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Garage, dirección visual 3: Telemetría. Maqueta navegable con datos ficticios.">
+<title>Garaje · Garage · Telemetría</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<script>
+/* Tema antes de pintar, para no parpadear. ?tema=claro|oscuro lo fuerza sin guardarlo; ?tema=sistema borra lo guardado. */
+(function () {
+  var KEY = 'garage-telemetria-tema', root = document.documentElement, q = null, t = null;
+  try { q = new URLSearchParams(location.search).get('tema'); } catch (e) {}
+  try {
+    if (q === 'sistema') localStorage.removeItem(KEY);
+    t = (q === 'claro' || q === 'oscuro') ? q : localStorage.getItem(KEY);
+  } catch (e) { t = (q === 'claro' || q === 'oscuro') ? q : null; }
+  if (t === 'claro' || t === 'oscuro') root.setAttribute('data-tema', t);
+})();
+</script>
+<style>
+/* Garage · dirección 3 «Telemetría».
+   Oscuro es el diseño de referencia y el modo por defecto si el sistema no pide claro.
+   Pantallas = <section class="screen" id> mostradas con :target (sin JS). Rejilla de 12 columnas desde 768 px. */
+
+/* ===== Tokens ===== */
+:root {
+  /* tokens:oscuro:inicio */
+  --bg: #0e1311;
+  --panel: #151b18;
+  --panel-2: #1c2420;
+  --field: #111714;
+  --rule: #28332e;
+  --rule-strong: #6d8077;
+  --track: #27322d;
+  --ink: #e2ece6;
+  --ink-2: #9db5a8;
+  --due: #ff6a5c;
+  --due-t: #ff8a7e;
+  --soon: #f2ad2e;
+  --soon-t: #f6bf55;
+  --ok: #3fcf7f;
+  --ok-t: #62dc98;
+  --prog: #35b4e6;
+  --prog-t: #6fcaef;
+  --nodata: #83978d;
+  --nodata-t: #9db5a8;
+  /* tokens:oscuro:fin */
+  color-scheme: dark;
+
+  /* Respaldo: condensadas del sistema que sí existen (Avenir Next Condensed en iOS/macOS, sans-serif-condensed en Android),
+     después system-ui. La maqueta se prueba también sólo con system-ui (el caso más ancho). */
+  --f-ui: "IBM Plex Sans Condensed", "Avenir Next Condensed", "sans-serif-condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  /* Escala tipográfica (px): 12 · 13 · 15 · 18 · 22/28 · cifras 20 · 26 · 40 */
+  --t-xs: 12px; --t-sm: 13px; --t-md: 15px; --t-lg: 18px; --t-xl: 22px;
+  --n-md: 20px; --n-lg: 24px; --n-xl: 38px;
+  /* Espaciado base 4 */
+  --s1: 2px; --s2: 4px; --s3: 8px; --s4: 12px; --s5: 16px; --s6: 24px; --s7: 32px;
+  /* Radio único: 0. Todo es rectangular, como un panel de instrumentos (ni chips ni botones redondeados). */
+  --r0: 0;
+  --topbar: 48px; --tabbar: 58px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-tema="oscuro"]) {
+    /* tokens:claro:inicio */
+    --bg: #e3e9e6;
+    --panel: #f8fbf9;
+    --panel-2: #eff3f1;
+    --field: #ffffff;
+    --rule: #cfd8d3;
+    --rule-strong: #6b7a72;
+    --track: #dbe3df;
+    --ink: #0c120f;
+    --ink-2: #45544c;
+    --due: #c9281e;
+    --due-t: #ab2018;
+    --soon: #a46800;
+    --soon-t: #7e5000;
+    --ok: #14793b;
+    --ok-t: #0f6630;
+    --prog: #0a6a9c;
+    --prog-t: #085a85;
+    --nodata: #66756d;
+    --nodata-t: #45544c;
+    /* tokens:claro:fin */
+    color-scheme: light;
+  }
+}
+:root[data-tema="claro"] {
+  --bg: #e3e9e6; --panel: #f8fbf9; --panel-2: #eff3f1; --field: #ffffff; --rule: #cfd8d3; --rule-strong: #6b7a72; --track: #dbe3df; --ink: #0c120f; --ink-2: #45544c;
+  --due: #c9281e; --due-t: #ab2018; --soon: #a46800; --soon-t: #7e5000; --ok: #14793b; --ok-t: #0f6630; --prog: #0a6a9c; --prog-t: #085a85; --nodata: #66756d; --nodata-t: #45544c;
+  color-scheme: light;
+}
+@media (min-width: 1280px) { :root { --t-xl: 28px; --n-lg: 28px; --n-xl: 44px; } }
+
+.st-due { --c: var(--due); --ct: var(--due-t); }
+.st-soon, .st-review { --c: var(--soon); --ct: var(--soon-t); }
+.st-ok { --c: var(--ok); --ct: var(--ok-t); }
+.st-prog { --c: var(--prog); --ct: var(--prog-t); }
+.st-nodata { --c: var(--nodata); --ct: var(--nodata-t); }
+
+/* ===== Base ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 var(--t-md)/1.4 var(--f-ui); font-variant-numeric: tabular-nums; }
+h1, h2, h3, p, dl, dd, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+a { color: var(--ink); text-decoration-color: var(--ink-2); text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; margin: -1px; padding: 0; border: 0; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; flex: none; vertical-align: middle; }
+.ic.s { width: 14px; height: 14px; stroke-width: 1.7; }
+.n, .num, .mono { font-family: var(--f-num); font-variant-numeric: tabular-nums slashed-zero; }
+.lbl, .tbl th, .pnl-h h2, .eyebrow { font-variant-caps: all-small-caps; letter-spacing: .07em; font-weight: 600; }
+
+/* Visibilidad por tamaño: lt-md (<768), md-up (≥768), lg-up (≥1280), lt-lg (<1280) */
+@media (max-width: 767.98px) { .md-up { display: none !important; } }
+@media (min-width: 768px) { .lt-md { display: none !important; } }
+@media (max-width: 1279.98px) { .lg-up { display: none !important; } }
+@media (min-width: 1280px) { .lt-lg { display: none !important; } }
+
+/* ===== Marco: barra superior, navegación, contenido ===== */
+.topbar { position: sticky; top: 0; z-index: 6; height: var(--topbar); display: flex; align-items: center; gap: var(--s2);
+  padding: 0 var(--s2) 0 var(--s4); background: var(--panel); border-bottom: 1px solid var(--rule); padding-top: env(safe-area-inset-top, 0px); box-sizing: content-box; }
+.brand { display: inline-flex; align-items: center; gap: var(--s3); min-height: 44px; text-decoration: none; color: var(--ink);
+  font: 600 14px/1 var(--f-num); letter-spacing: .2em; }
+.brand .mark { width: 22px; height: 22px; }
+.brand small { font: 500 var(--t-xs)/1 var(--f-ui); letter-spacing: .08em; color: var(--ink-2); font-variant-caps: all-small-caps; }
+.topbar .spacer { flex: 1; }
+.tb-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 var(--s3); text-decoration: none; color: var(--ink-2);
+  font: 500 var(--t-sm)/1 var(--f-num); white-space: nowrap; }
+.tb-pill.st-due { color: var(--ct); }
+.tb-pill b { font-weight: 600; }
+.tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 var(--s3);
+  border: 0; background: transparent; color: var(--ink); cursor: pointer; border-radius: var(--r0); font: 500 var(--t-sm)/1 var(--f-ui); }
+
+main { padding-bottom: calc(var(--tabbar) + 24px + env(safe-area-inset-bottom, 0px)); }
+.nav { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--rule); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.nav ul { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: var(--tabbar);
+  color: var(--ink-2); text-decoration: none; font: 500 var(--t-xs)/1.1 var(--f-ui); letter-spacing: .01em; }
+.nav a .ic { width: 22px; height: 22px; }
+.nav a:focus-visible { outline-offset: -4px; }
+.nav a[aria-current="page"],
+body:not(:has(.screen:target)) .nav a[data-tab="garaje"],
+body:has(:is(#garaje, #bici-rallon, #bici-grizl, #pieza-cadena, #pieza-fox38):target) .nav a[data-tab="garaje"],
+body:has(#salidas:target) .nav a[data-tab="salidas"],
+body:has(:is(#taller, #registrar):target) .nav a[data-tab="taller"],
+body:has(#estadisticas:target) .nav a[data-tab="estadisticas"],
+body:has(:is(#mas, #material, #strava, #sobre):target) .nav a[data-tab="mas"] { color: var(--ink); font-weight: 700; }
+.nav a[aria-current="page"]::before,
+body:not(:has(.screen:target)) .nav a[data-tab="garaje"]::before,
+body:has(:is(#garaje, #bici-rallon, #bici-grizl, #pieza-cadena, #pieza-fox38):target) .nav a[data-tab="garaje"]::before,
+body:has(#salidas:target) .nav a[data-tab="salidas"]::before,
+body:has(:is(#taller, #registrar):target) .nav a[data-tab="taller"]::before,
+body:has(#estadisticas:target) .nav a[data-tab="estadisticas"]::before,
+body:has(:is(#mas, #material, #strava, #sobre):target) .nav a[data-tab="mas"]::before {
+  content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 3px; background: var(--ink); }
+
+@media (min-width: 768px) {
+  body { display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; }
+  .topbar { grid-column: 1 / -1; grid-row: 1; padding-left: var(--s5); }
+  .nav { grid-column: 1; grid-row: 2; position: sticky; top: calc(var(--topbar) + 1px); align-self: start; height: calc(100vh - var(--topbar) - 1px);
+    border-top: 0; border-right: 1px solid var(--rule); padding: var(--s3) 0; }
+  .nav ul { grid-template-columns: 1fr; gap: var(--s1); }
+  .nav a { min-height: 68px; }
+  .nav a[aria-current="page"]::before,
+  body:not(:has(.screen:target)) .nav a[data-tab="garaje"]::before,
+  body:has(:is(#garaje, #bici-rallon, #bici-grizl, #pieza-cadena, #pieza-fox38):target) .nav a[data-tab="garaje"]::before,
+  body:has(#salidas:target) .nav a[data-tab="salidas"]::before,
+  body:has(:is(#taller, #registrar):target) .nav a[data-tab="taller"]::before,
+  body:has(#estadisticas:target) .nav a[data-tab="estadisticas"]::before,
+  body:has(:is(#mas, #material, #strava, #sobre):target) .nav a[data-tab="mas"]::before { top: 14px; bottom: 14px; left: 0; right: auto; width: 3px; height: auto; }
+  main { grid-column: 2; grid-row: 2; padding: 0 var(--s5) var(--s7); min-width: 0; }
+}
+@media (min-width: 1280px) {
+  body { grid-template-columns: 216px minmax(0, 1fr); }
+  .nav a { flex-direction: row; justify-content: flex-start; gap: var(--s4); min-height: 48px; padding: 0 var(--s5) 0 var(--s6); font-size: var(--t-md); }
+  .nav a[aria-current="page"], body:not(:has(.screen:target)) .nav a[data-tab="garaje"] { background: var(--panel-2); }
+  .nav a[aria-current="page"]::before,
+  body:not(:has(.screen:target)) .nav a[data-tab="garaje"]::before,
+  body:has(:is(#garaje, #bici-rallon, #bici-grizl, #pieza-cadena, #pieza-fox38):target) .nav a[data-tab="garaje"]::before,
+  body:has(#salidas:target) .nav a[data-tab="salidas"]::before,
+  body:has(:is(#taller, #registrar):target) .nav a[data-tab="taller"]::before,
+  body:has(#estadisticas:target) .nav a[data-tab="estadisticas"]::before,
+  body:has(:is(#mas, #material, #strava, #sobre):target) .nav a[data-tab="mas"]::before { top: 8px; bottom: 8px; }
+  .nav .nav-foot { display: block; }
+  main { padding: 0 var(--s6) var(--s7); }
+}
+.nav-foot { display: none; margin: var(--s6) var(--s6) 0; padding-top: var(--s4); border-top: 1px solid var(--rule); color: var(--ink-2); font-size: var(--t-sm); }
+.nav-foot dt { margin-top: var(--s3); }
+.nav-foot dd { font: 500 var(--t-sm) var(--f-num); color: var(--ink); }
+
+/* Pantallas */
+.screen { display: none; scroll-margin-top: calc(var(--topbar) + 8px); }
+.screen:target, main:not(:has(> .screen:target)) > #garaje { display: block; }
+.scr-h { display: grid; gap: var(--s1); padding: var(--s4) var(--s4) var(--s4); }
+.scr-h h1 { font: 600 var(--t-xl)/1.12 var(--f-ui); letter-spacing: -.01em; text-wrap: balance; }
+.scr-h h1:focus { outline: none; }
+.scr-h h1:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.eyebrow { font-size: var(--t-md); color: var(--ink-2); }
+.meta { font-size: var(--t-sm); color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.back { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin: calc(-1 * var(--s3)) 0 calc(-1 * var(--s2)) -6px; padding-right: var(--s3);
+  color: var(--ink-2); text-decoration: none; font-size: var(--t-md); width: max-content; }
+.back:hover { color: var(--ink); }
+.scr-a { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
+@media (min-width: 768px) {
+  .scr-h { padding: var(--s5) 0 var(--s4); grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s5); align-items: end; }
+  .scr-h > * { grid-column: 1; }
+  .scr-h .scr-a { grid-column: 2; grid-row: 1 / span 4; margin: 0; align-self: end; }
+}
+
+/* Rejilla de paneles */
+.grid { display: grid; gap: var(--s3); }
+@media (min-width: 768px) {
+  .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--s4); }
+  .grid > * { grid-column: span 12; }
+  .grid > .md6 { grid-column: span 6; }
+}
+@media (min-width: 1280px) {
+  .grid { gap: var(--s5); }
+  .grid > .lg3 { grid-column: span 3; } .grid > .lg4 { grid-column: span 4; } .grid > .lg5 { grid-column: span 5; }
+  .grid > .lg6 { grid-column: span 6; } .grid > .lg7 { grid-column: span 7; } .grid > .lg8 { grid-column: span 8; }
+  .grid > .lg12 { grid-column: span 12; }
+  .grid > .lg-r2 { grid-row: span 2; } .grid > .lg-r3 { grid-row: span 3; }
+  .grid > .lg-o3 { order: 3; } .grid > .lg-o4 { order: 4; }
+}
+@media (min-width: 1680px) {
+  .grid > .xl4 { grid-column: span 4; } .grid > .xl8 { grid-column: span 8; } .grid > .xl-r2 { grid-row: span 2; }
+}
+
+/* Paneles */
+.pnl { background: var(--panel); border-block: 1px solid var(--rule); min-width: 0; align-self: start; }
+@media (min-width: 768px) { .pnl { border: 1px solid var(--rule); border-radius: var(--r0); } }
+.pnl-h { display: flex; align-items: center; gap: var(--s3); min-height: 44px; padding: 0 var(--s4); border-bottom: 1px solid var(--rule); }
+.pnl-h h2 { font-size: var(--t-lg); line-height: 1.1; color: var(--ink); flex: 1 0 auto; max-width: 100%; }
+.pnl-h .pnl-m { font: 500 var(--t-sm)/1.2 var(--f-num); color: var(--ink-2); flex: 0 1 auto; min-width: 0; text-align: right; }
+.pnl-a { display: inline-flex; align-items: center; justify-content: flex-end; min-height: 44px; min-width: 44px; padding-left: var(--s3); font-size: var(--t-sm); color: var(--ink); white-space: nowrap; }
+.pnl-b { padding: var(--s4); display: grid; gap: var(--s4); }
+.pnl-f { display: flex; flex-wrap: wrap; gap: 0 var(--s5); padding: 0 var(--s4); border-top: 1px solid var(--rule); }
+.pnl-f a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: var(--t-sm); }
+.note { font-size: var(--t-sm); color: var(--ink-2); }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); padding: var(--s3) var(--s4); font-size: var(--t-xs); color: var(--ink-2); border-top: 1px solid var(--rule); }
+.legend .bar { width: 120px; margin: 0; }
+
+/* KPIs: rejilla de líneas finas */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--rule); }
+.kpis.k3, .kpis.k6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { background: var(--panel); padding: var(--s3) var(--s4) var(--s4); display: grid; gap: var(--s1); align-content: start; min-width: 0; }
+.kpi dt, .kpi .lbl { font-size: var(--t-md); color: var(--ink-2); line-height: 1.15; }
+.kpi .v { font: 500 var(--n-md)/1.1 var(--f-num); letter-spacing: -.02em; white-space: nowrap; }
+.kpi .v small { font: 500 var(--t-sm) var(--f-ui); color: var(--ink-2); letter-spacing: 0; margin-left: 3px; }
+.kpi .d { font-size: var(--t-xs); color: var(--ink-2); }
+.kpi[class*="st-"] .v { color: var(--ct); }
+.kpi[class*="st-"] { box-shadow: inset 0 3px 0 var(--c); }
+@media (min-width: 768px) {
+  .kpis.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpis.k5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .kpi .v { font-size: var(--n-lg); }
+}
+@media (min-width: 1280px) { .kpis.k6 { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 767.98px) { .kpis.k5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .kpis.k5 > :last-child { grid-column: span 2; } }
+
+/* Señal de estado: palabra + icono + color */
+.st { display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px 2px 4px; border: 1px solid currentColor; border-radius: var(--r0);
+  color: var(--ct); font: 600 var(--t-xs)/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.st .ic { width: 14px; height: 14px; stroke-width: 1.7; }
+.lc { display: inline-flex; align-items: center; padding: 1px 6px; border: 1px solid var(--rule-strong); border-radius: var(--r0); color: var(--ink);
+  font: 500 var(--t-xs)/1.25 var(--f-ui); letter-spacing: .04em; white-space: nowrap; }
+.lc.disp { border-style: dashed; }
+.lc.uso { border-style: dotted; border-width: 2px; padding: 0 5px; }
+.lc.ret { color: var(--ink-2); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* Barra de desgaste: escala 0–125 %; marca fina = aviso (90 %), marca gruesa = umbral (100 %) */
+.bar { position: relative; display: block; height: 6px; background: var(--track); border-radius: var(--r0); margin: 6px 0 4px; }
+.bar > i { position: absolute; inset: 0 auto 0 0; width: calc(min(var(--v), 125) * .8%); background: var(--c, var(--ink-2)); }
+.bar::before, .bar::after { content: ""; position: absolute; z-index: 1; top: -4px; bottom: -4px; width: 1px; background: var(--ink-2); left: 72%; }
+.bar::after { left: 80%; width: 2px; background: var(--ink); }
+.bar.plain::before, .bar.plain::after { display: none; }
+.bar.plain > i { width: calc(var(--v) * 1%); }
+.st-nodata .bar { background: repeating-linear-gradient(135deg, var(--nodata) 0 2px, transparent 2px 5px); outline: 1px solid var(--nodata); }
+.bar.xl { height: 14px; margin: 14px 0 6px; }
+.bar.xl::before, .bar.xl::after { top: -6px; bottom: -6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .screen:target .bar > i, main:not(:has(> .screen:target)) > #garaje .bar > i { animation: llenar .45s cubic-bezier(.2, .7, .2, 1) both; transform-origin: left; }
+  @keyframes llenar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .nav a, .tbl tbody tr, .btn { transition: background-color .12s, color .12s; }
+}
+
+/* Tablas */
+.tbl-wrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: var(--t-md); }
+.tbl th { text-align: left; font-size: var(--t-md); color: var(--ink-2); padding: 6px var(--s3); border-bottom: 1px solid var(--rule); white-space: nowrap; line-height: 1.1; }
+.tbl td { padding: var(--s3); border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.tbl tr > :first-child { padding-left: var(--s4); }
+.tbl tr > :last-child { padding-right: var(--s4); }
+.tbl tbody:last-of-type tr:last-child > * { border-bottom: 0; }
+.tbl tbody tr:hover { background: var(--panel-2); }
+.tbl .num { text-align: right; white-space: nowrap; font-size: var(--t-sm); }
+.tbl th.num { font-family: var(--f-ui); font-size: var(--t-md); }
+.tbl tr[class*="st-"] > :first-child { box-shadow: inset 3px 0 0 var(--c); }
+@media (max-width: 767.98px) {
+  .tbl tr > .md-up:first-child + * { padding-left: var(--s4); }
+  .tbl tr[class*="st-"] > .md-up:first-child + * { box-shadow: inset 3px 0 0 var(--c); }
+}
+.tbl .pct b { display: block; font: 600 var(--t-md)/1.2 var(--f-num); color: var(--ink); }
+.tbl .pct span { display: block; font-size: var(--t-xs); color: var(--ink-2); }
+.tbl .mg { font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; }
+.tbl tr.st-due .mg b { color: var(--ct); font-weight: 600; }
+.tbl tfoot td, .tbl tfoot th { border-top: 1px solid var(--rule-strong); border-bottom: 0; font-weight: 600; color: var(--ink); }
+.tbl tbody tr.grp th { background: var(--panel-2); color: var(--ct, var(--ink)); font-size: var(--t-md); padding-top: 4px; padding-bottom: 4px; }
+.tbl tbody tr.grp th .ic { margin-right: 4px; }
+.tbl tbody tr.grp:hover { background: none; }
+.part { min-width: 0; width: 100%; }
+.nm { display: block; min-height: 44px; padding: 2px 0; text-decoration: none; color: var(--ink); }
+.nm b { font-weight: 600; display: inline; }
+a.nm:hover b { text-decoration: underline; text-decoration-color: var(--ink-2); }
+.nm .go { width: 14px; height: 14px; margin-left: 2px; color: var(--ink-2); stroke-width: 2; vertical-align: -1px; }
+.sub { display: block; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.3; }
+.mrow { display: flex; align-items: center; gap: var(--s3); }
+.mrow .bar { flex: 1; min-width: 60px; }
+.tbl tr.nested > td.part { padding-left: 34px !important; position: relative; }
+.tbl tr.nested > td.part::before { content: ""; position: absolute; left: 18px; top: 0; height: 22px; width: 10px; border-left: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+.off { color: var(--ink-2); }
+.kmbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s3); }
+.kmbar .bar { margin: 0; --c: var(--ink-2); }
+.tbl td.date { white-space: nowrap; font-size: var(--t-sm); }
+.tbl td.lg-up, .tbl td.md-up { white-space: nowrap; }
+.tbl td.wrap { white-space: normal; }
+
+/* ===== Móvil (< 768 px): densidad =====
+   Fila de regla en 2 líneas (~54 px): nombre | barra + %; estado (icono + palabra) · regla | uso/umbral.
+   Los KPI de cabecera pasan a una tira de lectura en línea. */
+.stw { display: inline-flex; align-items: center; gap: 3px; color: var(--ct, var(--ink-2)); font: 600 var(--t-xs)/1 var(--f-ui); letter-spacing: .04em; text-transform: uppercase; vertical-align: -1px; }
+.stw .ic { width: 13px; height: 13px; stroke-width: 1.8; }
+.stw.nr { color: var(--ink-2); font-weight: 500; text-transform: none; letter-spacing: 0; }
+.sw-st .lc { padding: 0 5px; font-size: 11.5px; vertical-align: 1px; }
+.sep { color: var(--ink-2); }
+.tbl .pct .pv { display: flex; align-items: center; justify-content: flex-end; gap: var(--s3); }
+.pv .bar { width: 64px; margin: 0; flex: none; }
+.tbl td.fx { line-height: 1.6; }
+@media (max-width: 767.98px) {
+  .tbl td { padding: 7px var(--s3); }
+  .tbl th { padding: 5px var(--s3); }
+  .tbl td.part { max-width: 0; }
+  .tbl td.part .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nm { min-height: 0; padding: 0; }
+  a.nm { margin: -7px 0; padding: 7px 0; }
+  .tbl .pct > span:not(.pv) { font-size: var(--t-xs); margin-top: 1px; }
+  .tbl .st { padding: 1px 4px 1px 3px; gap: 3px; letter-spacing: .03em; }
+  .kpis, .kpis.k3, .kpis.k4, .kpis.k5, .kpis.k6 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--s5); padding: var(--s3) var(--s4); background: var(--panel); }
+  .kpi, .kpis.k5 > :last-child { display: flex; align-items: baseline; gap: 5px; padding: 0; background: none; }
+  .kpis .kpi[class*="st-"] { box-shadow: inset 3px 0 0 var(--c); padding-left: 8px; }
+  .pnl-h .pnl-m { font-family: var(--f-ui); }
+  .kpi dt, .kpi .lbl { font-size: var(--t-sm); }
+  .kpi .v { font-size: 17px; }
+  .kpi .v small { font-size: var(--t-xs); margin-left: 2px; }
+  .kpi .d { font-size: var(--t-xs); }
+  .kpis.strip .kpi .d { display: none; }
+  .scr-h.inl { grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s3); align-items: end; }
+  .scr-h.inl > * { grid-column: 1; }
+  .scr-h.inl .eyebrow { grid-column: 1 / -1; }
+  .scr-h.inl .scr-a { grid-column: 2; grid-row: 2; margin: 0; }
+  .seg { padding: var(--s3); }
+  .seg label { font-size: var(--t-sm); letter-spacing: -.01em; padding: 4px 1px; }
+  .sr-lt-md { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; margin: -1px; padding: 0; border: 0; }
+}
+
+/* Botones y formularios */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s3); min-height: 44px; padding: 0 var(--s5); border: 1px solid var(--ink);
+  border-radius: var(--r0); background: var(--ink); color: var(--bg); font: 600 var(--t-md)/1 var(--f-ui); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--ink-2); border-color: var(--ink-2); }
+.btn.sec { background: transparent; color: var(--ink); border-color: var(--rule-strong); }
+.btn.sec:hover { background: var(--panel-2); }
+.form { display: grid; gap: var(--s4); padding: var(--s4); }
+.form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s4); min-width: 0; }
+.form legend { padding: 0; margin-bottom: var(--s3); font-size: var(--t-lg); color: var(--ink); }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
+.fld { display: grid; gap: var(--s2); min-width: 0; }
+.fld > label, .fld > .flbl { font-weight: 600; font-size: var(--t-md); }
+.fld .hint { font-size: var(--t-sm); color: var(--ink-2); }
+.form input:not([type="checkbox"]):not([type="radio"]), .form select, .form textarea, .tbl select {
+  width: 100%; min-height: 44px; padding: 8px 10px; font: 400 16px/1.3 var(--f-ui); color: var(--ink); background: var(--field);
+  border: 1px solid var(--rule-strong); border-radius: var(--r0); }
+.form input.mono { font-family: var(--f-num); }
+.form textarea { min-height: 88px; resize: vertical; }
+.chk { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: var(--s3); min-height: 48px; padding: var(--s2) 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.chk:last-child { border-bottom: 0; }
+.chk input { width: 20px; height: 20px; margin: 0; accent-color: var(--ink); }
+.row-act { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s4); }
+.row-act > .fld { flex: 1 1 150px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: var(--s3); padding: var(--s4); border-top: 1px solid var(--rule); }
+
+/* Filtro segmentado (radios, sin JS) */
+.seg { border: 0; margin: 0; padding: var(--s3) var(--s4); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
+.seg label { display: grid; place-items: center; align-content: center; gap: 1px; min-height: 48px; padding: 4px 2px; border: 1px solid var(--rule-strong);
+  margin-left: -1px; cursor: pointer; font-size: var(--t-sm); font-weight: 600; text-align: center; line-height: 1.1; }
+.seg label:first-of-type { margin-left: 0; border-radius: var(--r0) 0 0 var(--r0); }
+.seg label:last-of-type { border-radius: 0 var(--r0) var(--r0) 0; }
+.seg label .n { font-size: var(--t-xs); font-weight: 500; color: var(--ink-2); }
+.seg input:checked + label { background: var(--ink); color: var(--bg); border-color: var(--ink); position: relative; z-index: 1; }
+.seg input:checked + label .n { color: var(--bg); }
+.seg input:focus-visible + label { outline: 2px solid var(--ink); outline-offset: 2px; position: relative; z-index: 2; }
+@media (min-width: 768px) { .seg { display: flex; } .seg label { grid-auto-flow: column; gap: 6px; padding: 0 var(--s4); } }
+#material:has(#f-montado:checked) .mat tbody tr:not([data-ciclo="montado"]),
+#material:has(#f-disponible:checked) .mat tbody tr:not([data-ciclo="disponible"]),
+#material:has(#f-uso:checked) .mat tbody tr:not([data-ciclo="uso"]),
+#material:has(#f-retirado:checked) .mat tbody tr:not([data-ciclo="retirado"]) { display: none; }
+
+/* Lectura grande (ficha) */
+.ro { padding: var(--s4); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1) var(--s4); align-items: end; }
+.ro-v { font: 500 var(--n-xl)/1 var(--f-num); letter-spacing: -.03em; }
+.ro-v small, .ro-p small { font: 500 var(--t-md) var(--f-num); color: var(--ink-2); letter-spacing: 0; margin-left: 4px; }
+.ro-p small { display: block; margin: 4px 0 0; font-size: var(--t-xs); }
+.ro-p { font: 600 var(--n-lg)/1 var(--f-num); text-align: right; color: var(--ct); }
+.ro .bar, .ro-scale, .ro-note, .ro-st { grid-column: 1 / -1; }
+.ro-scale { position: relative; height: 34px; font: 500 var(--t-xs)/1 var(--f-num); color: var(--ink-2); }
+.ro-scale span { position: absolute; top: 2px; white-space: nowrap; }
+.ro-scale .t0 { left: 0; } .ro-scale .t90 { right: 28%; padding-right: 6px; } .ro-scale .t100 { top: 18px; right: 20%; padding-right: 6px; color: var(--ink); }
+.ro-note { font-size: var(--t-md); color: var(--ink-2); }
+.ro-note b { color: var(--ink); font-weight: 600; }
+
+/* Menú (Más) */
+.menu li + li { border-top: 1px solid var(--rule); }
+.menu a, .menu .mi { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: var(--s4); min-height: 52px; padding: var(--s2) var(--s4);
+  color: var(--ink); text-decoration: none; }
+.menu a:hover { background: var(--panel-2); }
+.menu small { display: block; font-size: var(--t-sm); color: var(--ink-2); }
+.menu .mi { color: var(--ink-2); }
+.menu .tag { font: 500 var(--t-xs) var(--f-num); color: var(--ink-2); }
+
+/* Sobre esta dirección */
+.sw { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--rule-strong); vertical-align: -4px; margin-right: 6px; }
+.tok td, .tok th { font-size: var(--t-sm); }
+.tok th, .tbl tfoot th { white-space: normal; }
+.tok code { font: 500 var(--t-xs) var(--f-num); }
+.ok-mark { color: var(--ink); }
+summary { padding: 12px 0; line-height: 20px; cursor: pointer; font-weight: 600; }
+.sw2 { display: inline-block; width: 22px; height: 14px; border: 1px solid var(--rule-strong); vertical-align: -3px; margin-right: 6px; }
+.scale-demo { display: grid; gap: var(--s3); }
+.scale-demo p { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: baseline; gap: var(--s4); }
+.scale-demo code { font: 500 var(--t-xs) var(--f-num); color: var(--ink-2); }
+.rulers { display: grid; gap: var(--s2); }
+.rulers div { display: grid; grid-template-columns: 70px auto; align-items: center; gap: var(--s4); font: 500 var(--t-xs) var(--f-num); color: var(--ink-2); }
+.rulers i { display: block; height: 10px; background: var(--ink); }
+.radii { display: flex; gap: var(--s5); flex-wrap: wrap; }
+.radii div { display: grid; justify-items: center; gap: var(--s2); font: 500 var(--t-xs) var(--f-num); color: var(--ink-2); }
+.radii i { display: block; width: 56px; height: 40px; border: 2px solid var(--ink); }
+.prose { display: grid; gap: var(--s3); font-size: var(--t-md); max-width: 72ch; }
+.prose li { padding-left: 14px; position: relative; }
+.prose li::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; background: var(--ink-2); }
+.prose strong { font-weight: 600; }
+.pnl-b > .prose { padding: 0; }
+.power { padding: var(--s3) var(--s4) var(--s4); font-size: var(--t-sm); color: var(--ink-2); }
+
+@media print { .nav, .topbar { display: none; } }
+</style>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-mark" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M7 16h3M7 12h8M7 8h10" stroke-width="2.4"/></symbol>
+  <symbol id="i-garaje" viewBox="0 0 24 24"><path d="M3 10 12 4l9 6v10H3z"/><path d="M7 20v-7h10v7M7 16.5h10"/></symbol>
+  <symbol id="i-salidas" viewBox="0 0 24 24"><path d="M4 18h3M17 6h3"/><path d="M7 18h8a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h8"/><path d="M2.5 16.5v3M21.5 4.5v3"/></symbol>
+  <symbol id="i-taller" viewBox="0 0 24 24"><path d="M14.5 3.5a5 5 0 0 0-4.3 7.2L3.5 17.4l3.1 3.1 6.7-6.7a5 5 0 0 0 7.2-4.3l-3.1 1.6-2.6-2.6z"/></symbol>
+  <symbol id="i-stats" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 7h9M7 11.5h12M7 16h6" stroke-width="2.6"/></symbol>
+  <symbol id="i-mas" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-tema" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
+  <symbol id="i-luna" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 9A8 8 0 0 0 5 7.5M4.5 15a8 8 0 0 0 14.5 1.5"/><path d="M20 3.5V9h-5.5M4 20.5V15h5.5"/></symbol>
+  <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16 9 9h7l2.5 7M9 9l3.5 7H5.5M8 6h3M15 6h2l-1 3"/></symbol>
+  <symbol id="i-part" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 3h8l10 10-8 8L3 11z"/><path d="M7.5 7.5h.01" stroke-width="3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M7 2.5h10v19H7zM11 18.5h2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M12 10.5V17M12 7v.01" stroke-width="2.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+  <!-- Estados: «pilotos» cuadrados de panel. Encendido (relleno) = Vencido; apagado con marca: ! = Pronto/Revisar,
+       canal con umbral = En curso, visto = Al día; discontinuo con raya = Sin datos (sin señal). -->
+  <symbol id="s-due" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M1.2 1.2h13.6v13.6H1.2zM7 3.6v6h2v-6zM7 11v2h2v-2z"/></symbol>
+  <symbol id="s-soon" viewBox="0 0 16 16"><path d="M2 2h12v12H2z"/><path fill="currentColor" stroke="none" d="M7 4.2h2v5.2H7zM7 10.7h2v1.9H7z"/></symbol>
+  <symbol id="s-prog" viewBox="0 0 16 16"><path d="M2 2h12v12H2z"/><path fill="currentColor" stroke="none" d="M4.2 6.6h5.2v2.8H4.2z"/><path d="M11.6 4.6v6.8" stroke-width="1.4"/></symbol>
+  <symbol id="s-ok" viewBox="0 0 16 16"><path d="M2 2h12v12H2z"/><path d="m4.6 8.2 2.3 2.3 4.5-4.7"/></symbol>
+  <symbol id="s-nodata" viewBox="0 0 16 16"><path d="M2 2h12v12H2z" stroke-dasharray="2.2 1.8"/><path d="M5.2 8h5.6" stroke-width="2"/></symbol>
+</svg>
+
+<header class="topbar">
+  <a class="brand" href="#garaje"><svg class="ic mark" aria-hidden="true"><use href="#i-mark"/></svg>GARAGE <small class="md-up">telemetría</small></a>
+  <span class="spacer"></span>
+  <a class="tb-pill md-up" href="#strava"><svg class="ic s" aria-hidden="true"><use href="#i-sync"/></svg>Strava · hoy 09:05</a>
+  <a class="tb-pill st-due" href="#taller"><svg class="ic s" aria-hidden="true"><use href="#s-due"/></svg><b>3</b> avisos</a>
+  <button class="tb-btn" id="tema" type="button" aria-label="Tema: sistema. Pulsa para cambiar a claro"><svg class="ic" aria-hidden="true"><use href="#i-tema"/></svg><span class="tema-txt md-up">Tema: Sistema</span></button>
+</header>
+
+<main id="contenido">
+
+<!-- ============ GARAJE ============ -->
+<section class="screen" id="garaje" data-tab="garaje" aria-labelledby="h-garaje">
+  <header class="scr-h inl">
+    <p class="eyebrow">Domingo 01/11/2026 · datos de Strava de las 09:05</p>
+    <h1 id="h-garaje" tabindex="-1">Garaje</h1>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-garaje">
+      <h2 id="k-garaje" class="sr-only">Resumen</h2>
+      <dl class="kpis k6 strip">
+        <div class="kpi st-due"><dt>Avisos</dt><dd class="v">3</dd><dd class="d">2 vencidos · 1 pronto</dd></div>
+        <div class="kpi st-review"><dt>Por revisar</dt><dd class="v">1</dd><dd class="d">salida sin bici</dd></div>
+        <div class="kpi st-nodata"><dt>Sin datos</dt><dd class="v">1</dd><dd class="d">regla sin referencia</dd></div>
+        <div class="kpi"><dt>Distancia</dt><dd class="v">6.952<small>km</small></dd><dd class="d">2 bicis</dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">408<small>h</small></dd><dd class="d">en movimiento</dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">119.700<small>m</small></dd><dd class="d">positivo acumulado</dd></div>
+      </dl>
+    </section>
+
+    <section class="pnl lg7" aria-labelledby="g-att">
+      <div class="pnl-h"><h2 id="g-att">Requiere atención</h2><span class="pnl-m">3 avisos · 1 por revisar</span><a class="pnl-a" href="#taller">Taller</a></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Reglas vencidas o próximas y salidas por revisar</caption>
+        <thead><tr><th scope="col" class="md-up">Estado</th><th scope="col">Pieza y regla</th><th scope="col" class="md-up num">Uso / umbral</th><th scope="col" class="num">%</th></tr></thead>
+        <tbody>
+          <tr class="st-due">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><a class="nm" href="#pieza-fox38"><b>Horquilla Fox 38 Factory</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Servicio 50&nbsp;h · Orbea Rallon</span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:116"></i></span></span></td>
+            <td class="md-up num">58 / 50&nbsp;h</td>
+            <td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:116"></i></span><b>116&nbsp;%</b></span><span class="lt-md">58/50&nbsp;h</span></td>
+          </tr>
+          <tr class="st-due">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><span class="nm"><b>Líquido tubeless</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Agregar 30&nbsp;ml cada 60 días · en Maxxis Assegai</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:115"></i></span></span></td>
+            <td class="md-up num">69 / 60 días</td>
+            <td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:115"></i></span><b>115&nbsp;%</b></span><span class="lt-md">69/60 días</span></td>
+          </tr>
+          <tr class="st-soon">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span></td>
+            <td class="part"><a class="nm" href="#pieza-cadena"><b>Cadena SRAM GX Eagle</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 2.000&nbsp;km · Orbea Rallon</span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:93"></i></span></span></td>
+            <td class="md-up num">1.860 / 2.000&nbsp;km</td>
+            <td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:93"></i></span><b>93&nbsp;%</b></span><span class="lt-md">1.860/2.000</span></td>
+          </tr>
+          <tr class="st-review">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Revisar</span></td>
+            <td class="part"><a class="nm" href="#salidas"><b>Rodillo Z2</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Revisar</span><span class="sep" aria-hidden="true"> · </span></span>Salida sin bici · sáb 24/10 · Strava</span></a></td>
+            <td class="md-up num">30&nbsp;km</td>
+            <td class="num pct"><b>—</b><span class="lt-md">30&nbsp;km</span></td>
+          </tr>
+        </tbody>
+      </table></div>
+      <div class="pnl-f"><a href="#taller"><svg class="ic s" aria-hidden="true"><use href="#s-nodata"/></svg>1 regla sin datos: Bujes y rodamientos</a></div>
+      <p class="legend"><span class="bar" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:60"></i></span>Escala hasta 125&nbsp;%: marca fina = aviso (90&nbsp;%), marca gruesa = umbral (100&nbsp;%).</p>
+    </section>
+
+    <section class="pnl lg5 md6" aria-labelledby="g-bikes">
+      <div class="pnl-h"><h2 id="g-bikes">Bicis</h2><span class="pnl-m">2</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Bicis con distancia, tiempo, desnivel y avisos</caption>
+        <thead><tr><th scope="col">Bici</th><th scope="col" class="num">km</th><th scope="col" class="md-up num">h</th><th scope="col" class="lg-up num">↑ m</th></tr></thead>
+        <tbody>
+          <tr class="st-due">
+            <td class="part"><a class="nm" href="#bici-rallon"><b>Orbea Rallon</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>3 avisos</span><span class="sep" aria-hidden="true"> · </span></span>Enduro<span class="lt-lg"> · ↑ 98.400&nbsp;m</span></span></a>
+              <span class="mrow md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>3 avisos</span></span></td>
+            <td class="num pct"><b>4.812</b><span class="lt-md">312&nbsp;h</span></td>
+            <td class="md-up num">312</td>
+            <td class="lg-up num">98.400</td>
+          </tr>
+          <tr class="st-ok">
+            <td class="part"><a class="nm" href="#bici-grizl"><b>Canyon Grizl</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Gravel<span class="lt-lg"> · ↑ 21.300&nbsp;m</span></span></a>
+              <span class="mrow md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></span></td>
+            <td class="num pct"><b>2.140</b><span class="lt-md">96&nbsp;h</span></td>
+            <td class="md-up num">96</td>
+            <td class="lg-up num">21.300</td>
+          </tr>
+        </tbody>
+      </table></div>
+      <div class="pnl-b">
+        <div>
+          <p class="note">Reparto de km: Rallon 69&nbsp;% · Grizl 31&nbsp;%</p>
+          <span class="bar plain" aria-hidden="true" style="--c:var(--ink)"><i style="--v:69.2"></i></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="pnl lg5 md6 lg-o4" aria-labelledby="g-gear">
+      <div class="pnl-h"><h2 id="g-gear">Sin montar y equipación</h2><a class="pnl-a" href="#material">Material</a></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Material sin montar y equipación</caption>
+        <thead><tr><th scope="col">Pieza</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Cadena SRAM GX Eagle</b><span class="sub"><span class="lt-md sw-st"><span class="lc disp">Disponible · sin estrenar</span><span class="sep" aria-hidden="true"> · </span></span>Repuesto · comprada el 20/10/2026</span></span><span class="md-up lc disp">Disponible · sin estrenar</span></td><td class="num">0</td></tr>
+          <tr><td class="part"><span class="nm"><b>Pastillas Magura 9.P</b><span class="sub"><span class="lt-md sw-st"><span class="lc disp">Disponible</span><span class="sep" aria-hidden="true"> · </span></span>Desmontadas el 20/07/2026</span></span><span class="md-up lc disp">Disponible</span></td><td class="num">310</td></tr>
+          <tr><td class="part"><span class="nm"><b>Casco Bell</b><span class="sub"><span class="lt-md sw-st"><span class="lc uso">En uso</span><span class="sep" aria-hidden="true"> · </span></span>Perfil de uso «Montaña»</span></span><span class="md-up lc uso">En uso</span></td><td class="num">1.240</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="pnl lg7 lg-o3" aria-labelledby="g-rides">
+      <div class="pnl-h"><h2 id="g-rides">Últimas salidas</h2><a class="pnl-a" href="#salidas">Salidas</a></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Últimas salidas</caption>
+        <thead><tr><th scope="col" class="md-up">Fecha</th><th scope="col">Salida</th><th scope="col" class="num">km</th><th scope="col" class="md-up num">Tiempo</th><th scope="col" class="md-up num">↑ m</th></tr></thead>
+        <tbody>
+          <tr><td class="md-up date mono">31/10</td><td class="part"><span class="nm"><b>Vuelta por Collserola</b><span class="sub"><span class="lt-md">sáb 31/10 · </span>Orbea Rallon</span></span></td><td class="num pct"><b>38,2</b><span class="lt-md">2:41 · ↑1.120</span></td><td class="md-up num">2:41</td><td class="md-up num">1.120</td></tr>
+          <tr><td class="md-up date mono">29/10</td><td class="part"><span class="nm"><b>Gravel al pantano</b><span class="sub"><span class="lt-md">jue 29/10 · </span>Canyon Grizl</span></span></td><td class="num pct"><b>72,5</b><span class="lt-md">3:05 · ↑640</span></td><td class="md-up num">3:05</td><td class="md-up num">640</td></tr>
+          <tr><td class="md-up date mono">26/10</td><td class="part"><span class="nm"><b>Enduro Montseny</b><span class="sub"><span class="lt-md">lun 26/10 · </span>Orbea Rallon</span></span></td><td class="num pct"><b>24,8</b><span class="lt-md">2:12 · ↑980</span></td><td class="md-up num">2:12</td><td class="md-up num">980</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ BICI: ORBEA RALLON ============ -->
+<section class="screen" id="bici-rallon" data-tab="garaje" aria-labelledby="h-rallon">
+  <header class="scr-h">
+    <a class="back" href="#garaje"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Garaje</a>
+    <h1 id="h-rallon" tabindex="-1">Orbea Rallon</h1>
+    <p class="meta">Enduro · en uso desde el 14/03/2024 · 9 piezas montadas</p>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-rallon">
+      <h2 id="k-rallon" class="sr-only">Registrado en Garage</h2>
+      <dl class="kpis k4 strip">
+        <div class="kpi"><dt>Distancia</dt><dd class="v">4.812<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">312<small>h</small></dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">98.400<small>m</small></dd></div>
+        <div class="kpi st-due"><dt>Avisos</dt><dd class="v">3</dd><dd class="d">2 vencidos · 1 pronto</dd></div>
+      </dl>
+    </section>
+
+    <section class="pnl lg12 xl8 xl-r2" aria-labelledby="r-parts">
+      <div class="pnl-h"><h2 id="r-parts">Montado ahora</h2><span class="pnl-m">9 piezas · 7 reglas</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Piezas montadas en la Orbea Rallon, anidadas, con su desgaste</caption>
+        <thead><tr><th scope="col" class="md-up">Estado</th><th scope="col">Pieza y regla</th><th scope="col" class="md-up num">Uso / umbral</th><th scope="col" class="num">%</th><th scope="col" class="lg-up">Margen</th><th scope="col" class="lg-up">Cuenta desde</th></tr></thead>
+        <tbody>
+          <tr class="st-due">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><a class="nm" href="#pieza-fox38"><b>Horquilla Fox 38 Factory</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Servicio 50&nbsp;h · delantera</span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:116"></i></span></span></td>
+            <td class="md-up num">58 / 50&nbsp;h</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:116"></i></span><b>116&nbsp;%</b></span><span class="lt-md">58/50&nbsp;h</span></td>
+            <td class="lg-up mg"><b>+8&nbsp;h</b> de más</td><td class="lg-up date mono">24/07/2026</td>
+          </tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Amortiguador Fox Float X</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Servicio 125&nbsp;h · trasero</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:71"></i></span></span></td>
+            <td class="md-up num">89 / 125&nbsp;h</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:71"></i></span><b>71&nbsp;%</b></span><span class="lt-md">89/125&nbsp;h</span></td>
+            <td class="lg-up mg">quedan 36&nbsp;h</td><td class="lg-up date mono">18/06/2026</td>
+          </tr>
+          <tr class="st-soon">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span></td>
+            <td class="part"><a class="nm" href="#pieza-cadena"><b>Cadena SRAM GX Eagle</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 2.000&nbsp;km · transmisión</span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:93"></i></span></span></td>
+            <td class="md-up num">1.860 / 2.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:93"></i></span><b>93&nbsp;%</b></span><span class="lt-md">1.860/2.000</span></td>
+            <td class="lg-up mg">quedan 140&nbsp;km</td><td class="lg-up date mono">12/05/2026</td>
+          </tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Casete SRAM XG-1275</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 6.000&nbsp;km · transmisión</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:31"></i></span></span></td>
+            <td class="md-up num">1.860 / 6.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:31"></i></span><b>31&nbsp;%</b></span><span class="lt-md">1.860/6.000</span></td>
+            <td class="lg-up mg">quedan 4.140&nbsp;km</td><td class="lg-up date mono">12/05/2026</td>
+          </tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Pastillas Magura 9.P</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 1.200&nbsp;km · freno delantero</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:78"></i></span></span></td>
+            <td class="md-up num">940 / 1.200&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:78"></i></span><b>78&nbsp;%</b></span><span class="lt-md">940/1.200</span></td>
+            <td class="lg-up mg">quedan 260&nbsp;km</td><td class="lg-up date mono">20/07/2026</td>
+          </tr>
+          <tr>
+            <td class="md-up"><span class="note">Sin regla</span></td>
+            <td class="part"><span class="nm"><b>Neumático Maxxis Assegai 29×2.5</b><span class="sub">Rueda delantera · montado el 24/08/2026<span class="lt-md"> · sin regla</span></span></span></td>
+            <td class="md-up num">480&nbsp;km</td><td class="num pct"><b>—</b><span class="lt-md">480&nbsp;km</span></td>
+            <td class="lg-up mg">—</td><td class="lg-up date mono">24/08/2026</td>
+          </tr>
+          <tr class="st-due nested">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><span class="nm"><b>Líquido tubeless</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Dentro del Assegai · agregar 30&nbsp;ml cada 60 días</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:115"></i></span></span></td>
+            <td class="md-up num">69 / 60 días</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:115"></i></span><b>115&nbsp;%</b></span><span class="lt-md">69/60 días</span></td>
+            <td class="lg-up mg"><b>hace 9 días</b></td><td class="lg-up date mono">24/08/2026</td>
+          </tr>
+          <tr>
+            <td class="md-up"><span class="note">Sin regla</span></td>
+            <td class="part"><span class="nm"><b>Neumático Maxxis Minion DHR II</b><span class="sub">Rueda trasera · montado el 24/08/2026<span class="lt-md"> · sin regla</span></span></span></td>
+            <td class="md-up num">480&nbsp;km</td><td class="num pct"><b>—</b><span class="lt-md">480&nbsp;km</span></td>
+            <td class="lg-up mg">—</td><td class="lg-up date mono">24/08/2026</td>
+          </tr>
+          <tr class="st-nodata">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span></td>
+            <td class="part"><span class="nm"><b>Bujes y rodamientos</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span><span class="sep" aria-hidden="true"> · </span></span>Revisión cada 12 meses · sin fecha de referencia</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"></span></span></td>
+            <td class="md-up num">— / 12 meses</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"></span><b>—</b></span><span class="lt-md">falta referencia</span></td>
+            <td class="lg-up mg">registra una revisión</td><td class="lg-up date mono">—</td>
+          </tr>
+        </tbody>
+      </table></div>
+      <p class="legend"><span class="bar" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:60"></i></span>Escala hasta 125&nbsp;%: marca fina = aviso (90&nbsp;%), marca gruesa = umbral (100&nbsp;%).</p>
+    </section>
+
+    <section class="pnl lg6 xl4 md6" aria-labelledby="r-events">
+      <div class="pnl-h"><h2 id="r-events">Intervenciones</h2><span class="pnl-m">384,90&nbsp;EUR</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Intervenciones en la bici y sus piezas</caption>
+        <thead><tr><th scope="col">Intervención</th><th scope="col" class="num">EUR</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Purgado de frenos</b><span class="sub mono">03/10/2026 · bici</span></span></td><td class="num">—</td></tr>
+          <tr><td class="part"><span class="nm"><b>Medir elongación</b><span class="sub mono">14/08/2026 · cadena GX</span></span></td><td class="num">—</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de horquilla 50 h</b><span class="sub mono">24/07/2026 · Fox 38</span></span></td><td class="num">95,00</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de amortiguador 125 h</b><span class="sub mono">18/06/2026 · Float X</span></span></td><td class="num">140,00</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de horquilla 50 h</b><span class="sub mono">25/05/2026 · Fox 38</span></span></td><td class="num">95,00</td></tr>
+          <tr><td class="part"><span class="nm"><b>Sustitución</b><span class="sub mono">12/05/2026 · cadena GX</span></span></td><td class="num">54,90</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="pnl lg6 xl4 md6" aria-labelledby="r-rides">
+      <div class="pnl-h"><h2 id="r-rides">Últimas salidas</h2><a class="pnl-a" href="#salidas">Salidas</a></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Últimas salidas con la Orbea Rallon</caption>
+        <thead><tr><th scope="col">Salida</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Vuelta por Collserola</b><span class="sub mono">sáb 31/10 · 2:41 · ↑1.120&nbsp;m</span></span></td><td class="num">38,2</td></tr>
+          <tr><td class="part"><span class="nm"><b>Enduro Montseny</b><span class="sub mono">lun 26/10 · 2:12 · ↑980&nbsp;m</span></span></td><td class="num">24,8</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ BICI: CANYON GRIZL ============ -->
+<section class="screen" id="bici-grizl" data-tab="garaje" aria-labelledby="h-grizl">
+  <header class="scr-h">
+    <a class="back" href="#garaje"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Garaje</a>
+    <h1 id="h-grizl" tabindex="-1">Canyon Grizl</h1>
+    <p class="meta">Gravel · en uso desde el 15/01/2025 · 3 piezas montadas</p>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-grizl">
+      <h2 id="k-grizl" class="sr-only">Registrado en Garage</h2>
+      <dl class="kpis k4 strip">
+        <div class="kpi"><dt>Distancia</dt><dd class="v">2.140<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">96<small>h</small></dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">21.300<small>m</small></dd></div>
+        <div class="kpi st-ok"><dt>Avisos</dt><dd class="v">0</dd><dd class="d">todo al día</dd></div>
+      </dl>
+    </section>
+    <section class="pnl lg12 xl8" aria-labelledby="z-parts">
+      <div class="pnl-h"><h2 id="z-parts">Montado ahora</h2><span class="pnl-m">3 piezas · 3 reglas</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Piezas montadas en la Canyon Grizl con su desgaste</caption>
+        <thead><tr><th scope="col" class="md-up">Estado</th><th scope="col">Pieza y regla</th><th scope="col" class="md-up num">Uso / umbral</th><th scope="col" class="num">%</th><th scope="col" class="lg-up">Margen</th><th scope="col" class="lg-up">Cuenta desde</th></tr></thead>
+        <tbody>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Cadena Shimano GRX</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 3.000&nbsp;km · transmisión</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:14"></i></span></span></td>
+            <td class="md-up num">420 / 3.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:14"></i></span><b>14&nbsp;%</b></span><span class="lt-md">420/3.000</span></td>
+            <td class="lg-up mg">quedan 2.580&nbsp;km</td><td class="lg-up date mono">01/08/2026</td>
+          </tr>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Cubiertas Schwalbe G-One</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 3.500&nbsp;km · par</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:42"></i></span></span></td>
+            <td class="md-up num">1.480 / 3.500&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:42"></i></span><b>42&nbsp;%</b></span><span class="lt-md">1.480/3.500</span></td>
+            <td class="lg-up mg">quedan 2.020&nbsp;km</td><td class="lg-up date mono">15/01/2026</td>
+          </tr>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Pastillas Shimano</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 1.500&nbsp;km · ambos frenos</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:25"></i></span></span></td>
+            <td class="md-up num">380 / 1.500&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:25"></i></span><b>25&nbsp;%</b></span><span class="lt-md">380/1.500</span></td>
+            <td class="lg-up mg">quedan 1.120&nbsp;km</td><td class="lg-up date mono">10/08/2026</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="pnl lg6 xl4" aria-labelledby="z-other">
+      <div class="pnl-h"><h2 id="z-other">Historial</h2></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Última salida e intervenciones de la Canyon Grizl</caption>
+        <thead><tr><th scope="col">Registro</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Gravel al pantano</b><span class="sub mono">jue 29/10 · 3:05 · ↑640&nbsp;m</span></span></td><td class="num">72,5</td></tr>
+          <tr><td class="part"><span class="nm off">Sin intervenciones registradas<span class="sub">Las reglas cuentan desde el montaje de cada pieza.</span></span></td><td class="num">—</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ MATERIAL ============ -->
+<section class="screen" id="material" data-tab="mas" aria-labelledby="h-material">
+  <header class="scr-h">
+    <a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Más</a>
+    <h1 id="h-material" tabindex="-1">Material</h1>
+    <p class="meta">16 objetos · componentes, equipación y piezas guardadas</p>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="m-list">
+      <div class="pnl-h"><h2 id="m-list">Inventario</h2><span class="pnl-m md-up">con el peor estado de mantenimiento de cada pieza</span></div>
+      <fieldset class="seg">
+        <legend class="sr-only">Filtrar por ciclo de vida</legend>
+        <input class="sr-only" type="radio" name="ciclo" id="f-montado"><label for="f-montado">Montados <span class="n">12</span></label>
+        <input class="sr-only" type="radio" name="ciclo" id="f-disponible"><label for="f-disponible"><span class="lt-md" aria-hidden="true">Dispon.</span><span class="sr-lt-md">Disponibles</span> <span class="n">2</span></label>
+        <input class="sr-only" type="radio" name="ciclo" id="f-uso"><label for="f-uso">En uso <span class="n">1</span></label>
+        <input class="sr-only" type="radio" name="ciclo" id="f-retirado"><label for="f-retirado">Retirados <span class="n">1</span></label>
+        <input class="sr-only" type="radio" name="ciclo" id="f-todos" checked><label for="f-todos">Todos <span class="n">16</span></label>
+      </fieldset>
+      <div class="tbl-wrap"><table class="tbl mat">
+        <caption class="sr-only">Material con su ciclo de vida, ubicación, uso y estado de mantenimiento</caption>
+        <thead><tr><th scope="col" class="md-up">Ciclo</th><th scope="col">Pieza</th><th scope="col" class="lg-up">Dónde</th><th scope="col" class="lg-up">Desde</th><th scope="col" class="num">km</th><th scope="col" class="md-up">Mantenimiento</th></tr></thead>
+        <tbody>
+          <tr data-ciclo="montado" class="st-due"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><a class="nm" href="#pieza-fox38"><b>Horquilla Fox 38 Factory</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Horquilla<span class="lt-lg"> · Orbea Rallon</span></span></a></td><td class="lg-up">Orbea Rallon</td><td class="lg-up date mono">14/03/2024</td><td class="num">4.812</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td></tr>
+          <tr data-ciclo="montado" class="st-prog"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Amortiguador Fox Float X</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Amortiguador<span class="lt-lg"> · Orbea Rallon</span></span></span></td><td class="lg-up">Orbea Rallon</td><td class="lg-up date mono">14/03/2024</td><td class="num">4.812</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td></tr>
+          <tr data-ciclo="montado" class="st-soon"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><a class="nm" href="#pieza-cadena"><b>Cadena SRAM GX Eagle</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span><span class="sep" aria-hidden="true"> · </span></span>Cadena<span class="lt-lg"> · Orbea Rallon</span></span></a></td><td class="lg-up">Orbea Rallon</td><td class="lg-up date mono">12/05/2026</td><td class="num">1.860</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span></td></tr>
+          <tr data-ciclo="montado" class="st-prog"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Casete SRAM XG-1275</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Casete<span class="lt-lg"> · Orbea Rallon</span></span></span></td><td class="lg-up">Orbea Rallon</td><td class="lg-up date mono">12/05/2026</td><td class="num">1.860</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td></tr>
+          <tr data-ciclo="montado" class="st-prog"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Pastillas Magura 9.P</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Pastillas<span class="lt-lg"> · Orbea Rallon, delantero</span></span></span></td><td class="lg-up">Orbea Rallon · freno delantero</td><td class="lg-up date mono">20/07/2026</td><td class="num">940</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td></tr>
+          <tr data-ciclo="montado"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Neumático Maxxis Assegai 29×2.5</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw nr">sin regla</span><span class="sep" aria-hidden="true"> · </span></span>Neumático<span class="lt-lg"> · Orbea Rallon, delantera</span></span></span></td><td class="lg-up">Orbea Rallon · rueda delantera</td><td class="lg-up date mono">24/08/2026</td><td class="num">480</td><td class="md-up note">Sin regla</td></tr>
+          <tr data-ciclo="montado" class="st-due"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Líquido tubeless</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Sellante<span class="lt-lg"> · dentro del Assegai</span></span></span></td><td class="lg-up">Dentro del Maxxis Assegai</td><td class="lg-up date mono">24/08/2026</td><td class="num">480</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td></tr>
+          <tr data-ciclo="montado"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Neumático Maxxis Minion DHR II</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw nr">sin regla</span><span class="sep" aria-hidden="true"> · </span></span>Neumático<span class="lt-lg"> · Orbea Rallon, trasera</span></span></span></td><td class="lg-up">Orbea Rallon · rueda trasera</td><td class="lg-up date mono">24/08/2026</td><td class="num">480</td><td class="md-up note">Sin regla</td></tr>
+          <tr data-ciclo="montado" class="st-nodata"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Bujes y rodamientos</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span><span class="sep" aria-hidden="true"> · </span></span>Rodamientos<span class="lt-lg"> · Orbea Rallon</span></span></span></td><td class="lg-up">Orbea Rallon</td><td class="lg-up date mono">14/03/2024</td><td class="num">4.812</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span></td></tr>
+          <tr data-ciclo="montado" class="st-ok"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Cadena Shimano GRX</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Cadena<span class="lt-lg"> · Canyon Grizl</span></span></span></td><td class="lg-up">Canyon Grizl</td><td class="lg-up date mono">01/08/2026</td><td class="num">420</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td></tr>
+          <tr data-ciclo="montado" class="st-ok"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Cubiertas Schwalbe G-One</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Cubiertas<span class="lt-lg"> · Canyon Grizl</span></span></span></td><td class="lg-up">Canyon Grizl</td><td class="lg-up date mono">15/01/2026</td><td class="num">1.480</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td></tr>
+          <tr data-ciclo="montado" class="st-ok"><td class="md-up"><span class="lc">Montado</span></td><td class="part"><span class="nm"><b>Pastillas Shimano</b><span class="sub"><span class="lt-md sw-st"><span class="lc">Montado</span> <span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Pastillas<span class="lt-lg"> · Canyon Grizl</span></span></span></td><td class="lg-up">Canyon Grizl</td><td class="lg-up date mono">10/08/2026</td><td class="num">380</td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td></tr>
+          <tr data-ciclo="disponible"><td class="md-up"><span class="lc disp">Disponible · sin estrenar</span></td><td class="part"><span class="nm"><b>Cadena SRAM GX Eagle</b><span class="sub"><span class="lt-md sw-st"><span class="lc disp">Disponible · sin estrenar</span><span class="sep" aria-hidden="true"> · </span></span>Cadena · repuesto</span></span></td><td class="lg-up">Sin montar</td><td class="lg-up date mono">20/10/2026</td><td class="num">0</td><td class="md-up note">—</td></tr>
+          <tr data-ciclo="disponible"><td class="md-up"><span class="lc disp">Disponible</span></td><td class="part"><span class="nm"><b>Pastillas Magura 9.P</b><span class="sub"><span class="lt-md sw-st"><span class="lc disp">Disponible</span><span class="sep" aria-hidden="true"> · </span></span>Pastillas · usadas</span></span></td><td class="lg-up">Sin montar</td><td class="lg-up date mono">20/07/2026</td><td class="num">310</td><td class="md-up note">—</td></tr>
+          <tr data-ciclo="uso"><td class="md-up"><span class="lc uso">En uso</span></td><td class="part"><span class="nm"><b>Casco Bell</b><span class="sub"><span class="lt-md sw-st"><span class="lc uso">En uso</span><span class="sep" aria-hidden="true"> · </span></span>Casco · perfil «Montaña»</span></span></td><td class="lg-up">Perfil de uso «Montaña»</td><td class="lg-up date mono">10/02/2026</td><td class="num">1.240</td><td class="md-up note">—</td></tr>
+          <tr data-ciclo="retirado"><td class="md-up"><span class="lc ret">Retirado</span></td><td class="part"><span class="nm"><b>Cadena SRAM GX Eagle</b><span class="sub"><span class="lt-md sw-st"><span class="lc ret">Retirado</span><span class="sep" aria-hidden="true"> · </span></span>Cadena · anterior, retirada el 12/05/2026</span></span></td><td class="lg-up">Retirada</td><td class="lg-up date mono">12/05/2026</td><td class="num">2.010</td><td class="md-up note">—</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ FICHA: CADENA ============ -->
+<section class="screen" id="pieza-cadena" data-tab="garaje" aria-labelledby="h-cadena">
+  <header class="scr-h">
+    <a class="back" href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Orbea Rallon</a>
+    <h1 id="h-cadena" tabindex="-1">Cadena SRAM GX Eagle</h1>
+    <p class="meta"><span class="lc">Montado</span> en Orbea Rallon desde el 12/05/2026 · Cadena · 12 velocidades</p>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a><a class="btn sec" href="#taller">Ver en Taller</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl lg7 st-soon" aria-labelledby="c-life">
+      <div class="pnl-h"><h2 id="c-life">Vida útil · Sustitución</h2><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span></div>
+      <div class="ro">
+        <p class="ro-v">1.860<small>/ 2.000 km</small></p>
+        <p class="ro-p">93&nbsp;%<small>del umbral</small></p>
+        <span class="bar xl" aria-hidden="true"><i style="--v:93"></i></span>
+        <div class="ro-scale" aria-hidden="true"><span class="t0">0</span><span class="t90">aviso 1.800</span><span class="t100">umbral 2.000</span></div>
+        <p class="ro-note">Quedan <b>140&nbsp;km</b>. Cuenta desde el 12/05/2026 (última sustitución). Avisa al 90&nbsp;% y vence con el primer umbral que se alcance.</p>
+      </div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="c-usage">
+      <div class="pnl-h"><h2 id="c-usage">Uso registrado</h2><span class="pnl-m">desde el montaje</span></div>
+      <dl class="kpis">
+        <div class="kpi"><dt>Distancia</dt><dd class="v">1.860<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">121<small>h</small></dd></div>
+        <div class="kpi"><dt>Salidas</dt><dd class="v">78</dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">38.000<small>m</small></dd></div>
+      </dl>
+    </section>
+    <section class="pnl lg7 lg-r2" aria-labelledby="c-compare">
+      <div class="pnl-h"><h2 id="c-compare">Cuánto dura cada GX Eagle</h2><span class="pnl-m">vida útil 2.000&nbsp;km</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Comparación de las cadenas SRAM GX Eagle frente a la vida útil de 2.000 km</caption>
+        <thead><tr><th scope="col">Cadena</th><th scope="col" class="num">km</th><th scope="col" class="num">%</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Anterior</b><span class="sub"><span class="lc ret">Retirado</span> el 12/05/2026</span></span><span class="bar" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:100.5"></i></span></td><td class="num">2.010</td><td class="num">101&nbsp;%</td></tr>
+          <tr class="st-soon"><td class="part"><span class="nm"><b>Actual</b><span class="sub"><span class="lc">Montado</span> desde el 12/05/2026</span></span><span class="bar" aria-hidden="true"><i style="--v:93"></i></span></td><td class="num">1.860</td><td class="num">93&nbsp;%</td></tr>
+          <tr><td class="part"><span class="nm"><b>Repuesto</b><span class="sub"><span class="lc disp">Disponible · sin estrenar</span></span></span><span class="bar" aria-hidden="true"><i style="--v:0"></i></span></td><td class="num">0</td><td class="num">0&nbsp;%</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="c-mounts">
+      <div class="pnl-h"><h2 id="c-mounts">Montajes</h2></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Historial de montajes</caption>
+        <thead><tr><th scope="col">Destino</th><th scope="col">Periodo</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody><tr><td><b>Orbea Rallon</b></td><td class="date mono">12/05/2026 → hoy</td><td class="num">1.860</td></tr></tbody>
+      </table></div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="c-events">
+      <div class="pnl-h"><h2 id="c-events">Intervenciones</h2><span class="pnl-m">2</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Intervenciones en la cadena</caption>
+        <thead><tr><th scope="col">Intervención</th><th scope="col" class="num">EUR</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Medir elongación</b><span class="sub mono">14/08/2026 · 0,25&nbsp;% · a 1.250&nbsp;km</span></span></td><td class="num">—</td></tr>
+          <tr><td class="part"><span class="nm"><b>Sustitución</b><span class="sub mono">12/05/2026 · sustituye a la anterior</span></span></td><td class="num">54,90</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ FICHA: FOX 38 ============ -->
+<section class="screen" id="pieza-fox38" data-tab="garaje" aria-labelledby="h-fox">
+  <header class="scr-h">
+    <a class="back" href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Orbea Rallon</a>
+    <h1 id="h-fox" tabindex="-1">Horquilla Fox 38 Factory</h1>
+    <p class="meta"><span class="lc">Montado</span> en Orbea Rallon desde el 14/03/2024 · Horquilla · 170&nbsp;mm</p>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl lg7 st-due" aria-labelledby="f-rule">
+      <div class="pnl-h"><h2 id="f-rule">Servicio 50 h</h2><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></div>
+      <div class="ro">
+        <p class="ro-v">58<small>/ 50 h</small></p>
+        <p class="ro-p">116&nbsp;%<small>del umbral</small></p>
+        <span class="bar xl" aria-hidden="true"><i style="--v:116"></i></span>
+        <div class="ro-scale" aria-hidden="true"><span class="t0">0</span><span class="t90">aviso 45</span><span class="t100">umbral 50</span></div>
+        <p class="ro-note"><b>8&nbsp;h de más.</b> Cuenta desde el 24/07/2026 (servicio de horquilla 50&nbsp;h). Avisa al 90&nbsp;% y vence con el primer umbral que se alcance.</p>
+      </div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="f-usage">
+      <div class="pnl-h"><h2 id="f-usage">Uso registrado</h2><span class="pnl-m">desde el montaje</span></div>
+      <dl class="kpis k3">
+        <div class="kpi"><dt>Distancia</dt><dd class="v">4.812<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">312<small>h</small></dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">98.400<small>m</small></dd></div>
+      </dl>
+      <div class="pnl-b"><p class="note"><b>Vida útil:</b> sin definir. Km, horas o tiempo: lo primero que llegue.</p></div>
+    </section>
+    <section class="pnl lg7" aria-labelledby="f-events">
+      <div class="pnl-h"><h2 id="f-events">Intervenciones</h2><span class="pnl-m">190,00&nbsp;EUR</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Intervenciones en la horquilla</caption>
+        <thead><tr><th scope="col">Intervención</th><th scope="col" class="md-up">Fecha</th><th scope="col" class="md-up num">Desde la anterior</th><th scope="col" class="num">EUR</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Servicio de horquilla 50 h</b><span class="sub mono lt-md">24/07/2026 · a 52&nbsp;h de la anterior</span></span></td><td class="md-up date mono">24/07/2026</td><td class="md-up num">52&nbsp;h</td><td class="num">95,00</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de horquilla 50 h</b><span class="sub mono lt-md">25/05/2026 · primera registrada</span></span></td><td class="md-up date mono">25/05/2026</td><td class="md-up num">—</td><td class="num">95,00</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="f-mounts">
+      <div class="pnl-h"><h2 id="f-mounts">Montajes</h2></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Historial de montajes</caption>
+        <thead><tr><th scope="col">Destino</th><th scope="col">Periodo</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody><tr><td><b>Orbea Rallon</b></td><td class="date mono">14/03/2024 → hoy</td><td class="num">4.812</td></tr></tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ TALLER ============ -->
+<section class="screen" id="taller" data-tab="taller" aria-labelledby="h-taller">
+  <header class="scr-h inl">
+    <p class="eyebrow">10 reglas · 3 requieren atención</p>
+    <h1 id="h-taller" tabindex="-1">Taller</h1>
+    <div class="scr-a"><a class="btn" href="#registrar"><svg class="ic s" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-taller">
+      <h2 id="k-taller" class="sr-only">Reglas por estado</h2>
+      <dl class="kpis k5 strip">
+        <div class="kpi st-due"><dt>Vencido</dt><dd class="v">2</dd></div>
+        <div class="kpi st-soon"><dt>Pronto</dt><dd class="v">1</dd></div>
+        <div class="kpi st-prog"><dt>En curso</dt><dd class="v">3</dd></div>
+        <div class="kpi st-ok"><dt>Al día</dt><dd class="v">3</dd></div>
+        <div class="kpi st-nodata"><dt>Sin datos</dt><dd class="v">1</dd></div>
+      </dl>
+    </section>
+    <section class="pnl lg12 xl8 xl-r2" aria-labelledby="t-rules">
+      <div class="pnl-h"><h2 id="t-rules">Reglas por estado</h2><span class="pnl-m md-up">orden: gravedad, % del umbral</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Reglas de mantenimiento agrupadas por estado</caption>
+        <thead><tr><th scope="col" class="md-up">Estado</th><th scope="col">Pieza y regla</th><th scope="col" class="md-up num">Uso / umbral</th><th scope="col" class="num">%</th><th scope="col" class="lg-up">Margen</th><th scope="col" class="lg-up">Bici</th></tr></thead>
+        <tbody>
+          <tr class="grp st-due"><th scope="rowgroup" colspan="6"><svg class="ic s" aria-hidden="true"><use href="#s-due"/></svg>Vencido · 2</th></tr>
+          <tr class="st-due">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><a class="nm" href="#pieza-fox38"><b>Horquilla Fox 38 Factory</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Servicio 50&nbsp;h<span class="lt-lg"> · Orbea Rallon</span></span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:116"></i></span></span></td>
+            <td class="md-up num">58 / 50&nbsp;h</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:116"></i></span><b>116&nbsp;%</b></span><span class="lt-md">58/50&nbsp;h</span></td><td class="lg-up mg"><b>+8&nbsp;h</b> de más</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+          <tr class="st-due">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td>
+            <td class="part"><span class="nm"><b>Líquido tubeless</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="sep" aria-hidden="true"> · </span></span>Agregar 30&nbsp;ml cada 60 días · en Assegai</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:115"></i></span></span></td>
+            <td class="md-up num">69 / 60 días</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:115"></i></span><b>115&nbsp;%</b></span><span class="lt-md">69/60 días</span></td><td class="lg-up mg"><b>hace 9 días</b></td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr class="grp st-soon"><th scope="rowgroup" colspan="6"><svg class="ic s" aria-hidden="true"><use href="#s-soon"/></svg>Pronto · 1</th></tr>
+          <tr class="st-soon">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span></td>
+            <td class="part"><a class="nm" href="#pieza-cadena"><b>Cadena SRAM GX Eagle</b><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 2.000&nbsp;km<span class="lt-lg"> · Orbea Rallon</span></span></a>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:93"></i></span></span></td>
+            <td class="md-up num">1.860 / 2.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:93"></i></span><b>93&nbsp;%</b></span><span class="lt-md">1.860/2.000</span></td><td class="lg-up mg">quedan 140&nbsp;km</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr class="grp st-prog"><th scope="rowgroup" colspan="6"><svg class="ic s" aria-hidden="true"><use href="#s-prog"/></svg>En curso · 3</th></tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Pastillas Magura 9.P</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 1.200&nbsp;km · delantero</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:78"></i></span></span></td>
+            <td class="md-up num">940 / 1.200&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:78"></i></span><b>78&nbsp;%</b></span><span class="lt-md">940/1.200</span></td><td class="lg-up mg">quedan 260&nbsp;km</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Amortiguador Fox Float X</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Servicio 125&nbsp;h</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:71"></i></span></span></td>
+            <td class="md-up num">89 / 125&nbsp;h</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:71"></i></span><b>71&nbsp;%</b></span><span class="lt-md">89/125&nbsp;h</span></td><td class="lg-up mg">quedan 36&nbsp;h</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+          <tr class="st-prog">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span></td>
+            <td class="part"><span class="nm"><b>Casete SRAM XG-1275</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 6.000&nbsp;km</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:31"></i></span></span></td>
+            <td class="md-up num">1.860 / 6.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:31"></i></span><b>31&nbsp;%</b></span><span class="lt-md">1.860/6.000</span></td><td class="lg-up mg">quedan 4.140&nbsp;km</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr class="grp st-ok"><th scope="rowgroup" colspan="6"><svg class="ic s" aria-hidden="true"><use href="#s-ok"/></svg>Al día · 3</th></tr>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Cubiertas Schwalbe G-One</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 3.500&nbsp;km<span class="lt-lg"> · Canyon Grizl</span></span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:42"></i></span></span></td>
+            <td class="md-up num">1.480 / 3.500&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:42"></i></span><b>42&nbsp;%</b></span><span class="lt-md">1.480/3.500</span></td><td class="lg-up mg">quedan 2.020&nbsp;km</td><td class="lg-up">Canyon Grizl</td>
+          </tr>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Pastillas Shimano</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 1.500&nbsp;km<span class="lt-lg"> · Canyon Grizl</span></span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:25"></i></span></span></td>
+            <td class="md-up num">380 / 1.500&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:25"></i></span><b>25&nbsp;%</b></span><span class="lt-md">380/1.500</span></td><td class="lg-up mg">quedan 1.120&nbsp;km</td><td class="lg-up">Canyon Grizl</td>
+          </tr>
+          <tr class="st-ok">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td>
+            <td class="part"><span class="nm"><b>Cadena Shimano GRX</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="sep" aria-hidden="true"> · </span></span>Vida útil 3.000&nbsp;km<span class="lt-lg"> · Canyon Grizl</span></span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"><i style="--v:14"></i></span></span></td>
+            <td class="md-up num">420 / 3.000&nbsp;km</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"><i style="--v:14"></i></span><b>14&nbsp;%</b></span><span class="lt-md">420/3.000</span></td><td class="lg-up mg">quedan 2.580&nbsp;km</td><td class="lg-up">Canyon Grizl</td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr class="grp st-nodata"><th scope="rowgroup" colspan="6"><svg class="ic s" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos · 1</th></tr>
+          <tr class="st-nodata">
+            <td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span></td>
+            <td class="part"><span class="nm"><b>Bujes y rodamientos</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span><span class="sep" aria-hidden="true"> · </span></span>Revisión cada 12 meses · falta la fecha de referencia</span></span>
+              <span class="mrow md-up"><span class="bar" aria-hidden="true"></span></span></td>
+            <td class="md-up num">— / 12 meses</td><td class="num pct"><span class="pv"><span class="bar lt-md" aria-hidden="true"></span><b>—</b></span></td><td class="lg-up mg">registra una revisión</td><td class="lg-up">Orbea Rallon</td>
+          </tr>
+        </tbody>
+      </table></div>
+      <p class="legend"><span class="bar" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:60"></i></span>Escala hasta 125&nbsp;%: marca fina = aviso (90&nbsp;%), marca gruesa = umbral (100&nbsp;%). Pronto = a partir del 90&nbsp;%.</p>
+    </section>
+    <section class="pnl lg6 xl4 md6" aria-labelledby="t-events">
+      <div class="pnl-h"><h2 id="t-events">Últimas intervenciones</h2><span class="pnl-m">4 de 6</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Últimas intervenciones registradas</caption>
+        <thead><tr><th scope="col">Intervención</th><th scope="col" class="num">EUR</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><span class="nm"><b>Purgado de frenos</b><span class="sub mono">03/10/2026 · Orbea Rallon</span></span></td><td class="num">—</td></tr>
+          <tr><td class="part"><span class="nm"><b>Medir elongación</b><span class="sub mono">14/08/2026 · Cadena GX Eagle</span></span></td><td class="num">—</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de horquilla 50 h</b><span class="sub mono">24/07/2026 · Fox 38</span></span></td><td class="num">95,00</td></tr>
+          <tr><td class="part"><span class="nm"><b>Servicio de amortiguador 125 h</b><span class="sub mono">18/06/2026 · Float X</span></span></td><td class="num">140,00</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="pnl lg6 xl4 md6" aria-labelledby="t-cost">
+      <div class="pnl-h"><h2 id="t-cost">Gasto registrado</h2></div>
+      <dl class="kpis">
+        <div class="kpi"><dt>Total</dt><dd class="v">384,90<small>EUR</small></dd><dd class="d">6 intervenciones</dd></div>
+        <div class="kpi"><dt>Por km (Rallon)</dt><dd class="v">0,080<small>EUR</small></dd><dd class="d">sobre 4.812&nbsp;km</dd></div>
+      </dl>
+    </section>
+  </div>
+</section>
+
+<!-- ============ REGISTRAR INTERVENCIÓN ============ -->
+<section class="screen" id="registrar" data-tab="taller" aria-labelledby="h-registrar">
+  <header class="scr-h">
+    <a class="back" href="#taller"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Taller</a>
+    <h1 id="h-registrar" tabindex="-1">Registrar intervención</h1>
+    <p class="meta">Horquilla Fox 38 Factory · Orbea Rallon</p>
+  </header>
+  <form class="grid" action="#taller" method="get">
+    <section class="pnl lg7" aria-labelledby="r-form">
+      <div class="pnl-h"><h2 id="r-form">Intervención</h2></div>
+      <div class="form">
+        <div class="fld">
+          <label for="r-destino">Destino</label>
+          <select id="r-destino" name="destino">
+            <optgroup label="Orbea Rallon">
+              <option>Orbea Rallon (la bici)</option>
+              <option selected>Horquilla Fox 38 Factory</option>
+              <option>Amortiguador Fox Float X</option>
+              <option>Cadena SRAM GX Eagle</option>
+              <option>Casete SRAM XG-1275</option>
+              <option>Pastillas Magura 9.P</option>
+              <option>Neumático Maxxis Assegai 29×2.5</option>
+              <option>Líquido tubeless (en Assegai)</option>
+              <option>Neumático Maxxis Minion DHR II</option>
+              <option>Bujes y rodamientos</option>
+            </optgroup>
+            <optgroup label="Canyon Grizl">
+              <option>Canyon Grizl (la bici)</option>
+              <option>Cadena Shimano GRX</option>
+              <option>Cubiertas Schwalbe G-One</option>
+              <option>Pastillas Shimano</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fld">
+          <label for="r-tipo">Tipo de intervención</label>
+          <select id="r-tipo" name="tipo">
+            <option selected>Servicio de horquilla 50 h</option>
+            <option>Servicio de amortiguador 125 h</option>
+            <option>Purgado de frenos</option>
+            <option>Agregar 30 ml</option>
+            <option>Medir elongación</option>
+            <option>Sustitución</option>
+          </select>
+          <span class="hint" id="r-tipo-h">Reinicia la regla «Servicio 50 h» de esta horquilla.</span>
+        </div>
+        <div class="row2">
+          <div class="fld"><label for="r-fecha">Fecha</label><input class="mono" id="r-fecha" name="fecha" type="date" value="2026-11-01"></div>
+          <div class="fld"><label for="r-hora">Hora</label><input class="mono" id="r-hora" name="hora" type="time" value="10:30"></div>
+        </div>
+        <div class="row2">
+          <div class="fld"><label for="r-importe">Importe</label><input class="mono" id="r-importe" name="importe" type="text" inputmode="decimal" value="95,00" autocomplete="off"></div>
+          <div class="fld"><label for="r-moneda">Moneda</label><select id="r-moneda" name="moneda"><option selected>EUR</option><option>USD</option><option>GBP</option></select></div>
+        </div>
+        <div class="fld">
+          <label for="r-notas">Notas</label>
+          <textarea id="r-notas" name="notas">Aceite del bajo y retenes nuevos. Sin holgura en los casquillos.</textarea>
+        </div>
+        <fieldset>
+          <legend>También en esta visita</legend>
+          <div>
+            <label class="chk"><input type="checkbox" name="tambien" value="float"><span><b>Amortiguador Fox Float X</b><span class="sub">Servicio 125&nbsp;h</span></span><span class="st st-prog"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>71&nbsp;%</span></label>
+            <label class="chk"><input type="checkbox" name="tambien" value="tubeless" checked><span><b>Líquido tubeless</b><span class="sub">Agregar 30&nbsp;ml · en Assegai</span></span><span class="st st-due"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>115&nbsp;%</span></label>
+            <label class="chk"><input type="checkbox" name="tambien" value="bujes"><span><b>Bujes y rodamientos</b><span class="sub">Revisión cada 12 meses</span></span><span class="st st-nodata"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span></label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">Guardar intervención</button>
+        <a class="btn sec" href="#taller">Cancelar</a>
+      </div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="r-effect">
+      <div class="pnl-h"><h2 id="r-effect">Efecto al guardar</h2></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Cómo cambian las reglas al guardar</caption>
+        <thead><tr><th scope="col">Regla</th><th scope="col" class="num md-up">Antes</th><th scope="col" class="num md-up">Después</th><th scope="col" class="num lt-md">Antes → después</th></tr></thead>
+        <tbody>
+          <tr class="st-due"><td class="part"><span class="nm"><b>Servicio 50&nbsp;h</b><span class="sub">Fox 38 Factory</span></span></td><td class="num md-up">58/50&nbsp;h<br><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td><td class="num md-up st-ok">0/50&nbsp;h<br><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td><td class="num lt-md fx">58/50&nbsp;h → 0/50&nbsp;h<br><span class="stw st-due"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span> → <span class="stw st-ok"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td></tr>
+          <tr class="st-due"><td class="part"><span class="nm"><b>Agregar 30&nbsp;ml</b><span class="sub">Líquido tubeless</span></span></td><td class="num md-up">69/60 días<br><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span></td><td class="num md-up st-ok">0/60 días<br><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td><td class="num lt-md fx">69/60 días → 0/60 días<br><span class="stw st-due"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span> → <span class="stw st-ok"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span></td></tr>
+        </tbody>
+        <tfoot><tr><th scope="row">Avisos de la Rallon</th><td class="num md-up">3</td><td class="num md-up">1</td><td class="num lt-md">3 → 1</td></tr></tfoot>
+      </table></div>
+      <div class="pnl-b"><p class="note">Las reglas sin marcar no cambian. Una intervención con fecha anterior a la última no reinicia nada.</p></div>
+    </section>
+  </form>
+</section>
+
+<!-- ============ SALIDAS ============ -->
+<section class="screen" id="salidas" data-tab="salidas" aria-labelledby="h-salidas">
+  <header class="scr-h inl">
+    <p class="eyebrow">350 salidas · todas de Strava · 1 por revisar</p>
+    <h1 id="h-salidas" tabindex="-1">Salidas</h1>
+    <div class="scr-a"><a class="btn sec" href="#strava"><svg class="ic s" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</a></div>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-salidas">
+      <h2 id="k-salidas" class="sr-only">Últimas cuatro salidas</h2>
+      <dl class="kpis k4 strip">
+        <div class="kpi"><dt>Distancia · últimas 4</dt><dd class="v">165,5<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo · últimas 4</dt><dd class="v">8:58<small>h</small></dd></div>
+        <div class="kpi"><dt>Desnivel · últimas 4</dt><dd class="v">2.740<small>m</small></dd></div>
+        <div class="kpi st-review"><dt>Por revisar</dt><dd class="v">1</dd><dd class="d">sin bici</dd></div>
+      </dl>
+    </section>
+    <section class="pnl" aria-labelledby="s-list">
+      <div class="pnl-h"><h2 id="s-list">Más recientes</h2><span class="pnl-m">4 de 350</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Salidas más recientes con distancia, tiempo, desnivel, bici y origen</caption>
+        <thead><tr><th scope="col" class="md-up">Fecha</th><th scope="col">Salida</th><th scope="col" class="md-up">Bici</th><th scope="col" class="num">km</th><th scope="col" class="md-up num">Tiempo</th><th scope="col" class="md-up num">↑ m</th><th scope="col" class="lg-up">Origen</th></tr></thead>
+        <tbody>
+          <tr><td class="md-up date mono">sáb 31/10/2026</td><td class="part"><span class="nm"><b>Vuelta por Collserola</b><span class="sub"><span class="lt-md mono">sáb 31/10 · Orbea Rallon · 2:41 · ↑1.120</span><span class="md-up kmbar"><span class="bar plain" aria-hidden="true"><i style="--v:52.7"></i></span></span></span></span></td><td class="md-up">Orbea Rallon</td><td class="num pct"><b>38,2</b></td><td class="md-up num">2&nbsp;h 41&nbsp;min</td><td class="md-up num">1.120</td><td class="lg-up">Strava</td></tr>
+          <tr><td class="md-up date mono">jue 29/10/2026</td><td class="part"><span class="nm"><b>Gravel al pantano</b><span class="sub"><span class="lt-md mono">jue 29/10 · Canyon Grizl · 3:05 · ↑640</span><span class="md-up kmbar"><span class="bar plain" aria-hidden="true"><i style="--v:100"></i></span></span></span></span></td><td class="md-up">Canyon Grizl</td><td class="num pct"><b>72,5</b></td><td class="md-up num">3&nbsp;h 05&nbsp;min</td><td class="md-up num">640</td><td class="lg-up">Strava</td></tr>
+          <tr><td class="md-up date mono">lun 26/10/2026</td><td class="part"><span class="nm"><b>Enduro Montseny</b><span class="sub"><span class="lt-md mono">lun 26/10 · Orbea Rallon · 2:12 · ↑980</span><span class="md-up kmbar"><span class="bar plain" aria-hidden="true"><i style="--v:34.2"></i></span></span></span></span></td><td class="md-up">Orbea Rallon</td><td class="num pct"><b>24,8</b></td><td class="md-up num">2&nbsp;h 12&nbsp;min</td><td class="md-up num">980</td><td class="lg-up">Strava</td></tr>
+          <tr class="st-review"><td class="md-up date mono">sáb 24/10/2026</td><td class="part"><span class="nm"><b>Rodillo Z2</b><span class="sub"><span class="lt-md sw-st"><span class="stw"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Revisar</span><span class="sep" aria-hidden="true"> · </span></span><span class="lt-md mono">sáb 24/10 · sin bici · 1:00 · ↑0</span><span class="md-up kmbar"><span class="bar plain" aria-hidden="true"><i style="--v:41.4"></i></span></span></span></span></td><td class="md-up"><span class="st"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Sin bici</span></td><td class="num pct"><b>30,0</b></td><td class="md-up num">1&nbsp;h 00&nbsp;min</td><td class="md-up num">0</td><td class="lg-up">Strava</td></tr>
+        </tbody>
+        <tfoot><tr><th scope="row" class="md-up">Total</th><td class="part"><span class="lt-md">Total · 4 salidas</span><span class="md-up">4 salidas</span></td><td class="md-up"></td><td class="num">165,5</td><td class="md-up num">8&nbsp;h 58&nbsp;min</td><td class="md-up num">2.740</td><td class="lg-up"></td></tr></tfoot>
+      </table></div>
+      <p class="legend md-up"><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:52.7"></i></span>Barra gris bajo cada nombre: km de la salida respecto a la más larga de la lista (72,5&nbsp;km). No es desgaste.</p>
+      <p class="power">Powered by Strava. Una salida sin bici no suma uso a ninguna pieza hasta que la revises.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ============ ESTADÍSTICAS ============ -->
+<section class="screen" id="estadisticas" data-tab="estadisticas" aria-labelledby="h-stats">
+  <header class="scr-h">
+    <p class="eyebrow">Todo el histórico · 14/03/2024 – 01/11/2026</p>
+    <h1 id="h-stats" tabindex="-1">Estadísticas</h1>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-stats">
+      <h2 id="k-stats" class="sr-only">Totales</h2>
+      <dl class="kpis k4 strip">
+        <div class="kpi"><dt>Distancia con bici</dt><dd class="v">6.952<small>km</small></dd></div>
+        <div class="kpi"><dt>Tiempo</dt><dd class="v">408<small>h</small></dd></div>
+        <div class="kpi"><dt>Desnivel</dt><dd class="v">119.700<small>m</small></dd></div>
+        <div class="kpi"><dt>Salidas</dt><dd class="v">350</dd><dd class="d">1 sin bici</dd></div>
+      </dl>
+    </section>
+    <section class="pnl lg6" aria-labelledby="e-split">
+      <div class="pnl-h"><h2 id="e-split">Reparto por bici</h2><span class="pnl-m">Rallon / Grizl</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Reparto de distancia, tiempo y desnivel entre las dos bicis</caption>
+        <thead><tr><th scope="col">Métrica</th><th scope="col" class="num">Rallon</th><th scope="col" class="num">Grizl</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><b>Distancia</b><span class="bar plain" aria-hidden="true" style="--c:var(--ink)"><i style="--v:69.2"></i></span></td><td class="num pct"><b>4.812</b><span>69&nbsp;%</span></td><td class="num pct"><b>2.140</b><span>31&nbsp;%</span></td></tr>
+          <tr><td class="part"><b>Tiempo (h)</b><span class="bar plain" aria-hidden="true" style="--c:var(--ink)"><i style="--v:76.5"></i></span></td><td class="num pct"><b>312</b><span>76&nbsp;%</span></td><td class="num pct"><b>96</b><span>24&nbsp;%</span></td></tr>
+          <tr><td class="part"><b>Desnivel (m)</b><span class="bar plain" aria-hidden="true" style="--c:var(--ink)"><i style="--v:82.2"></i></span></td><td class="num pct"><b>98.400</b><span>82&nbsp;%</span></td><td class="num pct"><b>21.300</b><span>18&nbsp;%</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="legend">Barra: parte llena = Orbea Rallon; resto = Canyon Grizl.</p>
+    </section>
+    <section class="pnl lg6" aria-labelledby="e-used">
+      <div class="pnl-h"><h2 id="e-used">Material más usado</h2><span class="pnl-m">km registrados</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Material con más kilómetros registrados</caption>
+        <thead><tr><th scope="col">Pieza</th><th scope="col" class="num">km</th></tr></thead>
+        <tbody>
+          <tr><td class="part"><b>Horquilla Fox 38 Factory</b> <span class="lc">Montado</span><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:100"></i></span></td><td class="num">4.812</td></tr>
+          <tr><td class="part"><b>Cadena SRAM GX Eagle</b> <span class="lc ret">Retirado</span><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:41.8"></i></span></td><td class="num">2.010</td></tr>
+          <tr><td class="part"><b>Cadena SRAM GX Eagle</b> <span class="lc">Montado</span><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:38.7"></i></span></td><td class="num">1.860</td></tr>
+          <tr><td class="part"><b>Casete SRAM XG-1275</b><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:38.7"></i></span></td><td class="num">1.860</td></tr>
+          <tr><td class="part"><b>Cubiertas Schwalbe G-One</b><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:30.8"></i></span></td><td class="num">1.480</td></tr>
+          <tr><td class="part"><b>Casco Bell</b> <span class="lc uso">En uso</span><span class="bar plain" aria-hidden="true" style="--c:var(--ink-2)"><i style="--v:25.8"></i></span></td><td class="num">1.240</td></tr>
+        </tbody>
+      </table></div>
+      <p class="legend">Fox Float X y bujes, también 4.812&nbsp;km: montados desde el primer día. Barras relativas a 4.812&nbsp;km.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ============ MÁS ============ -->
+<section class="screen" id="mas" data-tab="mas" aria-labelledby="h-mas">
+  <header class="scr-h">
+    <h1 id="h-mas" tabindex="-1">Más</h1>
+  </header>
+  <div class="grid">
+    <section class="pnl md6" aria-labelledby="x-inv">
+      <div class="pnl-h"><h2 id="x-inv">Inventario</h2></div>
+      <ul class="menu">
+        <li><a href="#material"><svg class="ic" aria-hidden="true"><use href="#i-part"/></svg><span>Material<small>16 objetos · componentes, equipación y piezas guardadas</small></span><svg class="ic s" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><a href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-bike"/></svg><span>Orbea Rallon<small>Enduro · 4.812&nbsp;km</small></span><svg class="ic s" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><a href="#bici-grizl"><svg class="ic" aria-hidden="true"><use href="#i-bike"/></svg><span>Canyon Grizl<small>Gravel · 2.140&nbsp;km</small></span><svg class="ic s" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><span class="mi"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg><span>Categorías<small>Fuera de esta maqueta</small></span><span></span></span></li>
+      </ul>
+    </section>
+    <section class="pnl md6" aria-labelledby="x-data">
+      <div class="pnl-h"><h2 id="x-data">Datos y app</h2></div>
+      <ul class="menu">
+        <li><a href="#strava"><svg class="ic" aria-hidden="true"><use href="#i-sync"/></svg><span>Strava<small>Hoy 09:05 · 350 salidas importadas</small></span><svg class="ic s" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><span class="mi"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg><span>Perfiles de uso<small>Fuera de esta maqueta</small></span><span></span></span></li>
+        <li><span class="mi"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg><span>Exportar mis datos<small>Fuera de esta maqueta</small></span><span></span></span></li>
+        <li><span class="mi"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span>Instalar en el teléfono<small>Fuera de esta maqueta</small></span><span></span></span></li>
+      </ul>
+    </section>
+    <section class="pnl md6" aria-labelledby="x-about">
+      <div class="pnl-h"><h2 id="x-about">Esta maqueta</h2></div>
+      <ul class="menu">
+        <li><a href="#sobre"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Sobre esta dirección<small>Telemetría · tokens, contraste y trade-offs</small></span><svg class="ic s" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+      </ul>
+    </section>
+  </div>
+</section>
+
+<!-- ============ STRAVA ============ -->
+<section class="screen" id="strava" data-tab="mas" aria-labelledby="h-strava">
+  <header class="scr-h">
+    <a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Más</a>
+    <h1 id="h-strava" tabindex="-1">Strava</h1>
+    <p class="meta">Salidas en bici y bicis, con el token de Stravagancia. Sin GPS, mapas ni datos de salud.</p>
+  </header>
+  <div class="grid">
+    <section class="pnl" aria-labelledby="k-strava">
+      <h2 id="k-strava" class="sr-only">Estado de la sincronización</h2>
+      <dl class="kpis k4 strip">
+        <div class="kpi st-ok"><dt>Estado</dt><dd class="v">OK</dd><dd class="d">conectado</dd></div>
+        <div class="kpi"><dt>Última sincronización</dt><dd class="v">09:05</dd><dd class="d">hoy · correcta</dd></div>
+        <div class="kpi"><dt>Salidas importadas</dt><dd class="v">350</dd><dd class="d">2 bicis vinculadas</dd></div>
+        <div class="kpi"><dt>Posibles duplicados</dt><dd class="v">0</dd></div>
+      </dl>
+    </section>
+    <section class="pnl lg6" aria-labelledby="v-sync">
+      <div class="pnl-h"><h2 id="v-sync">Sincronización</h2><span class="st st-ok"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Conectado</span></div>
+      <form class="form" action="#strava" method="get">
+        <p>Automática cada día a las 9:05 (hora de Madrid). Pide los últimos 7 días y confirma los avisos pendientes.</p>
+        <p class="note">Si una salida ya existe por un FIT (inicio a ±90&nbsp;s y distancia a ±2&nbsp;%), se une a ella; si hay dudas, queda aparte como «posible duplicado».</p>
+        <div><button class="btn" type="submit"><svg class="ic s" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</button></div>
+      </form>
+    </section>
+    <section class="pnl lg6" aria-labelledby="v-import">
+      <div class="pnl-h"><h2 id="v-import">Importar histórico</h2></div>
+      <form class="form" action="#strava" method="get">
+        <div class="row-act">
+          <div class="fld"><label for="v-desde">Desde</label><input class="mono" id="v-desde" name="desde" type="date" value="2024-03-01"></div>
+          <button class="btn sec" type="submit"><svg class="ic s" aria-hidden="true"><use href="#i-down"/></svg>Importar histórico</button>
+        </div>
+        <p class="note">Se hace por pasos: si se corta o Strava pide esperar, guarda las páginas confirmadas y puedes continuar.</p>
+      </form>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Ejecuciones de importación</caption>
+        <thead><tr><th scope="col">Ejecución</th><th scope="col" class="num">Salidas</th></tr></thead>
+        <tbody>
+          <tr class="st-ok"><td class="part"><span class="nm"><b>Completada</b><span class="sub mono">19/10/2026 10:12 · desde 01/03/2024</span></span></td><td class="num">346</td></tr>
+          <tr><td class="part"><span class="nm"><b>Sincronización diaria</b><span class="sub mono">24/10 – 01/11/2026</span></span></td><td class="num">+4</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="pnl" aria-labelledby="v-gear">
+      <div class="pnl-h"><h2 id="v-gear">Bicis de Strava</h2><span class="pnl-m">2 vinculadas</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <caption class="sr-only">Vínculo entre las bicis de Strava y las de Garage</caption>
+        <thead><tr><th scope="col">En Strava</th><th scope="col">Cuenta como</th></tr></thead>
+        <tbody>
+          <tr><td><b>Rallon</b></td><td><label class="sr-only" for="v-g1">Cuenta como (Rallon)</label><select id="v-g1"><option selected>Orbea Rallon</option><option>Canyon Grizl</option><option>Sin vincular</option></select></td></tr>
+          <tr><td><b>Grizl</b></td><td><label class="sr-only" for="v-g2">Cuenta como (Grizl)</label><select id="v-g2"><option>Orbea Rallon</option><option selected>Canyon Grizl</option><option>Sin vincular</option></select></td></tr>
+        </tbody>
+      </table></div>
+      <p class="power">Cambiar el vínculo recalcula sus salidas y contadores. Powered by Strava.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ============ SOBRE ESTA DIRECCIÓN ============ -->
+<section class="screen" id="sobre" data-tab="mas" aria-labelledby="h-sobre">
+  <header class="scr-h">
+    <a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>Más</a>
+    <p class="eyebrow">Dirección 3 de 3</p>
+    <h1 id="h-sobre" tabindex="-1">Sobre esta dirección: Telemetría</h1>
+  </header>
+  <div class="grid">
+    <section class="pnl lg7" aria-labelledby="a-intent">
+      <div class="pnl-h"><h2 id="a-intent">Intención</h2></div>
+      <div class="pnl-b prose">
+        <p>Telemetría trata el garaje como un banco de pruebas: todas las cifras a la vista, en una rejilla estricta, con barras alineadas que se comparan de un vistazo como canales de datos.</p>
+        <p>Encaja con quien mantiene su bici con mentalidad de mecánico o de ingeniero, quiere todos los números a la vez y compara piezas como datos; no con quien busca una app cálida o mínima.</p>
+      </div>
+    </section>
+    <section class="pnl lg5" aria-labelledby="a-fonts">
+      <div class="pnl-h"><h2 id="a-fonts">Fuentes</h2></div>
+      <div class="pnl-b prose">
+        <p><strong>IBM Plex Sans Condensed</strong> (400–700) para texto, etiquetas y tablas: estrecha, cabe más por línea.</p>
+        <p class="mono"><strong>JetBrains Mono</strong> (400–600) para cifras: tabulares, x alta, 0 distinto de la O.</p>
+        <p class="note">Google Fonts, licencia SIL OFL. En la PWA hay que <b>autoalojarlas</b> (requisito). Sin ellas: Avenir Next Condensed (iOS, macOS), sans-serif-condensed (Android) o system-ui, y ui-monospace / SF Mono / Roboto Mono. La maqueta se ha probado sólo con system-ui a 375&nbsp;px: no se corta nada, pero los nombres largos ocupan dos líneas.</p>
+      </div>
+    </section>
+    <section class="pnl" aria-labelledby="a-palette">
+      <div class="pnl-h"><h2 id="a-palette">Paleta y contraste WCAG</h2><span class="pnl-m">calculado con script</span></div>
+      <div class="pnl-b"><p class="note">Oscuro de referencia: grafito con un tinte verde «fósforo» de osciloscopio en fondos, líneas, pista y texto secundario. Claro: papel de registro gris verdoso. La interfaz es monocroma; el color sólo marca estado (rojo, ámbar, cian y verde).</p></div>
+      <!-- tokens:tabla:inicio -->
+<div class="tbl-wrap"><table class="tbl tok">
+<caption class="sr-only">Pares de color usados, con su contraste WCAG en claro y oscuro</caption>
+<thead><tr><th scope="col">Par (primer plano / fondo)</th><th scope="col" class="num">Claro</th><th scope="col" class="num">Oscuro</th><th scope="col" class="num md-up">Mín.</th><th scope="col" class="md-up">Uso</th></tr></thead><tbody>
+<tr><td><code>ink / bg</code><span class="sub lt-md">Texto principal y cifras · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#e3e9e6 50%)"></span>15,39</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#0e1311 50%)"></span>15,51</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto principal y cifras</td></tr>
+<tr><td><code>ink / panel</code><span class="sub lt-md">Texto principal y cifras · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#f8fbf9 50%)"></span>18,18</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#151b18 50%)"></span>14,46</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto principal y cifras</td></tr>
+<tr><td><code>ink / panel-2</code><span class="sub lt-md">Texto principal y cifras · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#eff3f1 50%)"></span>16,92</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#1c2420 50%)"></span>13,14</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto principal y cifras</td></tr>
+<tr><td><code>ink / field</code><span class="sub lt-md">Texto principal y cifras · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#ffffff 50%)"></span>18,94</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#111714 50%)"></span>15,02</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto principal y cifras</td></tr>
+<tr><td><code>ink-2 / bg</code><span class="sub lt-md">Texto secundario, cabeceras en versalitas, unidades · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#e3e9e6 50%)"></span>6,50</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#0e1311 50%)"></span>8,58</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto secundario, cabeceras en versalitas, unidades</td></tr>
+<tr><td><code>ink-2 / panel</code><span class="sub lt-md">Texto secundario, cabeceras en versalitas, unidades · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#f8fbf9 50%)"></span>7,68</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#151b18 50%)"></span>7,99</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto secundario, cabeceras en versalitas, unidades</td></tr>
+<tr><td><code>ink-2 / panel-2</code><span class="sub lt-md">Texto secundario, cabeceras en versalitas, unidades · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#eff3f1 50%)"></span>7,15</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#1c2420 50%)"></span>7,27</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto secundario, cabeceras en versalitas, unidades</td></tr>
+<tr><td><code>due-t / bg</code><span class="sub lt-md">Texto, icono y borde del chip «Vencido» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ab2018 50%,#e3e9e6 50%)"></span>5,78</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff8a7e 50%,#0e1311 50%)"></span>8,20</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Vencido»</td></tr>
+<tr><td><code>due-t / panel</code><span class="sub lt-md">Texto, icono y borde del chip «Vencido» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ab2018 50%,#f8fbf9 50%)"></span>6,83</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff8a7e 50%,#151b18 50%)"></span>7,65</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Vencido»</td></tr>
+<tr><td><code>due-t / panel-2</code><span class="sub lt-md">Texto, icono y borde del chip «Vencido» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ab2018 50%,#eff3f1 50%)"></span>6,36</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff8a7e 50%,#1c2420 50%)"></span>6,95</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Vencido»</td></tr>
+<tr><td><code>soon-t / bg</code><span class="sub lt-md">Texto, icono y borde del chip «Pronto / Revisar» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#7e5000 50%,#e3e9e6 50%)"></span>5,62</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f6bf55 50%,#0e1311 50%)"></span>11,16</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Pronto / Revisar»</td></tr>
+<tr><td><code>soon-t / panel</code><span class="sub lt-md">Texto, icono y borde del chip «Pronto / Revisar» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#7e5000 50%,#f8fbf9 50%)"></span>6,64</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f6bf55 50%,#151b18 50%)"></span>10,40</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Pronto / Revisar»</td></tr>
+<tr><td><code>soon-t / panel-2</code><span class="sub lt-md">Texto, icono y borde del chip «Pronto / Revisar» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#7e5000 50%,#eff3f1 50%)"></span>6,18</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f6bf55 50%,#1c2420 50%)"></span>9,45</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Pronto / Revisar»</td></tr>
+<tr><td><code>prog-t / bg</code><span class="sub lt-md">Texto, icono y borde del chip «En curso» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#085a85 50%,#e3e9e6 50%)"></span>6,07</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6fcaef 50%,#0e1311 50%)"></span>10,15</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «En curso»</td></tr>
+<tr><td><code>prog-t / panel</code><span class="sub lt-md">Texto, icono y borde del chip «En curso» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#085a85 50%,#f8fbf9 50%)"></span>7,17</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6fcaef 50%,#151b18 50%)"></span>9,46</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «En curso»</td></tr>
+<tr><td><code>prog-t / panel-2</code><span class="sub lt-md">Texto, icono y borde del chip «En curso» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#085a85 50%,#eff3f1 50%)"></span>6,67</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6fcaef 50%,#1c2420 50%)"></span>8,60</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «En curso»</td></tr>
+<tr><td><code>ok-t / bg</code><span class="sub lt-md">Texto, icono y borde del chip «Al día» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0f6630 50%,#e3e9e6 50%)"></span>5,76</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#62dc98 50%,#0e1311 50%)"></span>10,90</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Al día»</td></tr>
+<tr><td><code>ok-t / panel</code><span class="sub lt-md">Texto, icono y borde del chip «Al día» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0f6630 50%,#f8fbf9 50%)"></span>6,80</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#62dc98 50%,#151b18 50%)"></span>10,16</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Al día»</td></tr>
+<tr><td><code>ok-t / panel-2</code><span class="sub lt-md">Texto, icono y borde del chip «Al día» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0f6630 50%,#eff3f1 50%)"></span>6,33</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#62dc98 50%,#1c2420 50%)"></span>9,23</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Al día»</td></tr>
+<tr><td><code>nodata-t / bg</code><span class="sub lt-md">Texto, icono y borde del chip «Sin datos» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#e3e9e6 50%)"></span>6,50</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#0e1311 50%)"></span>8,58</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Sin datos»</td></tr>
+<tr><td><code>nodata-t / panel</code><span class="sub lt-md">Texto, icono y borde del chip «Sin datos» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#f8fbf9 50%)"></span>7,68</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#151b18 50%)"></span>7,99</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Sin datos»</td></tr>
+<tr><td><code>nodata-t / panel-2</code><span class="sub lt-md">Texto, icono y borde del chip «Sin datos» · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#eff3f1 50%)"></span>7,15</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#1c2420 50%)"></span>7,27</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto, icono y borde del chip «Sin datos»</td></tr>
+<tr><td><code>bg / ink</code><span class="sub lt-md">Botón principal y filtro activo (invertidos) · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e3e9e6 50%,#0c120f 50%)"></span>15,39</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0e1311 50%,#e2ece6 50%)"></span>15,51</td><td class="num md-up">4,5</td><td class="md-up wrap">Botón principal y filtro activo (invertidos)</td></tr>
+<tr><td><code>panel / ink</code><span class="sub lt-md">Texto invertido sobre ink en paneles (filtro activo) · mín. 4,5</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f8fbf9 50%,#0c120f 50%)"></span>18,18</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#151b18 50%,#e2ece6 50%)"></span>14,46</td><td class="num md-up">4,5</td><td class="md-up wrap">Texto invertido sobre ink en paneles (filtro activo)</td></tr>
+<tr><td><code>due / track</code><span class="sub lt-md">Relleno de barra «Vencido» sobre la pista · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#c9281e 50%,#dbe3df 50%)"></span>4,22</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff6a5c 50%,#27322d 50%)"></span>4,73</td><td class="num md-up">3,0</td><td class="md-up wrap">Relleno de barra «Vencido» sobre la pista</td></tr>
+<tr><td><code>soon / track</code><span class="sub lt-md">Relleno de barra «Pronto» sobre la pista · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#a46800 50%,#dbe3df 50%)"></span>3,52</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f2ad2e 50%,#27322d 50%)"></span>6,83</td><td class="num md-up">3,0</td><td class="md-up wrap">Relleno de barra «Pronto» sobre la pista</td></tr>
+<tr><td><code>prog / track</code><span class="sub lt-md">Relleno de barra «En curso» sobre la pista · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0a6a9c 50%,#dbe3df 50%)"></span>4,52</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#35b4e6 50%,#27322d 50%)"></span>5,58</td><td class="num md-up">3,0</td><td class="md-up wrap">Relleno de barra «En curso» sobre la pista</td></tr>
+<tr><td><code>ok / track</code><span class="sub lt-md">Relleno de barra «Al día» sobre la pista · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#14793b 50%,#dbe3df 50%)"></span>4,20</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#3fcf7f 50%,#27322d 50%)"></span>6,61</td><td class="num md-up">3,0</td><td class="md-up wrap">Relleno de barra «Al día» sobre la pista</td></tr>
+<tr><td><code>due / panel</code><span class="sub lt-md">Franja lateral de fila y marca de KPI «Vencido» · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#c9281e 50%,#f8fbf9 50%)"></span>5,30</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff6a5c 50%,#151b18 50%)"></span>6,21</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral de fila y marca de KPI «Vencido»</td></tr>
+<tr><td><code>due / panel-2</code><span class="sub lt-md">Franja lateral «Vencido» en fila con hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#c9281e 50%,#eff3f1 50%)"></span>4,93</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#ff6a5c 50%,#1c2420 50%)"></span>5,65</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral «Vencido» en fila con hover</td></tr>
+<tr><td><code>soon / panel</code><span class="sub lt-md">Franja lateral de fila y marca de KPI «Pronto» · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#a46800 50%,#f8fbf9 50%)"></span>4,42</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f2ad2e 50%,#151b18 50%)"></span>8,98</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral de fila y marca de KPI «Pronto»</td></tr>
+<tr><td><code>soon / panel-2</code><span class="sub lt-md">Franja lateral «Pronto» en fila con hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#a46800 50%,#eff3f1 50%)"></span>4,12</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#f2ad2e 50%,#1c2420 50%)"></span>8,16</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral «Pronto» en fila con hover</td></tr>
+<tr><td><code>prog / panel</code><span class="sub lt-md">Franja lateral de fila y marca de KPI «En curso» · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0a6a9c 50%,#f8fbf9 50%)"></span>5,67</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#35b4e6 50%,#151b18 50%)"></span>7,34</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral de fila y marca de KPI «En curso»</td></tr>
+<tr><td><code>prog / panel-2</code><span class="sub lt-md">Franja lateral «En curso» en fila con hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0a6a9c 50%,#eff3f1 50%)"></span>5,28</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#35b4e6 50%,#1c2420 50%)"></span>6,67</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral «En curso» en fila con hover</td></tr>
+<tr><td><code>ok / panel</code><span class="sub lt-md">Franja lateral de fila y marca de KPI «Al día» · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#14793b 50%,#f8fbf9 50%)"></span>5,27</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#3fcf7f 50%,#151b18 50%)"></span>8,69</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral de fila y marca de KPI «Al día»</td></tr>
+<tr><td><code>ok / panel-2</code><span class="sub lt-md">Franja lateral «Al día» en fila con hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#14793b 50%,#eff3f1 50%)"></span>4,90</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#3fcf7f 50%,#1c2420 50%)"></span>7,90</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral «Al día» en fila con hover</td></tr>
+<tr><td><code>nodata / panel</code><span class="sub lt-md">Franja lateral de fila y marca de KPI «Sin datos» y rayas/marco de su barra · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#66756d 50%,#f8fbf9 50%)"></span>4,66</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#83978d 50%,#151b18 50%)"></span>5,64</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral de fila y marca de KPI «Sin datos» y rayas/marco de su barra</td></tr>
+<tr><td><code>nodata / panel-2</code><span class="sub lt-md">Franja lateral «Sin datos» y rayas/marco de su barra en fila con hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#66756d 50%,#eff3f1 50%)"></span>4,33</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#83978d 50%,#1c2420 50%)"></span>5,12</td><td class="num md-up">3,0</td><td class="md-up wrap">Franja lateral «Sin datos» y rayas/marco de su barra en fila con hover</td></tr>
+<tr><td><code>nodata / bg</code><span class="sub lt-md">Marca «Sin datos» sobre el fondo (KPI en tira, móvil) · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#66756d 50%,#e3e9e6 50%)"></span>3,94</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#83978d 50%,#0e1311 50%)"></span>6,05</td><td class="num md-up">3,0</td><td class="md-up wrap">Marca «Sin datos» sobre el fondo (KPI en tira, móvil)</td></tr>
+<tr><td><code>ink-2 / track</code><span class="sub lt-md">Barra neutra (salidas, material más usado) · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#dbe3df 50%)"></span>6,12</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#27322d 50%)"></span>6,08</td><td class="num md-up">3,0</td><td class="md-up wrap">Barra neutra (salidas, material más usado)</td></tr>
+<tr><td><code>ink / track</code><span class="sub lt-md">Barra de reparto por bici · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#dbe3df 50%)"></span>14,49</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#27322d 50%)"></span>10,99</td><td class="num md-up">3,0</td><td class="md-up wrap">Barra de reparto por bici</td></tr>
+<tr><td><code>ink-2 / panel</code><span class="sub lt-md">Marca de aviso (90 %) fuera de la barra · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#45544c 50%,#f8fbf9 50%)"></span>7,68</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#9db5a8 50%,#151b18 50%)"></span>7,99</td><td class="num md-up">3,0</td><td class="md-up wrap">Marca de aviso (90 %) fuera de la barra</td></tr>
+<tr><td><code>ink / panel</code><span class="sub lt-md">Marca de umbral (100 %) y anillo de foco · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#f8fbf9 50%)"></span>18,18</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#151b18 50%)"></span>14,46</td><td class="num md-up">3,0</td><td class="md-up wrap">Marca de umbral (100 %) y anillo de foco</td></tr>
+<tr><td><code>ink / bg</code><span class="sub lt-md">Anillo de foco sobre el fondo · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#0c120f 50%,#e3e9e6 50%)"></span>15,39</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#e2ece6 50%,#0e1311 50%)"></span>15,51</td><td class="num md-up">3,0</td><td class="md-up wrap">Anillo de foco sobre el fondo</td></tr>
+<tr><td><code>rule-strong / field</code><span class="sub lt-md">Borde de campos (interior) · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6b7a72 50%,#ffffff 50%)"></span>4,51</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6d8077 50%,#111714 50%)"></span>4,33</td><td class="num md-up">3,0</td><td class="md-up wrap">Borde de campos (interior)</td></tr>
+<tr><td><code>rule-strong / panel</code><span class="sub lt-md">Borde de campos, filtros y botón secundario · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6b7a72 50%,#f8fbf9 50%)"></span>4,33</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6d8077 50%,#151b18 50%)"></span>4,16</td><td class="num md-up">3,0</td><td class="md-up wrap">Borde de campos, filtros y botón secundario</td></tr>
+<tr><td><code>rule-strong / panel-2</code><span class="sub lt-md">Borde de etiquetas de ciclo de vida en hover · mín. 3,0</span></td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6b7a72 50%,#eff3f1 50%)"></span>4,03</td><td class="num"><span class="sw2" style="background:linear-gradient(90deg,#6d8077 50%,#1c2420 50%)"></span>3,78</td><td class="num md-up">3,0</td><td class="md-up wrap">Borde de etiquetas de ciclo de vida en hover</td></tr>
+</tbody></table></div>
+<details class="pnl-b"><summary>Todos los tokens de color</summary><div class="tbl-wrap"><table class="tbl tok"><caption class="sr-only">Tokens de color</caption><thead><tr><th scope="col">Token</th><th scope="col" class="num">Claro</th><th scope="col" class="num">Oscuro</th></tr></thead><tbody><tr><td><code>--bg</code></td><td class="num"><span class="sw" style="background:#e3e9e6"></span><code>#e3e9e6</code></td><td class="num"><span class="sw" style="background:#0e1311"></span><code>#0e1311</code></td></tr><tr><td><code>--panel</code></td><td class="num"><span class="sw" style="background:#f8fbf9"></span><code>#f8fbf9</code></td><td class="num"><span class="sw" style="background:#151b18"></span><code>#151b18</code></td></tr><tr><td><code>--panel-2</code></td><td class="num"><span class="sw" style="background:#eff3f1"></span><code>#eff3f1</code></td><td class="num"><span class="sw" style="background:#1c2420"></span><code>#1c2420</code></td></tr><tr><td><code>--field</code></td><td class="num"><span class="sw" style="background:#ffffff"></span><code>#ffffff</code></td><td class="num"><span class="sw" style="background:#111714"></span><code>#111714</code></td></tr><tr><td><code>--rule</code></td><td class="num"><span class="sw" style="background:#cfd8d3"></span><code>#cfd8d3</code></td><td class="num"><span class="sw" style="background:#28332e"></span><code>#28332e</code></td></tr><tr><td><code>--rule-strong</code></td><td class="num"><span class="sw" style="background:#6b7a72"></span><code>#6b7a72</code></td><td class="num"><span class="sw" style="background:#6d8077"></span><code>#6d8077</code></td></tr><tr><td><code>--track</code></td><td class="num"><span class="sw" style="background:#dbe3df"></span><code>#dbe3df</code></td><td class="num"><span class="sw" style="background:#27322d"></span><code>#27322d</code></td></tr><tr><td><code>--ink</code></td><td class="num"><span class="sw" style="background:#0c120f"></span><code>#0c120f</code></td><td class="num"><span class="sw" style="background:#e2ece6"></span><code>#e2ece6</code></td></tr><tr><td><code>--ink-2</code></td><td class="num"><span class="sw" style="background:#45544c"></span><code>#45544c</code></td><td class="num"><span class="sw" style="background:#9db5a8"></span><code>#9db5a8</code></td></tr><tr><td><code>--due</code></td><td class="num"><span class="sw" style="background:#c9281e"></span><code>#c9281e</code></td><td class="num"><span class="sw" style="background:#ff6a5c"></span><code>#ff6a5c</code></td></tr><tr><td><code>--due-t</code></td><td class="num"><span class="sw" style="background:#ab2018"></span><code>#ab2018</code></td><td class="num"><span class="sw" style="background:#ff8a7e"></span><code>#ff8a7e</code></td></tr><tr><td><code>--soon</code></td><td class="num"><span class="sw" style="background:#a46800"></span><code>#a46800</code></td><td class="num"><span class="sw" style="background:#f2ad2e"></span><code>#f2ad2e</code></td></tr><tr><td><code>--soon-t</code></td><td class="num"><span class="sw" style="background:#7e5000"></span><code>#7e5000</code></td><td class="num"><span class="sw" style="background:#f6bf55"></span><code>#f6bf55</code></td></tr><tr><td><code>--ok</code></td><td class="num"><span class="sw" style="background:#14793b"></span><code>#14793b</code></td><td class="num"><span class="sw" style="background:#3fcf7f"></span><code>#3fcf7f</code></td></tr><tr><td><code>--ok-t</code></td><td class="num"><span class="sw" style="background:#0f6630"></span><code>#0f6630</code></td><td class="num"><span class="sw" style="background:#62dc98"></span><code>#62dc98</code></td></tr><tr><td><code>--prog</code></td><td class="num"><span class="sw" style="background:#0a6a9c"></span><code>#0a6a9c</code></td><td class="num"><span class="sw" style="background:#35b4e6"></span><code>#35b4e6</code></td></tr><tr><td><code>--prog-t</code></td><td class="num"><span class="sw" style="background:#085a85"></span><code>#085a85</code></td><td class="num"><span class="sw" style="background:#6fcaef"></span><code>#6fcaef</code></td></tr><tr><td><code>--nodata</code></td><td class="num"><span class="sw" style="background:#66756d"></span><code>#66756d</code></td><td class="num"><span class="sw" style="background:#83978d"></span><code>#83978d</code></td></tr><tr><td><code>--nodata-t</code></td><td class="num"><span class="sw" style="background:#45544c"></span><code>#45544c</code></td><td class="num"><span class="sw" style="background:#9db5a8"></span><code>#9db5a8</code></td></tr></tbody></table></div></details>
+<p class="legend">94 comprobaciones, 0 por debajo del mínimo. Texto ≥ 4,5:1; barras, rayas, franjas, marcas, bordes de campo y foco ≥ 3:1. Muestra: mitad izquierda primer plano, mitad derecha fondo.</p>
+      <!-- tokens:tabla:fin -->
+    </section>
+    <section class="pnl lg6" aria-labelledby="a-scale">
+      <div class="pnl-h"><h2 id="a-scale">Escala tipográfica</h2></div>
+      <div class="pnl-b scale-demo">
+        <p><code>12 / xs</code><span style="font-size:12px">Leyendas, unidades, chips de estado</span></p>
+        <p><code>13 / sm</code><span style="font-size:13px">Texto secundario de las filas</span></p>
+        <p><code>15 / md</code><span style="font-size:15px">Cuerpo, celdas, etiquetas en versalitas</span></p>
+        <p><code>18 / lg</code><span style="font-size:18px" class="lbl">Título de panel</span></p>
+        <p><code>22–28 / xl</code><span style="font-size:24px;font-weight:600">Título de pantalla</span></p>
+        <p><code>20–28 / n</code><span class="mono" style="font-size:26px;font-weight:500">4.812 km</span></p>
+        <p><code>38–44 / nxl</code><span class="mono" style="font-size:40px;font-weight:500;letter-spacing:-.03em">1.860</span></p>
+      </div>
+    </section>
+    <section class="pnl lg3 md6" aria-labelledby="a-space">
+      <div class="pnl-h"><h2 id="a-space">Espaciado</h2></div>
+      <div class="pnl-b rulers">
+        <div><span>s1 · 2</span><i style="width:2px"></i></div>
+        <div><span>s2 · 4</span><i style="width:4px"></i></div>
+        <div><span>s3 · 8</span><i style="width:8px"></i></div>
+        <div><span>s4 · 12</span><i style="width:12px"></i></div>
+        <div><span>s5 · 16</span><i style="width:16px"></i></div>
+        <div><span>s6 · 24</span><i style="width:24px"></i></div>
+        <div><span>s7 · 32</span><i style="width:32px"></i></div>
+      </div>
+    </section>
+    <section class="pnl lg3 md6" aria-labelledby="a-radii">
+      <div class="pnl-h"><h2 id="a-radii">Radios</h2></div>
+      <div class="pnl-b radii">
+        <div><i style="border-radius:0"></i>0 · todo</div>
+        <p class="note">Un solo radio: 0. Paneles, chips, botones, campos y filtros son rectángulos, como los pilotos de un panel.</p>
+      </div>
+    </section>
+    <section class="pnl lg6" aria-labelledby="a-signal">
+      <div class="pnl-h"><h2 id="a-signal">Señales</h2></div>
+      <div class="pnl-b">
+        <p class="meta"><span class="st st-due"><svg class="ic" aria-hidden="true"><use href="#s-due"/></svg>Vencido</span><span class="st st-soon"><svg class="ic" aria-hidden="true"><use href="#s-soon"/></svg>Pronto</span><span class="st st-prog"><svg class="ic" aria-hidden="true"><use href="#s-prog"/></svg>En curso</span><span class="st st-ok"><svg class="ic" aria-hidden="true"><use href="#s-ok"/></svg>Al día</span><span class="st st-nodata"><svg class="ic" aria-hidden="true"><use href="#s-nodata"/></svg>Sin datos</span></p>
+        <p class="meta"><span class="lc">Montado</span><span class="lc disp">Disponible</span><span class="lc disp">Disponible · sin estrenar</span><span class="lc uso">En uso</span><span class="lc ret">Retirado</span></p>
+        <p class="note">Cada estado lleva palabra y un «piloto» cuadrado propio: encendido con ! (Vencido), apagado con ! (Pronto, Revisar), canal con marca de umbral (En curso), visto (Al día), discontinuo con raya (Sin datos, sin señal). El color sólo refuerza. El ciclo de vida es monocromo: lo distingue el borde (continuo, discontinuo, punteado, tachado).</p>
+      </div>
+    </section>
+    <section class="pnl lg6" aria-labelledby="a-trade">
+      <div class="pnl-h"><h2 id="a-trade">Trade-offs: qué sacrifica</h2></div>
+      <div class="pnl-b">
+        <ul class="prose">
+          <li><strong>Calidez y lectura rápida.</strong> Pide leer tablas; quien sólo quiere saber «¿qué toca?» tiene más ruido que en una lista de tarjetas.</li>
+          <li><strong>Curva de aprendizaje.</strong> La escala hasta 125&nbsp;% y las marcas de aviso y umbral hay que explicarlas una vez.</li>
+          <li><strong>Densidad en móvil, con recortes.</strong> A 375&nbsp;px caben 7–8 reglas en la primera pantalla (filas de 53&nbsp;px), pero la sub-línea (regla, bici) se corta con «…» y «Margen» y «Cuenta desde» sólo aparecen desde 1280&nbsp;px.</li>
+          <li><strong>Oscuro primero.</strong> Al sol el claro se lee mejor; las líneas finas pierden definición en pantallas pobres.</li>
+          <li><strong>Coste.</strong> Cambia el marcado de las plantillas (filas a tablas, celdas y barras duplicadas por tamaño), no sólo el CSS; y hay que autoalojar dos familias para que la PWA funcione sin red.</li>
+          <li><strong>Personalidad fría.</strong> Sin color de marca ni fotos; puede parecer una herramienta de trabajo más que «mi garaje».</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Secciones de Garage">
+  <ul>
+    <li><a href="#garaje" data-tab="garaje"><svg class="ic" aria-hidden="true"><use href="#i-garaje"/></svg>Garaje</a></li>
+    <li><a href="#salidas" data-tab="salidas"><svg class="ic" aria-hidden="true"><use href="#i-salidas"/></svg>Salidas</a></li>
+    <li><a href="#taller" data-tab="taller"><svg class="ic" aria-hidden="true"><use href="#i-taller"/></svg>Taller</a></li>
+    <li><a href="#estadisticas" data-tab="estadisticas"><svg class="ic" aria-hidden="true"><use href="#i-stats"/></svg>Estadísticas</a></li>
+    <li><a href="#mas" data-tab="mas"><svg class="ic" aria-hidden="true"><use href="#i-mas"/></svg>Más</a></li>
+  </ul>
+  <dl class="nav-foot">
+    <dt>Strava</dt><dd>hoy 09:05 · OK</dd>
+    <dt>Salidas</dt><dd>350</dd>
+    <dt>Reglas</dt><dd>10 · 3 avisos</dd>
+  </dl>
+</nav>
+
+<script>
+/* JS mínimo: conmutador de tema de 3 estados Sistema · Claro · Oscuro, que muestra el estado actual (Claro/Oscuro se recuerdan en localStorage;
+   Sistema borra lo guardado) y, al navegar, aria-current, título y foco.
+   La navegación entre pantallas funciona sin JS (:target). */
+(function () {
+  var KEY = 'garage-telemetria-tema', root = document.documentElement, btn = document.getElementById('tema');
+  var mq = window.matchMedia('(prefers-color-scheme: light)');
+  var ICONO = { sistema: '#i-tema', claro: '#i-sol', oscuro: '#i-luna' };
+  function pref() { return root.getAttribute('data-tema') || 'sistema'; }
+  function sys() { return mq.matches ? 'claro' : 'oscuro'; }
+  /* Ciclo de 3 estados en el orden que cambia algo visible en cada pulsación: Sistema → el contrario del sistema → el del sistema → Sistema. */
+  function nextOf(p) { var s = sys(), opp = s === 'claro' ? 'oscuro' : 'claro'; return p === 'sistema' ? opp : p === opp ? s : 'sistema'; }
+  function label() {
+    var p = pref(), next = nextOf(p), ahora = p === 'sistema' ? sys() : p;
+    btn.querySelector('use').setAttribute('href', ICONO[p]);
+    btn.querySelector('.tema-txt').textContent = 'Tema: ' + p.charAt(0).toUpperCase() + p.slice(1);
+    btn.setAttribute('aria-label', 'Tema: ' + p + (p === 'sistema' ? ' (ahora ' + ahora + ')' : '') + '. Pulsa para cambiar a ' + next);
+    btn.title = btn.getAttribute('aria-label');
+  }
+  btn.addEventListener('click', function () {
+    var next = nextOf(pref());
+    if (next === 'sistema') root.removeAttribute('data-tema'); else root.setAttribute('data-tema', next);
+    try { if (next === 'sistema') localStorage.removeItem(KEY); else localStorage.setItem(KEY, next); } catch (e) {}
+    label();
+  });
+  if (mq.addEventListener) mq.addEventListener('change', label);
+  label();
+
+  function route(moveFocus) {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var screen = id && document.getElementById(id);
+    if (!screen || !screen.classList.contains('screen')) screen = document.getElementById('garaje');
+    var tab = screen.getAttribute('data-tab');
+    document.querySelectorAll('.nav a').forEach(function (a) {
+      if (a.getAttribute('data-tab') === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    var h = screen.querySelector('h1');
+    document.title = h.textContent + ' · Garage · Telemetría';
+    if (moveFocus) { window.scrollTo(0, 0); h.focus({ preventScroll: true }); }
+  }
+  window.addEventListener('hashchange', function () { route(true); });
+  route(false);
+})();
+</script>
+</body>
+</html>

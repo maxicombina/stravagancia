@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Garaje · Garage · Opción 1 «Anillos»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&amp;family=Outfit:wght@500..700&amp;display=swap">
+<script>(function(){var r=document.documentElement,K='garage-opcion1-tema',q=new URLSearchParams(location.search).get('tema'),m=null;
+if(q==='claro')m='light';else if(q==='oscuro')m='dark';else{try{m=localStorage.getItem(K)}catch(e){}}
+if(m==='light'||m==='dark')r.setAttribute('data-theme',m);window.__temaURL=!!q;})();</script>
+<style>
+:root{
+  --font-display:"Outfit",ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:28px;--r-pill:999px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
+  --nav-h:72px;
+  color-scheme:light;
+  --bg:#F5F3EF;--surface:#FFFFFF;--surface-2:#EFEBE4;--line:#E4DFD7;--ink:#1C1A21;--ink-2:#5D5866;--field:#8C8694;--primary:#5536C8;--on-primary:#FFFFFF;--primary-soft:#ECE6FD;--focus:#C2410C;--due:#D2312F;--due-soft:#FCE4E2;--soon:#B86200;--soon-soft:#FFEFD2;--ok:#1E8449;--ok-soft:#DDF3E5;--nodata:#7A7482;--nodata-soft:#EEEBF0;--shadow:0 1px 2px rgba(28,26,33,.06), 0 10px 24px -14px rgba(28,26,33,.22);--card-border:transparent;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#131118;--surface:#1D1A23;--surface-2:#29252F;--line:#2F2B37;--ink:#F3F1F6;--ink-2:#B3ADBD;--field:#7F7889;--primary:#B6A2FF;--on-primary:#1B1035;--primary-soft:#2D2550;--focus:#FF9A5C;--due:#FF7B72;--due-soft:#3D1F22;--soon:#F2B13B;--soon-soft:#3A2B12;--ok:#4FCB83;--ok-soft:#15301F;--nodata:#A29CAB;--nodata-soft:#2A2730;--shadow:none;--card-border:#2F2B37;}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#131118;--surface:#1D1A23;--surface-2:#29252F;--line:#2F2B37;--ink:#F3F1F6;--ink-2:#B3ADBD;--field:#7F7889;--primary:#B6A2FF;--on-primary:#1B1035;--primary-soft:#2D2550;--focus:#FF9A5C;--due:#FF7B72;--due-soft:#3D1F22;--soon:#F2B13B;--soon-soft:#3A2B12;--ok:#4FCB83;--ok-soft:#15301F;--nodata:#A29CAB;--nodata-soft:#2A2730;--shadow:none;--card-border:#2F2B37;}
+
+.st-due{--m:var(--due);--soft:var(--due-soft)}
+.st-soon{--m:var(--soon);--soft:var(--soon-soft)}
+.st-prog{--m:var(--primary);--soft:var(--primary-soft)}
+.st-ok{--m:var(--ok);--soft:var(--ok-soft)}
+.st-nodata{--m:var(--nodata);--soft:var(--nodata-soft)}
+.st-review{--m:var(--soon);--soft:var(--soon-soft)}
+.st-snoozed{--m:var(--nodata);--soft:var(--nodata-soft)}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:64px;scroll-padding-bottom:calc(var(--nav-h) + 24px + env(safe-area-inset-bottom,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--font-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-display);margin:0;color:var(--ink)}
+p{margin:0}
+a{color:var(--primary);text-underline-offset:3px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+.sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:middle}
+.ic.sm{width:19px;height:19px}
+.ic.xs{width:15px;height:15px;stroke-width:2.1}
+code{font:500 .88em ui-monospace,"SF Mono",Menlo,monospace}
+
+/* Screens: one visible at a time through :target; Garaje when there is no hash. */
+.screen{display:none;padding-bottom:calc(var(--nav-h) + 40px + env(safe-area-inset-bottom,0px))}
+.screen:target,main:not(:has(.screen:target)) #garaje{display:block}
+@media (prefers-reduced-motion:no-preference){
+  .screen:target .wrap,main:not(:has(.screen:target)) #garaje .wrap{animation:rise .22s ease-out}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .row,.btn,.bike-card,.tab{transition:transform .12s ease,background-color .12s ease}
+  .row:active,.btn:active,.bike-card:active{transform:scale(.985)}
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:grid;gap:var(--s4)}
+.wrap>*{min-width:0}
+
+/* App bar */
+.appbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:4px;min-height:56px;padding:calc(4px + env(safe-area-inset-top,0px)) 8px 4px;background:var(--bg);max-width:1112px;margin:0 auto}
+.bar-title{flex:1;text-align:center;font:600 16px/1.2 var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back,.icon-btn{display:inline-flex;align-items:center;gap:2px;min-height:44px;min-width:44px;padding:0 10px 0 4px;border-radius:var(--r-pill);color:var(--primary);text-decoration:none;font-weight:600;font-size:16px}
+.back .ic{width:24px;height:24px}
+.icon-btn{border:0;background:var(--surface);justify-content:center;padding:0;color:var(--ink);cursor:pointer;box-shadow:var(--shadow);border:1px solid var(--card-border)}
+.appbar>.icon-btn{margin-left:auto}
+.appbar>.bar-title:empty{flex:1}
+:root .t-sun{display:none}
+:root[data-theme="dark"] .t-sun{display:block}:root[data-theme="dark"] .t-moon{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t-sun{display:block}:root:not([data-theme="light"]) .t-moon{display:none}}
+
+/* Heads */
+.head{display:grid;gap:var(--s2);padding-top:var(--s1);justify-items:start}
+.head h1,.hero-card h1,.piece-hero h1{font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.eyebrow{font-size:13px;font-weight:600;color:var(--ink-2);display:flex;gap:6px;align-items:center;letter-spacing:.02em}
+.lede{color:var(--ink-2);font-size:15px;max-width:62ch}
+.lede.big{font-size:17px;color:var(--ink)}
+.proto-pill{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:var(--r-pill);background:var(--primary-soft);color:var(--primary);font-weight:600;font-size:14px;text-decoration:none}
+.summary{display:flex;flex-wrap:wrap;gap:6px}
+.muted{color:var(--ink-2)}
+.note{font-size:14px;color:var(--ink-2)}
+.center{text-align:center}
+
+/* Cards and sections */
+.card{background:var(--surface);border:1px solid var(--card-border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:var(--s4);display:grid;gap:var(--s3);min-width:0;margin:0}
+.card h2{font-size:20px;line-height:1.25;font-weight:600}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);flex-wrap:wrap}
+.card-h h2{display:flex;align-items:center;gap:8px}
+.h-ic{width:22px;height:22px}
+.due-ic{color:var(--due)}.soon-ic{color:var(--soon)}.prog-ic{color:var(--primary)}.ok-ic{color:var(--ok)}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s2);margin-top:var(--s2)}
+.sec-h h2{font-size:20px;font-weight:600}
+.count{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 9px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink);font:600 14px/1 var(--font-body)}
+.grp,.card .grp{font:600 13px/1.2 var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.grp .count{height:24px;min-width:24px;font-size:13px}
+.card-link{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-weight:600;text-decoration:none;justify-self:start}
+.card-link.inline{min-height:44px}
+.stack{display:grid;gap:var(--s4);align-content:start;min-width:0}
+.cols{display:grid;gap:var(--s4)}
+.cols>*{min-width:0}
+
+/* Rows */
+.rows{list-style:none;margin:0;padding:0;display:grid}
+.rows>li+li{border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:var(--s3);min-height:64px;padding:10px 0;color:var(--ink);text-decoration:none;border-radius:var(--r-md)}
+a.row:hover .row-name{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
+.row-main{flex:1;min-width:0;display:grid;gap:3px}
+.row-name{font-weight:650;font-size:16.5px;line-height:1.3;overflow-wrap:anywhere}
+.row-sub{display:block;font-size:14px;line-height:1.4;color:var(--ink-2);overflow-wrap:anywhere}
+.row-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px}
+.go{color:var(--ink-2);width:20px;height:20px}
+.nested{position:relative;padding-left:22px}
+.nested .row{gap:10px}
+.nest-ic{position:absolute;left:0;top:20px;width:18px;height:18px;color:var(--ink-2)}
+.amount{font:600 15px/1 var(--font-display);white-space:nowrap}
+
+/* Tiles, rings, chips */
+.tile{width:48px;height:48px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--surface-2);color:var(--ink);flex:none}
+.tile.xl{width:64px;height:64px;border-radius:20px}
+.tile.xl .ic{width:32px;height:32px}
+.ringi{position:relative;width:52px;height:52px;display:grid;place-items:center;flex:none;color:var(--ink)}
+.ringi.lg{width:60px;height:60px}
+.ringi .ring{position:absolute;inset:0;width:100%;height:100%}
+.ring .trk{fill:none;stroke:var(--soft);stroke-width:6}
+.ring .arc{fill:none;stroke:var(--m);stroke-width:6;stroke-linecap:round}
+.st-nodata .ring .trk{stroke:var(--m);stroke-dasharray:3 5;stroke-width:2.5}
+.chip,.lchip,.badge{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:3px 10px 3px 7px;border-radius:var(--r-pill);font:600 13px/1.2 var(--font-body);white-space:nowrap;color:var(--ink)}
+.chip{background:var(--soft)}
+.chip .ic,.badge .ic{color:var(--m)}
+.lchip{background:var(--surface-2)}
+.lchip .ic{color:var(--ink-2)}
+.lchip.lc-new{background:var(--primary-soft)}
+.lchip.lc-new .ic{color:var(--primary)}
+.badge{background:var(--soft);font-size:14px;min-height:30px}
+.src{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--ink-2)}
+
+/* Bike cards */
+.bike-card{display:grid;grid-template-columns:132px minmax(0,1fr);gap:var(--s3);align-items:center;padding:var(--s3);background:var(--surface);border:1px solid var(--card-border);border-radius:var(--r-lg);box-shadow:var(--shadow);color:var(--ink);text-decoration:none;min-height:120px}
+.art{display:grid;place-items:center;background:var(--primary-soft);border-radius:var(--r-md);aspect-ratio:17/12;color:var(--primary)}
+.art.big{border-radius:var(--r-xl);width:100%}
+.bike-art{width:92%;height:auto}
+.bike-art .w{fill:none;stroke:currentColor;stroke-width:5}
+.bike-art .hub{fill:none;stroke:currentColor;stroke-width:3}
+.bike-art .fr{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.bike-art .fk{fill:none;stroke:currentColor;stroke-width:7;stroke-linecap:round}
+.bike-art .shock{fill:none;stroke:currentColor;stroke-width:11;stroke-linecap:round}
+.bike-art .shock-in{fill:none;stroke:var(--primary-soft);stroke-width:3;stroke-linecap:round;stroke-dasharray:2 3}
+.bike-body{display:grid;gap:4px;justify-items:start;min-width:0}
+.bike-name{font:700 19px/1.2 var(--font-display)}
+.bike-kind{font-size:14px;color:var(--ink-2)}
+.figs{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:14px;color:var(--ink-2)}
+.figs b{font:600 17px/1.2 var(--font-display);color:var(--ink)}
+
+/* Ride */
+.ride-mini{display:flex;align-items:center;gap:var(--s3);color:var(--ink);text-decoration:none;min-height:64px}
+.ride-date{display:grid;place-items:center;width:52px;height:56px;flex:none;border-radius:var(--r-md);background:var(--surface-2);font-size:13px;font-weight:600;color:var(--ink-2);line-height:1}
+.ride-date b{font:700 22px/1 var(--font-display);color:var(--ink)}
+.metrics{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--ink-2)}
+.metrics span{display:inline-flex;align-items:center;gap:5px}
+.metrics b{font:600 16px/1.2 var(--font-display);color:var(--ink)}
+.ride-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.ride{grid-template-columns:auto minmax(0,1fr);align-items:start;gap:var(--s3)}
+.ride .row-main{gap:6px}
+.ride-name{font-size:19px;font-weight:600;line-height:1.25}
+.sync-line{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--shadow);color:var(--ink);text-decoration:none;font-size:14px;font-weight:600}
+.sync-line .ic:first-child{color:var(--primary)}
+
+/* Hero (bike) and piece */
+.hero-card{background:var(--surface);border:1px solid var(--card-border);border-radius:var(--r-xl);box-shadow:var(--shadow);padding:var(--s4);display:grid;gap:var(--s3)}
+.figs3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);margin:0}
+.figs3.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.figs3>div{background:var(--surface-2);border-radius:var(--r-md);padding:10px 12px;display:flex;flex-direction:column-reverse;gap:2px;min-width:0}
+.figs3 dt{font-size:13px;color:var(--ink-2)}
+.figs3 dd{margin:0;font:600 19px/1.15 var(--font-display);white-space:nowrap}
+.banner{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-md);background:var(--soft);color:var(--ink)}
+.banner>.ic{color:var(--m)}
+.split{display:grid;gap:var(--s4)}
+.main-col{display:grid;gap:var(--s4);min-width:0}
+.piece-hero{display:grid;grid-template-columns:64px minmax(0,1fr);gap:var(--s4);align-items:start;padding-top:var(--s1)}
+.piece-hero .lede{margin-top:4px}
+.gauge-card{justify-items:center;text-align:center}
+.gauge-card h2{font-size:20px}
+.gauge-card .eyebrow{justify-content:center}
+.gauge{width:180px;height:180px}
+.gauge .trk{fill:none;stroke:var(--soft);stroke-width:13}
+.gauge .arc{fill:none;stroke:var(--m);stroke-width:13;stroke-linecap:round}
+.gauge .g-num{fill:var(--ink);font:600 34px var(--font-display);text-anchor:middle}
+.gauge .g-lbl{fill:var(--ink-2);font:500 14px var(--font-body);text-anchor:middle}
+.kv{display:grid;gap:0;margin:0;width:100%;text-align:left}
+.kv>div{display:flex;justify-content:space-between;gap:var(--s3);padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.kv dt{color:var(--ink-2)}
+.kv dd{margin:0;font-weight:600;text-align:right}
+.gauge-card .btn{width:100%}
+.timeline{list-style:none;margin:0;padding:0;display:grid}
+.timeline li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0}
+.timeline li::before{content:"";width:12px;height:12px;border-radius:50%;margin-top:5px;border:2.5px solid var(--primary);background:var(--surface)}
+.timeline li.open::before{background:var(--primary)}
+.timeline b{display:block;font-weight:650}
+.num{font:600 16px/1.3 var(--font-display);white-space:nowrap}
+
+/* Buttons and forms */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 20px;border:0;border-radius:var(--r-md);background:var(--primary);color:var(--on-primary);font:650 16px/1 var(--font-body);text-decoration:none;cursor:pointer}
+.btn.ghost{background:var(--surface-2);color:var(--ink)}
+.head .btn{margin-top:var(--s2)}
+.form{display:grid;gap:var(--s4);justify-items:stretch}
+.form>.btn{justify-self:start}
+.field{display:grid;gap:6px;margin:0;min-width:0}
+.field>label,.field>legend{font-weight:650;font-size:15px;padding:0}
+.field input,.field select,.field textarea{width:100%;min-height:50px;padding:12px 14px;border:1.5px solid var(--field);border-radius:14px;background:var(--surface);color:var(--ink)}
+.field textarea{min-height:96px;resize:vertical}
+.field input:focus,.field input:focus-within,.field select:focus,.field textarea:focus{outline:3px solid var(--focus);outline-offset:2px}
+.field-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:var(--s3)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.checks{gap:4px}
+.checks legend{margin-bottom:6px}
+.check,.field>label.check{font-weight:400;font-size:16px;display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);min-height:56px;cursor:pointer}
+.check+.check{margin-top:8px}
+.check input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--primary);flex:none}
+.check b{display:block;font-weight:650}
+.actions{display:flex;flex-wrap:wrap;gap:var(--s3)}
+.actions .btn{flex:1 1 180px}
+
+/* Material filters (radios, no JS) */
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 4px}
+.filters::-webkit-scrollbar{display:none}
+.filters input,.seg input{position:absolute;opacity:0;pointer-events:none}
+.filters label{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--shadow);font-weight:600;font-size:15px;white-space:nowrap;cursor:pointer;color:var(--ink)}
+.filters label .n{font-weight:500;color:var(--ink-2)}
+.filters input:checked+label{background:var(--primary);color:var(--on-primary)}
+.filters input:checked+label .n{color:var(--on-primary)}
+.filters input:focus-visible+label,.seg input:focus-visible+label{outline:3px solid var(--focus);outline-offset:2px}
+.mat{display:grid;gap:var(--s4)}
+.mat:has(#mf-mont:checked) .card:not(.grp-mont),
+.mat:has(#mf-disp:checked) .card:not(.grp-disp),
+.mat:has(#mf-uso:checked) .card:not(.grp-uso),
+.mat:has(#mf-ret:checked) .card:not(.grp-ret){display:none}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:var(--r-pill);background:var(--surface-2)}
+.seg label{display:grid;place-items:center;min-height:44px;border-radius:var(--r-pill);font-weight:600;font-size:15px;cursor:pointer;color:var(--ink)}
+.seg input:checked+label{background:var(--primary);color:var(--on-primary);font-weight:700}
+
+/* Statistics */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3);margin:0}
+.tiles .card{gap:2px;padding:14px}
+.tiles dt{font-size:14px;color:var(--ink-2)}
+.tiles dd{margin:0;font:600 26px/1.15 var(--font-display);white-space:nowrap}
+.tiles small{font:500 15px var(--font-body);color:var(--ink-2)}
+.chart{position:relative;margin:var(--s2) 0 0;padding-left:34px}
+.chart .grid{position:absolute;left:0;right:0;top:0;height:170px;pointer-events:none}
+.chart .grid span{position:absolute;left:34px;right:0;height:0;border-top:1px solid var(--line)}
+.chart .grid em{position:absolute;right:100%;margin-right:6px;transform:translateY(-50%);font:400 12.5px/1 var(--font-body);color:var(--ink-2)}
+.bars{list-style:none;margin:0;padding:0;height:170px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px;align-items:end;position:relative}
+.b{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.b .bar{display:block;width:min(100%,22px);height:var(--h);min-height:0;background:var(--primary);border-radius:4px 4px 0 0}
+.b-val{font:600 13px/1 var(--font-display);margin-bottom:4px;color:var(--ink)}
+.b-m{position:absolute;bottom:-24px;font-size:12.5px;color:var(--ink-2)}
+.b.cur .b-m{font-weight:700;color:var(--ink)}
+.bars{margin-bottom:28px}
+.tip{position:absolute;bottom:calc(var(--h) + 8px);left:50%;transform:translateX(-50%);background:var(--surface);color:var(--ink);border:1px solid var(--field);border-radius:10px;padding:5px 9px;font-size:13px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;z-index:2;box-shadow:var(--shadow)}
+@media (hover:hover){.b:hover .tip{opacity:1}.b:hover .b-val{visibility:hidden}}
+.b:first-child .tip{left:0;transform:none}.b:last-child .tip,.b:nth-last-child(2) .tip{left:auto;right:0;transform:none}
+.tbl summary{min-height:44px;display:flex;align-items:center;gap:6px;font-weight:600;color:var(--primary);cursor:pointer;list-style:none}
+.tbl summary::-webkit-details-marker{display:none}
+.sum-ic{transition:transform .15s ease}
+.tbl[open] .sum-ic{transform:rotate(90deg)}
+.tbl table,.cr,.swatches{border-collapse:collapse;width:100%;font-size:14px}
+.scale{list-style:none;margin:0;padding:0;display:grid}.scale li{display:grid;gap:2px;padding:10px 0;border-top:1px solid var(--line)}
+.smp{display:inline-grid;place-items:center;width:34px;height:28px;border-radius:8px;margin-right:8px;vertical-align:middle;font:700 14px/1 var(--font-body);border:1px solid var(--line)}.smp svg{width:18px;height:18px}
+.cr td{white-space:nowrap}.cr td b{font:600 15px var(--font-display)}
+.tbl th,.tbl td,.cr th,.cr td,.swatches th,.swatches td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:middle;font-weight:400}
+.cr thead th,.swatches thead th,.tbl thead th{font-weight:650;color:var(--ink-2)}
+.share{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.share li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}
+.s-name{display:inline-flex;gap:6px;align-items:center;font-weight:600}
+.s-val{font-size:14px;color:var(--ink-2)}
+.s-bar{grid-column:1/-1;height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.s-bar i{display:block;height:100%;background:var(--primary);border-radius:5px}
+.mt{margin-top:var(--s2)}
+.money{font-size:15px}.money b{font:600 26px var(--font-display)}
+
+/* About */
+.bullets{margin:0;padding-left:20px;display:grid;gap:8px}
+.type-sample{font-size:18px}
+.type-sample.display{font:600 26px/1.2 var(--font-display)}
+.tbl-wrap{overflow-x:auto}
+.sw{display:inline-block;width:22px;height:22px;border-radius:7px;vertical-align:middle;margin-right:8px;border:1px solid var(--field)}
+.radii{display:flex;flex-wrap:wrap;gap:10px}
+.radii span{display:grid;place-items:center;min-width:64px;height:52px;padding:0 10px;background:var(--primary-soft);color:var(--ink);font-size:13px;font-weight:600}
+.space{display:flex;align-items:flex-end;gap:10px}
+.space span{display:block;height:28px;background:var(--primary);border-radius:3px}
+
+/* Navigation: floating tab bar on phones and tablets, sidebar on desktop */
+.nav{position:fixed;z-index:10;left:8px;right:8px;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--card-border);border-radius:26px;box-shadow:0 10px 30px -10px rgba(28,26,33,.35)}
+.brand{display:none}
+.tabs{list-style:none;margin:0;padding:5px 4px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
+.tab{display:grid;justify-items:center;align-content:center;gap:3px;min-height:60px;border-radius:20px;color:var(--ink-2);text-decoration:none;padding:4px 0;text-align:center}
+.tab-ic{display:grid;place-items:center;width:52px;height:30px;border-radius:var(--r-pill)}
+.tab .ic{width:24px;height:24px}
+.tab-l{font:600 12px/1.25 var(--font-body);letter-spacing:-.005em;white-space:nowrap}
+.tab[aria-current="page"],
+body:not(.js) main:not(:has(.screen:target)) ~ .nav .t-garaje,
+body:not(.js):has(.screen[data-tab="garaje"]:target) .t-garaje,
+body:not(.js):has(.screen[data-tab="salidas"]:target) .t-salidas,
+body:not(.js):has(.screen[data-tab="taller"]:target) .t-taller,
+body:not(.js):has(.screen[data-tab="estadisticas"]:target) .t-estadisticas,
+body:not(.js):has(.screen[data-tab="mas"]:target) .t-mas{color:var(--ink)}
+.tab[aria-current="page"] .tab-ic,
+body:not(.js) main:not(:has(.screen:target)) ~ .nav .t-garaje .tab-ic,
+body:not(.js):has(.screen[data-tab="garaje"]:target) .t-garaje .tab-ic,
+body:not(.js):has(.screen[data-tab="salidas"]:target) .t-salidas .tab-ic,
+body:not(.js):has(.screen[data-tab="taller"]:target) .t-taller .tab-ic,
+body:not(.js):has(.screen[data-tab="estadisticas"]:target) .t-estadisticas .tab-ic,
+body:not(.js):has(.screen[data-tab="mas"]:target) .t-mas .tab-ic{background:var(--primary);color:var(--on-primary)}
+.tab[aria-current="page"] .tab-l,
+body:not(.js) main:not(:has(.screen:target)) ~ .nav .t-garaje .tab-l,
+body:not(.js):has(.screen[data-tab="garaje"]:target) .t-garaje .tab-l,
+body:not(.js):has(.screen[data-tab="salidas"]:target) .t-salidas .tab-l,
+body:not(.js):has(.screen[data-tab="taller"]:target) .t-taller .tab-l,
+body:not(.js):has(.screen[data-tab="estadisticas"]:target) .t-estadisticas .tab-l,
+body:not(.js):has(.screen[data-tab="mas"]:target) .t-mas .tab-l{font-weight:700}
+@media (max-width:359px){.tab-l{font-size:11px}.tab-ic{width:44px}}
+
+@media (min-width:640px){
+  .cols{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .cols>.span2{grid-column:1/-1}
+  .tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .bike-card{grid-template-columns:170px minmax(0,1fr)}
+  .head h1,.hero-card h1,.piece-hero h1{font-size:34px}
+}
+@media (min-width:640px) and (max-width:999px){
+  .split .aside .hero-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}
+  .split .aside .hero-card .art{grid-row:span 5}
+}
+@media (min-width:1000px){
+  body{padding-left:248px}
+  .screen{padding-bottom:48px}
+  .nav{left:0;top:0;bottom:0;right:auto;width:248px;max-width:none;margin:0;border-radius:0;border:0;border-right:1px solid var(--line);box-shadow:none;display:flex;flex-direction:column;padding:20px 14px}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 28px;font:700 22px/1 var(--font-display);color:var(--ink);text-decoration:none}
+  .brand svg{width:34px;height:34px}
+  .brand small{display:block;font:500 13px/1.3 var(--font-body);color:var(--ink-2);margin-top:4px}
+  .tabs{grid-template-columns:1fr;padding:0;gap:4px}
+  html{scroll-padding-bottom:16px}
+  .tab{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:50px;padding:0 10px 0 6px;border-radius:16px;text-align:left}
+  .tab-ic{width:36px;height:36px}
+  .tab-l{font-size:16px;letter-spacing:0}
+  .tab[aria-current="page"],
+  body:not(.js) main:not(:has(.screen:target)) ~ .nav .t-garaje,
+  body:not(.js):has(.screen[data-tab="garaje"]:target) .t-garaje,
+  body:not(.js):has(.screen[data-tab="salidas"]:target) .t-salidas,
+  body:not(.js):has(.screen[data-tab="taller"]:target) .t-taller,
+  body:not(.js):has(.screen[data-tab="estadisticas"]:target) .t-estadisticas,
+  body:not(.js):has(.screen[data-tab="mas"]:target) .t-mas{background:var(--primary);color:var(--on-primary)}
+  .wrap{padding:0 32px;gap:20px}
+  .appbar{padding:12px 24px 8px}
+  .split{grid-template-columns:minmax(300px,380px) minmax(0,1fr);align-items:start}
+  .split>.aside{position:sticky;top:76px}
+  .cols{gap:20px}
+}
+@media (forced-colors:active){.ring .arc,.gauge .arc{stroke:CanvasText}.chip,.lchip,.badge,.tab[aria-current="page"] .tab-ic,.seg input:checked+label{border:2px solid CanvasText}}
+</style>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false"><symbol id="i-garage" viewBox="0 0 24 24"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 21v-7h10v7M7 17.5h10"/></symbol><symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8"/></symbol><symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.3 13.7a4.6 4.6 0 0 0 6.6-5.9l-2.8 2.8-2.3-.4-.4-2.3 2.8-2.8a4.6 4.6 0 0 0-5.9 6.6L4.9 19.1a1.41 1.41 0 0 0 2 2z"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.4" height="6.5" rx="1"/><rect x="10.3" y="5.5" width="3.4" height="12" rx="1"/><rect x="15.6" y="13.5" width="3.4" height="4" rx="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="18.5" cy="12" r="1.5" fill="currentColor"/></symbol><symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.8" cy="16" r="3.6"/><circle cx="18.2" cy="16" r="3.6"/><path d="M5.8 16 9.6 9h6.1l2.5 7M9.6 9l2.6 7H5.8M15.7 9l-1.1-3h-2.2M8.2 6.5h2.8"/></symbol><symbol id="i-fork" viewBox="0 0 24 24"><path d="M12 2.5v4M6.5 21V9.5a5.5 5.5 0 0 1 11 0V21M4.8 14h3.4M15.8 14h3.4"/></symbol><symbol id="i-shock" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="1.8"/><circle cx="12" cy="20.2" r="1.8"/><path d="M12 5.6V7.5M12 16.5v1.9M8 8h8M8.6 10.8h6.8M8 13.5h8M8.6 16.2h6.8"/></symbol><symbol id="i-chain" viewBox="0 0 24 24"><rect x="2.5" y="8.3" width="10.5" height="7.4" rx="3.7"/><rect x="11" y="8.3" width="10.5" height="7.4" rx="3.7"/></symbol><symbol id="i-cassette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" stroke-dasharray="2.1 1.5"/><circle cx="12" cy="12" r="5.4"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-pads" viewBox="0 0 24 24"><circle cx="10.5" cy="12" r="7.8"/><circle cx="10.5" cy="12" r="2"/><path d="M16.8 5.2h2.6a1.6 1.6 0 0 1 1.6 1.6v10.4a1.6 1.6 0 0 1-1.6 1.6h-2.6"/></symbol><symbol id="i-tyre" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.6"/><circle cx="12" cy="12" r="1.4"/></symbol><symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.5c3.2 4 5.5 7.1 5.5 10a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6 5.5-10z"/><path d="M9.6 14.2a2.6 2.6 0 0 0 2.2 2.4"/></symbol><symbol id="i-bearing" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="6.1" r="1.1"/><circle cx="17.1" cy="9" r="1.1"/><circle cx="17.1" cy="15" r="1.1"/><circle cx="12" cy="17.9" r="1.1"/><circle cx="6.9" cy="15" r="1.1"/><circle cx="6.9" cy="9" r="1.1"/></symbol><symbol id="i-helmet" viewBox="0 0 24 24"><path d="M3.8 16.2c0-5.2 3.8-9.2 8.7-9.2 4.4 0 7.7 3.3 7.7 7.6v1.6z"/><path d="M3.8 16.2h16.4M8.4 8.6l1.9 4.2M13.2 7.1l.7 5"/></symbol><symbol id="i-box" viewBox="0 0 24 24"><path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z"/><path d="M3.5 7.5 12 11.5l8.5-4M12 11.5v9"/></symbol><symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3.5 12.8 8.7 18 10.5l-5.2 1.8L11 17.5l-1.8-5.2L4 10.5l5.2-1.8z"/><path d="M18.5 15.5v5M16 18h5"/></symbol><symbol id="i-archive" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4" rx="1"/><path d="M5 8.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18V8.5M10 12.5h4"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.7 2.7 5.5-5.6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.2 2.8 17.5a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17.2v.1"/></symbol><symbol id="i-octagon" viewBox="0 0 24 24"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z"/><path d="M12 7.5v5.5M12 16.4v.1"/></symbol><symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4.2 17a8.5 8.5 0 1 1 15.6 0"/><path d="M12 14.5 15.5 10"/><circle cx="12" cy="14.6" r="1.3"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6M12 16.8v.1"/></symbol><symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></symbol><symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol><symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 9A8 8 0 0 0 5 7.5M4.5 15a8 8 0 0 0 14.5 1.5"/><path d="M19.8 4.2V9h-4.8M4.2 19.8V15H9"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol><symbol id="i-mountain" viewBox="0 0 24 24"><path d="M2.5 19.5 9 8.5l4 6.5 2.5-3.5 6 8z"/></symbol><symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 2.5h5"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></symbol><symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.3-1.8-1.3-3 0-1 .8-1.6 1.8-1.6h2.2a3.5 3.5 0 0 0 3.5-3.5c0-4-3.6-7.2-8-7.2z"/><circle cx="7.8" cy="11" r="1"/><circle cx="10.5" cy="7.4" r="1"/><circle cx="15" cy="8" r="1"/></symbol><symbol id="i-nest" viewBox="0 0 24 24"><path d="M6 4v9a3 3 0 0 0 3 3h9"/><path d="m15 13 3 3-3 3"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15 8.8a3.6 3.6 0 1 0 0 6.4M7.5 11h5.5M7.5 13.3h5"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol></svg>
+<main><section class="screen" id="garaje" data-tab="garaje" data-title="Garaje" aria-labelledby="garaje-h"><div class="appbar"><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head">
+  <p class="eyebrow">Domingo, 1 de noviembre</p>
+  <h1 id="garaje-h">Garaje</h1>
+  <a class="proto-pill" href="#sobre"><svg class="ic xs" aria-hidden="true"><use href="#i-palette"/></svg>Boceto · Opción 1 «Anillos»</a>
+</header>
+<div class="cols">
+  <section class="card attn" aria-labelledby="attn-h">
+    <div class="card-h"><h2 id="attn-h"><svg class="ic h-ic due-ic" aria-hidden="true"><use href="#i-alert"/></svg>Requiere atención</h2><span class="count">3</span></div>
+    <ul class="rows"><li><a class="row" href="#pieza-fox38"><span class="ringi lg st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><span class="row-main"><span class="row-name">Horquilla Fox 38 Factory</span><span class=row-sub>Orbea Rallon · Servicio de 50 h</span><span class=row-chips><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · 8 h de más</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-assegai"><span class="ringi lg st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Líquido tubeless</span><span class=row-sub>Dentro del Assegai delantero · Agregar 30 ml cada 60 días</span><span class=row-chips><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · hace 9 días</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-cadena"><span class="ringi lg st-soon"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="134.4 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle</span><span class=row-sub>Orbea Rallon · Vida útil 2.000 km</span><span class=row-chips><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto · faltan 140 km</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li></ul>
+    <a class="card-link" href="#taller">Ver todo en Taller<svg class="ic xs" aria-hidden="true"><use href="#i-chev-r"/></svg></a>
+  </section>
+  <section aria-labelledby="bikes-h" class="stack">
+    <div class="sec-h"><h2 id="bikes-h">Tus bicis</h2></div>
+    <a class="bike-card" href="#bici-rallon">
+      <span class="art"><svg class="bike-art" viewBox="0 0 206 120" aria-hidden="true"><circle class="w" cx="46" cy="84" r="31"/><circle class="w" cx="160" cy="84" r="31"/><circle class="hub" cx="46" cy="84" r="3.5"/><circle class="hub" cx="160" cy="84" r="3.5"/><path class="fr" d="M98 88 88 38M90 50l48-8M98 88l45-32M138 42l5 14"/><path class="fr" d="M46 84h48M46 84l34-24 12-6"/><path class="shock" d="M91 60l22 12"/><path class="shock-in" d="M95 62.2l14 7.6"/><path class="fk" d="M143 56l17 28"/><path class="fr" d="M138 42l3-9M131 32h22"/><path class="fr" d="M88 38l-1-6M77 31h22"/><circle class="hub" cx="98" cy="88" r="6"/></svg></span>
+      <span class="bike-body">
+        <span class="bike-name">Orbea Rallon</span>
+        <span class="bike-kind">Enduro · doble suspensión</span>
+        <span class="figs"><span><b>4.812</b> km</span><span><b>312</b> h</span><span><b>↑ 98.400</b> m</span></span>
+        <span class="badge st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>3 avisos</span>
+      </span>
+    </a>
+    <a class="bike-card" href="#bici-grizl">
+      <span class="art"><svg class="bike-art" viewBox="0 0 206 120" aria-hidden="true"><circle class="w" cx="46" cy="84" r="30"/><circle class="w" cx="158" cy="84" r="30"/><circle class="hub" cx="46" cy="84" r="3.5"/><circle class="hub" cx="158" cy="84" r="3.5"/><path class="fr" d="M100 88 90 42M90 43l48-3M100 88l42-36M138 40l4 12M46 84h54M46 84l44-40"/><path class="fk" d="M142 52l16 32"/><path class="fr" d="M138 40l7-4h8q6 0 6 7v6q0 4-4 4h-3"/><path class="fr" d="M90 42l-2-9M78 32h22"/><circle class="hub" cx="100" cy="88" r="6"/></svg></span>
+      <span class="bike-body">
+        <span class="bike-name">Canyon Grizl</span>
+        <span class="bike-kind">Gravel</span>
+        <span class="figs"><span><b>2.140</b> km</span><span><b>96</b> h</span><span><b>↑ 21.300</b> m</span></span>
+        <span class="badge st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Todo al día</span>
+      </span>
+    </a>
+  </section>
+  <section class="card" aria-labelledby="last-h">
+    <div class="card-h"><h2 id="last-h">Última salida</h2><span class="src"><svg class="ic xs" aria-hidden="true"><use href="#i-sync"/></svg>Strava · hoy 09:05</span></div>
+    <a class="ride-mini" href="#salidas">
+      <span class="ride-date"><b>31</b>oct</span>
+      <span class="row-main"><span class="row-name">Vuelta por Collserola</span>
+        <span class="metrics"><span><svg class="ic xs" aria-hidden="true"><use href="#i-route"/></svg>38,2 km</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-timer"/></svg>2 h 41 min</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-mountain"/></svg>↑ 1.120 m</span></span>
+        <span class="row-sub">Orbea Rallon · suma uso a 9 piezas</span></span>
+      <svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg>
+    </a>
+  </section>
+  <section class="card" aria-labelledby="spare-h">
+    <div class="card-h"><h2 id="spare-h">Material sin montar</h2><span class="count">3</span></div>
+    <ul class="rows">
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle (repuesto)</span><span class=row-sub>Comprada el 02/10/2026 · 0 km</span><span class=row-chips><span class="lchip lc-new"><svg class="ic xs" aria-hidden="true"><use href="#i-sparkle"/></svg>Sin estrenar</span></span></span></div></li>
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Magura 9.P</span><span class=row-sub>Guardadas · 120 km de uso</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-box"/></svg>Disponible</span></span></span></div></li>
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-helmet"/></svg></span><span class="row-main"><span class="row-name">Casco Bell</span><span class=row-sub>Perfil «Montaña» · 2.630 km</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-user"/></svg>En uso · por perfil</span></span></span></div></li>
+    </ul>
+    <a class="card-link" href="#material">Ver todo el material<svg class="ic xs" aria-hidden="true"><use href="#i-chev-r"/></svg></a>
+  </section>
+</div></div></section><section class="screen" id="bici-rallon" data-tab="garaje" data-title="Orbea Rallon" aria-labelledby="bici-rallon-h"><div class="appbar"><a class="back" href="#garaje"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Garaje</span></a><span class="bar-title" aria-hidden="true">Orbea Rallon</span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<div class="split">
+  <div class="aside">
+    <section class="hero-card" aria-labelledby="bici-rallon-h">
+      <span class="art big"><svg class="bike-art" viewBox="0 0 206 120" aria-hidden="true"><circle class="w" cx="46" cy="84" r="31"/><circle class="w" cx="160" cy="84" r="31"/><circle class="hub" cx="46" cy="84" r="3.5"/><circle class="hub" cx="160" cy="84" r="3.5"/><path class="fr" d="M98 88 88 38M90 50l48-8M98 88l45-32M138 42l5 14"/><path class="fr" d="M46 84h48M46 84l34-24 12-6"/><path class="shock" d="M91 60l22 12"/><path class="shock-in" d="M95 62.2l14 7.6"/><path class="fk" d="M143 56l17 28"/><path class="fr" d="M138 42l3-9M131 32h22"/><path class="fr" d="M88 38l-1-6M77 31h22"/><circle class="hub" cx="98" cy="88" r="6"/></svg></span>
+      <h1 id="bici-rallon-h">Orbea Rallon</h1>
+      <p class="lede">Enduro · doble suspensión 29″ · desde marzo de 2024</p>
+      <dl class="figs3"><div><dt>km</dt><dd>4.812</dd></div><div><dt>horas</dt><dd>312</dd></div><div><dt>m de desnivel</dt><dd>↑ 98.400</dd></div></dl>
+      <p class="banner st-due"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><b>3 avisos</b> · 2 vencidos y 1 pronto</span></p>
+      <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-wrench"/></svg>Registrar intervención</a>
+    </section>
+  </div>
+  <div class="main-col">
+    <div class="sec-h"><h2>Componentes montados</h2><span class="count">9</span></div>
+    <section class="card" aria-labelledby="rz-Susp"><h3 class="grp" id="rz-Susp">Suspensión</h3><ul class="rows"><li><a class="row" href="#pieza-fox38"><span class="ringi md st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><span class="row-main"><span class="row-name">Horquilla Fox 38 Factory</span><span class=row-sub>Servicio de 50 h · 58 de 50 h</span><span class=row-chips><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · 8 h de más</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="102.6 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-shock"/></svg></span><span class="row-main"><span class="row-name">Amortiguador Fox Float X</span><span class=row-sub>Servicio de 125 h · 89 de 125 h</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 71 %</span></span></span></div></li></ul></section><section class="card" aria-labelledby="rz-Tran"><h3 class="grp" id="rz-Tran">Transmisión</h3><ul class="rows"><li><a class="row" href="#pieza-cadena"><span class="ringi md st-soon"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="134.4 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle</span><span class=row-sub>Vida útil · 1.860 de 2.000 km</span><span class=row-chips><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto · faltan 140 km</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="44.8 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-cassette"/></svg></span><span class="row-main"><span class="row-name">Casete SRAM XG-1275</span><span class=row-sub>Vida útil · 1.860 de 6.000 km</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 31 %</span></span></span></div></li></ul></section><section class="card" aria-labelledby="rz-Fren"><h3 class="grp" id="rz-Fren">Frenos</h3><ul class="rows"><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="112.7 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Magura 9.P delanteras</span><span class=row-sub>Vida útil · 940 de 1.200 km</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 78 %</span></span></span></div></li></ul></section><section class="card" aria-labelledby="rz-rued"><h3 class="grp" id="rz-rued">Ruedas</h3><ul class="rows"><li><a class="row" href="#pieza-assegai"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Neumático Maxxis Assegai 29×2.5</span><span class=row-sub>Delantero · 1 pieza dentro</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado · sin reglas propias</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li class="nested"><a class="row" href="#pieza-assegai"><svg class="ic nest-ic" aria-hidden="true"><use href="#i-nest"/></svg><span class="ringi md st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Líquido tubeless</span><span class="row-sub">Dentro del Assegai · Agregar 30 ml cada 60 días</span><span class="row-chips"><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · hace 9 días</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Neumático Maxxis Minion DHR II 29×2.4</span><span class=row-sub>Trasero · sin reglas</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span></span></span></div></li><li><div class="row"><span class="ringi md st-nodata"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/></svg><svg class="ic" aria-hidden="true"><use href="#i-bearing"/></svg></span><span class="row-main"><span class="row-name">Bujes y rodamientos</span><span class=row-sub>Revisión anual · falta la fecha de la última</span><span class=row-chips><span class="chip st-nodata"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin datos</span></span></span></div></li></ul></section>
+    <section class="card" aria-labelledby="rr-h">
+      <div class="card-h"><h2 id="rr-h">Últimas salidas</h2><a class="card-link inline" href="#salidas">Ver todas</a></div>
+      <ul class="rows">
+        <li><a class="row" href="#salidas"><span class="ride-date"><b>31</b>oct</span><span class="row-main"><span class="row-name">Vuelta por Collserola</span><span class=row-sub>38,2 km · 2 h 41 min · ↑ 1.120 m</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><a class="row" href="#salidas"><span class="ride-date"><b>26</b>oct</span><span class="row-main"><span class="row-name">Enduro Montseny</span><span class=row-sub>24,8 km · 2 h 12 min · ↑ 980 m</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+      </ul>
+    </section>
+    <section class="card" aria-labelledby="ri-h">
+      <div class="card-h"><h2 id="ri-h">Intervenciones</h2><a class="card-link inline" href="#registrar">Registrar</a></div>
+      <ul class="rows">
+        <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Purgado de frenos</span><span class=row-sub>Orbea Rallon · sáb 03/10/2026 · 30,00 EUR</span></span></div></li>
+        <li><a class="row" href="#pieza-cadena"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Limpiar y lubricar</span><span class=row-sub>Cadena SRAM GX Eagle · dom 27/09/2026</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+        <li><a class="row" href="#pieza-assegai"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Agregar 30 ml de líquido</span><span class=row-sub>Assegai delantero · lun 24/08/2026</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+      </ul>
+    </section>
+  </div>
+</div></div></section><section class="screen" id="bici-grizl" data-tab="garaje" data-title="Canyon Grizl" aria-labelledby="bici-grizl-h"><div class="appbar"><a class="back" href="#garaje"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Garaje</span></a><span class="bar-title" aria-hidden="true">Canyon Grizl</span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<div class="split">
+  <div class="aside">
+    <section class="hero-card" aria-labelledby="bici-grizl-h">
+      <span class="art big"><svg class="bike-art" viewBox="0 0 206 120" aria-hidden="true"><circle class="w" cx="46" cy="84" r="30"/><circle class="w" cx="158" cy="84" r="30"/><circle class="hub" cx="46" cy="84" r="3.5"/><circle class="hub" cx="158" cy="84" r="3.5"/><path class="fr" d="M100 88 90 42M90 43l48-3M100 88l42-36M138 40l4 12M46 84h54M46 84l44-40"/><path class="fk" d="M142 52l16 32"/><path class="fr" d="M138 40l7-4h8q6 0 6 7v6q0 4-4 4h-3"/><path class="fr" d="M90 42l-2-9M78 32h22"/><circle class="hub" cx="100" cy="88" r="6"/></svg></span>
+      <h1 id="bici-grizl-h">Canyon Grizl</h1>
+      <p class="lede">Gravel · desde mayo de 2025</p>
+      <dl class="figs3"><div><dt>km</dt><dd>2.140</dd></div><div><dt>horas</dt><dd>96</dd></div><div><dt>m de desnivel</dt><dd>↑ 21.300</dd></div></dl>
+      <p class="banner st-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span><b>Todo al día</b> · ningún aviso</span></p>
+      <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-wrench"/></svg>Registrar intervención</a>
+    </section>
+  </div>
+  <div class="main-col">
+    <div class="sec-h"><h2>Componentes montados</h2><span class="count">3</span></div>
+    <section class="card" aria-label="Componentes de la Canyon Grizl"><ul class="rows"><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="20.2 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena Shimano GRX</span><span class=row-sub>Vida útil · 420 de 3.000 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 14 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="44.8 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Cubiertas Schwalbe G-One 700×40</span><span class=row-sub>Vida útil · 1.240 de 4.000 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 31 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="59.3 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Shimano</span><span class=row-sub>Vida útil · 610 de 1.500 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 41 %</span></span></span></div></li></ul></section>
+    <section class="card" aria-labelledby="gr-h">
+      <div class="card-h"><h2 id="gr-h">Últimas salidas</h2><a class="card-link inline" href="#salidas">Ver todas</a></div>
+      <ul class="rows"><li><a class="row" href="#salidas"><span class="ride-date"><b>29</b>oct</span><span class="row-main"><span class="row-name">Gravel al pantano</span><span class=row-sub>72,5 km · 3 h 05 min · ↑ 640 m</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li></ul>
+    </section>
+  </div>
+</div></div></section><section class="screen" id="material" data-tab="mas" data-title="Material" aria-labelledby="material-h"><div class="appbar"><a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Más</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="material-h">Material</h1>
+  <p class="lede">Componentes, equipación y recambios. El estado de cada pieza va en su fila.</p></header>
+<div class="mat">
+  <fieldset class="filters"><legend class="sr-only">Filtrar por estado</legend><input type="radio" name="mf" id="mf-todos" value="todos" checked><label for="mf-todos">Todos <span class="n">16</span></label><input type="radio" name="mf" id="mf-mont" value="mont"><label for="mf-mont">Montados <span class="n">12</span></label><input type="radio" name="mf" id="mf-disp" value="disp"><label for="mf-disp">Disponibles <span class="n">2</span></label><input type="radio" name="mf" id="mf-uso" value="uso"><label for="mf-uso">En uso <span class="n">1</span></label><input type="radio" name="mf" id="mf-ret" value="ret"><label for="mf-ret">Retirados <span class="n">1</span></label></fieldset>
+  <section class="card grp-mont" aria-labelledby="mg1"><h2 class="grp" id="mg1">Montados en Orbea Rallon <span class="count">9</span></h2><ul class="rows"><li><a class="row" href="#pieza-fox38"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><span class="row-main"><span class="row-name">Horquilla Fox 38 Factory</span><span class=row-sub>Orbea Rallon · Suspensión</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-shock"/></svg></span><span class="row-main"><span class="row-name">Amortiguador Fox Float X</span><span class=row-sub>Orbea Rallon · Suspensión</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso</span></span></span></div></li><li><a class="row" href="#pieza-cadena"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle</span><span class=row-sub>Orbea Rallon · desde el 12/05/2026</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-cassette"/></svg></span><span class="row-main"><span class="row-name">Casete SRAM XG-1275</span><span class=row-sub>Orbea Rallon · Transmisión</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso</span></span></span></div></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Magura 9.P delanteras</span><span class=row-sub>Orbea Rallon · Frenos</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso</span></span></span></div></li><li><a class="row" href="#pieza-assegai"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Neumático Maxxis Assegai 29×2.5</span><span class=row-sub>Orbea Rallon · delantero</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-assegai"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Líquido tubeless</span><span class=row-sub>Dentro del Assegai delantero</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Neumático Maxxis Minion DHR II</span><span class=row-sub>Orbea Rallon · trasero</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span></span></span></div></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-bearing"/></svg></span><span class="row-main"><span class="row-name">Bujes y rodamientos</span><span class=row-sub>Orbea Rallon · Ruedas</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-nodata"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin datos</span></span></span></div></li></ul></section>
+  <section class="card grp-mont" aria-labelledby="mg2"><h2 class="grp" id="mg2">Montados en Canyon Grizl <span class="count">3</span></h2><ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena Shimano GRX</span><span class=row-sub>Canyon Grizl · Transmisión</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día</span></span></span></div></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Cubiertas Schwalbe G-One 700×40</span><span class=row-sub>Canyon Grizl · Ruedas</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día</span></span></span></div></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Shimano</span><span class=row-sub>Canyon Grizl · Frenos</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día</span></span></span></div></li></ul></section>
+  <section class="card grp-disp" aria-labelledby="mg3"><h2 class="grp" id="mg3">Disponibles <span class="count">2</span></h2><ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle (repuesto)</span><span class=row-sub>Comprada el 02/10/2026 · 0 km</span><span class=row-chips><span class="lchip lc-new"><svg class="ic xs" aria-hidden="true"><use href="#i-sparkle"/></svg>Sin estrenar</span></span></span></div></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Magura 9.P</span><span class=row-sub>Guardadas · 120 km de uso</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-box"/></svg>Disponible</span></span></span></div></li></ul></section>
+  <section class="card grp-uso" aria-labelledby="mg4"><h2 class="grp" id="mg4">En uso sin montar <span class="count">1</span></h2><ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-helmet"/></svg></span><span class="row-main"><span class="row-name">Casco Bell</span><span class=row-sub>Cuenta en el perfil «Montaña» · 2.630 km</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-user"/></svg>En uso · por perfil</span></span></span></div></li></ul></section>
+  <section class="card grp-ret" aria-labelledby="mg5"><h2 class="grp" id="mg5">Retirados <span class="count">1</span></h2><ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle (anterior)</span><span class=row-sub>Retirada el 12/05/2026 · 2.010 km</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-archive"/></svg>Retirado</span></span></span></div></li></ul></section>
+</div>
+<p class="note">Las filas con flecha abren su ficha; en este boceto sólo hay fichas de la horquilla, la cadena y el neumático Assegai.</p></div></section><section class="screen" id="pieza-fox38" data-tab="garaje" data-title="Horquilla Fox 38 Factory" aria-labelledby="pieza-fox38-h"><div class="appbar"><a class="back" href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Orbea Rallon</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="piece-hero"><span class="tile xl"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><div><h1 id="pieza-fox38-h">Horquilla Fox 38 Factory</h1><p class="lede">Suspensión · 170 mm · Orbea Rallon</p><p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado · Orbea Rallon</span><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido</span></p></div></header>
+<div class="cols">
+  <section class="card gauge-card st-due" aria-labelledby="fx-r1">
+    <h2 id="fx-r1">Servicio de 50 h</h2>
+    <svg class="gauge st-due" viewBox="0 0 160 160" role="img" aria-label="Servicio de 50 h: 58 de 50 horas, 116 %. Vencido."><circle class="trk" cx="80" cy="80" r="66"/><circle class="arc" cx="80" cy="80" r="66" stroke-dasharray="414.7 414.7" transform="rotate(-90 80 80)"/><text class="g-num" x="80" y="86">58 h</text><text class="g-lbl" x="80" y="110">de 50 h</text></svg>
+    <p class="center"><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · 8 h de más</span></p>
+    <dl class="kv"><div><dt>Desde el último servicio</dt><dd>58 h · 05/08/2026</dd></div><div><dt>Avisa al 90 %</dt><dd>45 h</dd></div><div><dt>Umbral</dt><dd>50 h, se repite</dd></div></dl>
+    <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-wrench"/></svg>Registrar intervención</a>
+  </section>
+  <div class="stack">
+    <section class="card" aria-labelledby="fx-life">
+      <div class="card-h"><h2 id="fx-life">Vida útil</h2><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin definir</span></div>
+      <p class="muted">Una horquilla se mide por servicios, no por kilómetros: sin vida útil, la sustitución no avisa.</p>
+    </section>
+    <section class="card" aria-labelledby="fx-use">
+      <h2 id="fx-use">Uso registrado</h2>
+      <dl class="figs3"><div><dt>km</dt><dd>4.812</dd></div><div><dt>horas</dt><dd>312</dd></div><div><dt>m de desnivel</dt><dd>↑ 98.400</dd></div></dl>
+    </section>
+    <section class="card" aria-labelledby="fx-mt">
+      <h2 id="fx-mt">Montajes</h2>
+      <ul class="timeline"><li class=open><span><b>Orbea Rallon · delantera</b><span class="row-sub">18/03/2024 → hoy</span></span><span class="num">4.812 km</span></li></ul>
+    </section>
+  </div>
+  <section class="card span2" aria-labelledby="fx-ev">
+    <div class="card-h"><h2 id="fx-ev">Historial de intervenciones</h2><a class="card-link inline" href="#registrar">Registrar</a></div>
+    <ul class="rows">
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Servicio de 50 h</span><span class=row-sub>mié 05/08/2026 · a 52 h de la anterior · aceite y retenes</span><span class=row-chips><span class="amount">95,00 EUR</span></span></span></div></li>
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Servicio de 50 h</span><span class=row-sub>lun 01/06/2026 · a 48 h de la anterior</span><span class=row-chips><span class="amount">95,00 EUR</span></span></span></div></li>
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Servicio completo (125 h)</span><span class=row-sub>sáb 08/11/2025 · cartucho GRIP2 y muelle de aire</span><span class=row-chips><span class="amount">180,00 EUR</span></span></span></div></li>
+    </ul>
+  </section>
+</div></div></section><section class="screen" id="pieza-cadena" data-tab="garaje" data-title="Cadena SRAM GX Eagle" aria-labelledby="pieza-cadena-h"><div class="appbar"><a class="back" href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Orbea Rallon</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="piece-hero"><span class="tile xl"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><div><h1 id="pieza-cadena-h">Cadena SRAM GX Eagle</h1><p class="lede">Transmisión · 12 velocidades · Orbea Rallon</p><p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado · Orbea Rallon</span><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto</span></p></div></header>
+<div class="cols">
+  <section class="card gauge-card st-soon" aria-labelledby="ch-life">
+    <h2 id="ch-life">Vida útil · Sustitución</h2>
+    <svg class="gauge st-soon" viewBox="0 0 160 160" role="img" aria-label="Vida útil: 1.860 de 2.000 kilómetros, 93 %. Pronto."><circle class="trk" cx="80" cy="80" r="66"/><circle class="arc" cx="80" cy="80" r="66" stroke-dasharray="385.7 414.7" transform="rotate(-90 80 80)"/><text class="g-num" x="80" y="86">1.860</text><text class="g-lbl" x="80" y="110">de 2.000 km</text></svg>
+    <p class="center"><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto · faltan 140 km</span></p>
+    <dl class="kv"><div><dt>Cuenta desde</dt><dd>12/05/2026 (última sustitución)</dd></div><div><dt>Vence con</dt><dd>2.000 km, lo primero que llegue</dd></div><div><dt>Avisa al 90 %</dt><dd>1.800 km</dd></div></dl>
+    <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-wrench"/></svg>Registrar sustitución</a>
+  </section>
+  <div class="stack">
+    <section class="card spare" aria-labelledby="ch-sp">
+      <h2 id="ch-sp">Recambio en casa</h2>
+      <ul class="rows"><li><a class="row" href="#material"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle (repuesto)</span><span class=row-sub>Comprada el 02/10/2026</span><span class=row-chips><span class="lchip lc-new"><svg class="ic xs" aria-hidden="true"><use href="#i-sparkle"/></svg>Sin estrenar</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li></ul>
+      <p class="muted">Al sustituir, la cadena nueva hereda esta vida útil.</p>
+    </section>
+    <section class="card" aria-labelledby="ch-mt">
+      <h2 id="ch-mt">Montajes</h2>
+      <ul class="timeline"><li class=open><span><b>Orbea Rallon</b><span class="row-sub">12/05/2026 → hoy</span></span><span class="num">1.860 km</span></li></ul>
+    </section>
+  </div>
+  <section class="card span2" aria-labelledby="ch-ev">
+    <div class="card-h"><h2 id="ch-ev">Historial de intervenciones</h2><a class="card-link inline" href="#registrar">Registrar</a></div>
+    <ul class="rows">
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Limpiar y lubricar</span><span class=row-sub>dom 27/09/2026 · cera en frío</span></span></div></li>
+      <li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Sustitución de cadena y casete</span><span class=row-sub>mar 12/05/2026 · reemplaza a la cadena anterior (2.010 km, retirada)</span><span class=row-chips><span class="amount">139,80 EUR</span></span></span></div></li>
+    </ul>
+  </section>
+</div></div></section><section class="screen" id="pieza-assegai" data-tab="garaje" data-title="Neumático Maxxis Assegai" aria-labelledby="pieza-assegai-h"><div class="appbar"><a class="back" href="#bici-rallon"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Orbea Rallon</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="piece-hero"><span class="tile xl"><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><div><h1 id="pieza-assegai-h">Neumático Maxxis Assegai 29×2.5</h1><p class="lede">Ruedas · delantero · EXO+ · Orbea Rallon</p><p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado · Orbea Rallon</span></p></div></header>
+<div class="cols">
+  <section class="card gauge-card st-due" aria-labelledby="as-in">
+    <p class="eyebrow"><svg class="ic xs" aria-hidden="true"><use href="#i-nest"/></svg>Pieza dentro de este neumático</p>
+    <h2 id="as-in">Líquido tubeless · Agregar 30 ml</h2>
+    <svg class="gauge st-due" viewBox="0 0 160 160" role="img" aria-label="Líquido tubeless, agregar 30 ml cada 60 días: 69 de 60 días, 115 %. Vencido."><circle class="trk" cx="80" cy="80" r="66"/><circle class="arc" cx="80" cy="80" r="66" stroke-dasharray="414.7 414.7" transform="rotate(-90 80 80)"/><text class="g-num" x="80" y="86">69 días</text><text class="g-lbl" x="80" y="110">de 60 días</text></svg>
+    <p class="center"><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · hace 9 días</span></p>
+    <dl class="kv"><div><dt>Último relleno</dt><dd>lun 24/08/2026</dd></div><div><dt>Cada</dt><dd>60 días</dd></div><div><dt>Venció el</dt><dd>vie 23/10/2026</dd></div></dl>
+    <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-wrench"/></svg>Registrar relleno</a>
+  </section>
+  <div class="stack">
+    <section class="card" aria-labelledby="as-rules">
+      <div class="card-h"><h2 id="as-rules">Reglas del neumático</h2></div>
+      <p class="muted">Sin reglas propias ni vida útil definida. El aviso viene de la pieza que lleva dentro.</p>
+    </section>
+    <section class="card" aria-labelledby="as-use">
+      <h2 id="as-use">Uso desde que se montó</h2>
+      <dl class="figs3"><div><dt>km</dt><dd>690</dd></div><div><dt>horas</dt><dd>46</dd></div><div><dt>m de desnivel</dt><dd>↑ 15.200</dd></div></dl>
+    </section>
+    <section class="card" aria-labelledby="as-mt">
+      <h2 id="as-mt">Montajes</h2>
+      <ul class="timeline"><li class=open><span><b>Orbea Rallon · delantera</b><span class="row-sub">24/08/2026 → hoy</span></span><span class="num">690 km</span></li></ul>
+    </section>
+  </div>
+  <section class="card span2" aria-labelledby="as-ev">
+    <div class="card-h"><h2 id="as-ev">Historial de intervenciones</h2><a class="card-link inline" href="#registrar">Registrar</a></div>
+    <ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Agregar 30 ml de líquido</span><span class=row-sub>lun 24/08/2026 · al montar el neumático</span></span></div></li></ul>
+  </section>
+</div></div></section><section class="screen" id="taller" data-tab="taller" data-title="Taller" aria-labelledby="taller-h"><div class="appbar"><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="taller-h">Taller</h1>
+  <p class="summary"><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>2 vencidos</span><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>1 pronto</span><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>3 en curso</span><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>3 al día</span><span class="chip st-nodata"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>1 sin datos</span></p>
+  <a class="btn" href="#registrar"><svg class="ic sm" aria-hidden="true"><use href="#i-plus"/></svg>Registrar intervención</a>
+</header>
+<div class="cols">
+  <section class="card" aria-labelledby="tv"><div class="card-h"><h2 id="tv"><svg class="ic h-ic due-ic" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido</h2><span class="count">2</span></div><ul class=rows><li><a class="row" href="#pieza-fox38"><span class="ringi md st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><span class="row-main"><span class="row-name">Horquilla Fox 38 Factory</span><span class=row-sub>Orbea Rallon · Servicio de 50 h · 58 de 50 h</span><span class=row-chips><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · 8 h de más</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-assegai"><span class="ringi md st-due"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="144.5 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Líquido tubeless</span><span class=row-sub>Assegai delantero · Agregar 30 ml cada 60 días</span><span class=row-chips><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido · hace 9 días</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li></ul></section>
+  <section class="card" aria-labelledby="tp"><div class="card-h"><h2 id="tp"><svg class="ic h-ic soon-ic" aria-hidden="true"><use href="#i-alert"/></svg>Pronto</h2><span class="count">1</span></div><ul class=rows><li><a class="row" href="#pieza-cadena"><span class="ringi md st-soon"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="134.4 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena SRAM GX Eagle</span><span class=row-sub>Orbea Rallon · Vida útil · 1.860 de 2.000 km</span><span class=row-chips><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto · faltan 140 km</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li></ul>
+    <p class="note">Pronto es llegar al 90 % de un umbral.</p></section>
+  <section class="card" aria-labelledby="tc"><div class="card-h"><h2 id="tc"><svg class="ic h-ic prog-ic" aria-hidden="true"><use href="#i-gauge"/></svg>En curso</h2><span class="count">3</span></div><ul class=rows><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="112.7 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Magura 9.P delanteras</span><span class=row-sub>Orbea Rallon · Vida útil · 940 de 1.200 km</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 78 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="102.6 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-shock"/></svg></span><span class="row-main"><span class="row-name">Amortiguador Fox Float X</span><span class=row-sub>Orbea Rallon · Servicio de 125 h · 89 de 125 h</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 71 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-prog"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="44.8 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-cassette"/></svg></span><span class="row-main"><span class="row-name">Casete SRAM XG-1275</span><span class=row-sub>Orbea Rallon · Vida útil · 1.860 de 6.000 km</span><span class=row-chips><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso · 31 %</span></span></span></div></li></ul></section>
+  <section class="card" aria-labelledby="ta"><div class="card-h"><h2 id="ta"><svg class="ic h-ic ok-ic" aria-hidden="true"><use href="#i-check"/></svg>Al día</h2><span class="count">3</span></div><ul class=rows><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="59.3 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-pads"/></svg></span><span class="row-main"><span class="row-name">Pastillas Shimano</span><span class=row-sub>Canyon Grizl · 610 de 1.500 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 41 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="44.8 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-tyre"/></svg></span><span class="row-main"><span class="row-name">Cubiertas Schwalbe G-One</span><span class=row-sub>Canyon Grizl · 1.240 de 4.000 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 31 %</span></span></span></div></li><li><div class="row"><span class="ringi md st-ok"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/><circle class="arc" cx="28" cy="28" r="23" stroke-dasharray="20.2 144.5" transform="rotate(-90 28 28)"/></svg><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Cadena Shimano GRX</span><span class=row-sub>Canyon Grizl · 420 de 3.000 km</span><span class=row-chips><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día · 14 %</span></span></span></div></li></ul></section>
+  <section class="card" aria-labelledby="tn"><div class="card-h"><h2 id="tn"><svg class="ic h-ic" aria-hidden="true"><use href="#i-help"/></svg>Sin datos</h2><span class="count">1</span></div><ul class=rows><li><div class="row"><span class="ringi md st-nodata"><svg class="ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="trk" cx="28" cy="28" r="23"/></svg><svg class="ic" aria-hidden="true"><use href="#i-bearing"/></svg></span><span class="row-main"><span class="row-name">Bujes y rodamientos</span><span class=row-sub>Orbea Rallon · Revisión anual · falta la fecha de la última</span><span class=row-chips><span class="chip st-nodata"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin datos</span></span></span></div></li></ul></section>
+  <section class="card" aria-labelledby="te"><div class="card-h"><h2 id="te">Últimas intervenciones</h2></div><ul class=rows><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="row-main"><span class="row-name">Purgado de frenos</span><span class=row-sub>Orbea Rallon · sáb 03/10/2026</span><span class=row-chips><span class="amount">30,00 EUR</span></span></span></div></li><li><a class="row" href="#pieza-cadena"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-chain"/></svg></span><span class="row-main"><span class="row-name">Limpiar y lubricar</span><span class=row-sub>Cadena SRAM GX Eagle · dom 27/09/2026</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-assegai"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg></span><span class="row-main"><span class="row-name">Agregar 30 ml de líquido</span><span class=row-sub>Assegai delantero · lun 24/08/2026</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><a class="row" href="#pieza-fox38"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg></span><span class="row-main"><span class="row-name">Servicio de 50 h</span><span class=row-sub>Horquilla Fox 38 · mié 05/08/2026</span><span class=row-chips><span class="amount">95,00 EUR</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-shock"/></svg></span><span class="row-main"><span class="row-name">Servicio de 125 h</span><span class=row-sub>Amortiguador Fox Float X · vie 26/06/2026</span><span class=row-chips><span class="amount">140,00 EUR</span></span></span></div></li></ul></section>
+</div></div></section><section class="screen" id="registrar" data-tab="taller" data-title="Registrar intervención" aria-labelledby="registrar-h"><div class="appbar"><a class="back" href="#taller"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Taller</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="registrar-h">Registrar intervención</h1>
+  <p class="lede">Lo que hiciste en el taller. Las reglas marcadas vuelven a contar desde esta fecha.</p></header>
+<form class="card form" action="#taller" method="get">
+  <div class="field"><label for="rf-target">Bici o pieza</label>
+    <select id="rf-target" name="destino">
+      <optgroup label="Orbea Rallon"><option>Orbea Rallon (bici completa)</option><option selected>Horquilla Fox 38 Factory</option><option>Amortiguador Fox Float X</option><option>Cadena SRAM GX Eagle</option><option>Líquido tubeless (Assegai delantero)</option></optgroup>
+      <optgroup label="Canyon Grizl"><option>Canyon Grizl (bici completa)</option><option>Cadena Shimano GRX</option></optgroup>
+    </select></div>
+  <div class="field"><label for="rf-type">Tipo de intervención</label>
+    <select id="rf-type" name="tipo"><option selected>Servicio de 50 h</option><option>Servicio completo (125 h)</option><option>Sustitución</option><option>Agregar líquido</option><option>Purgado de frenos</option><option>Limpiar y lubricar</option></select></div>
+  <div class="field"><label for="rf-when">Fecha y hora</label><input id="rf-when" name="cuando" type="datetime-local" value="2026-11-01T10:30"></div>
+  <div class="field-row">
+    <div class="field"><label for="rf-amount">Importe</label><input id="rf-amount" name="importe" inputmode="decimal" value="95,00" autocomplete="off"></div>
+    <div class="field"><label for="rf-cur">Moneda</label><select id="rf-cur" name="moneda"><option selected>EUR</option><option>USD</option><option>GBP</option></select></div>
+  </div>
+  <div class="field"><label for="rf-notes">Notas</label><textarea id="rf-notes" name="notas" rows="3">Aceite de barras y retenes nuevos. Sin holgura en los casquillos.</textarea></div>
+  <fieldset class="field checks"><legend>También en esta visita</legend>
+    <label class="check"><input type="checkbox" name="tambien" value="float" checked><span><b>Amortiguador Fox Float X</b><span class="row-sub">Servicio de 125 h · en curso, 71 %</span></span></label>
+    <label class="check"><input type="checkbox" name="tambien" value="tubeless"><span><b>Líquido tubeless</b><span class="row-sub">Agregar 30 ml · vencido hace 9 días</span></span></label>
+  </fieldset>
+  <div class="actions"><button type="submit" class="btn"><svg class="ic sm" aria-hidden="true"><use href="#i-check"/></svg>Guardar intervención</button><a class="btn ghost" href="#taller">Cancelar</a></div>
+</form>
+<p class="note">Boceto: guardar vuelve al Taller sin cambiar los datos.</p></div></section><section class="screen" id="salidas" data-tab="salidas" data-title="Salidas" aria-labelledby="salidas-h"><div class="appbar"><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="salidas-h">Salidas</h1>
+  <a class="sync-line" href="#strava"><svg class="ic sm" aria-hidden="true"><use href="#i-sync"/></svg><span>Strava · sincronizado hoy a las 09:05</span><svg class="ic xs" aria-hidden="true"><use href="#i-chev-r"/></svg></a></header>
+<div class="sec-h"><h2>Últimas salidas</h2><span class="muted">las 4 más recientes · 165,5 km</span></div>
+<ul class="ride-list"><li class="card ride">
+  <span class="ride-date"><b>31</b>oct</span>
+  <div class="row-main">
+    <h3 class="ride-name">Vuelta por Collserola</h3>
+    <p class="row-sub">Sábado · <span class="src"><svg class="ic xs" aria-hidden="true"><use href="#i-sync"/></svg>Strava</span></p>
+    <p class="metrics"><span><svg class="ic xs" aria-hidden="true"><use href="#i-route"/></svg><b>38,2</b> km</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-timer"/></svg><b>2 h 41 min</b></span><span><svg class="ic xs" aria-hidden="true"><use href="#i-mountain"/></svg><b>↑ 1.120</b> m</span></p>
+    <p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Orbea Rallon</span></p>
+  </div>
+</li><li class="card ride">
+  <span class="ride-date"><b>29</b>oct</span>
+  <div class="row-main">
+    <h3 class="ride-name">Gravel al pantano</h3>
+    <p class="row-sub">Jueves · <span class="src"><svg class="ic xs" aria-hidden="true"><use href="#i-sync"/></svg>Strava</span></p>
+    <p class="metrics"><span><svg class="ic xs" aria-hidden="true"><use href="#i-route"/></svg><b>72,5</b> km</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-timer"/></svg><b>3 h 05 min</b></span><span><svg class="ic xs" aria-hidden="true"><use href="#i-mountain"/></svg><b>↑ 640</b> m</span></p>
+    <p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Canyon Grizl</span></p>
+  </div>
+</li><li class="card ride">
+  <span class="ride-date"><b>26</b>oct</span>
+  <div class="row-main">
+    <h3 class="ride-name">Enduro Montseny</h3>
+    <p class="row-sub">Lunes · <span class="src"><svg class="ic xs" aria-hidden="true"><use href="#i-sync"/></svg>Strava</span></p>
+    <p class="metrics"><span><svg class="ic xs" aria-hidden="true"><use href="#i-route"/></svg><b>24,8</b> km</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-timer"/></svg><b>2 h 12 min</b></span><span><svg class="ic xs" aria-hidden="true"><use href="#i-mountain"/></svg><b>↑ 980</b> m</span></p>
+    <p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Orbea Rallon</span></p>
+  </div>
+</li><li class="card ride">
+  <span class="ride-date"><b>24</b>oct</span>
+  <div class="row-main">
+    <h3 class="ride-name">Rodillo Z2</h3>
+    <p class="row-sub">Sábado · <span class="src"><svg class="ic xs" aria-hidden="true"><use href="#i-sync"/></svg>Strava</span></p>
+    <p class="metrics"><span><svg class="ic xs" aria-hidden="true"><use href="#i-route"/></svg><b>30</b> km</span><span><svg class="ic xs" aria-hidden="true"><use href="#i-timer"/></svg><b>1 h 00 min</b></span><span><svg class="ic xs" aria-hidden="true"><use href="#i-mountain"/></svg><b>↑ 0</b> m</span></p>
+    <p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin bici</span><span class="row-sub">no suma uso a ninguna pieza</span></p>
+  </div>
+</li></ul>
+<p class="note">Powered by Strava</p></div></section><section class="screen" id="estadisticas" data-tab="estadisticas" data-title="Estadísticas" aria-labelledby="estadisticas-h"><div class="appbar"><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="estadisticas-h">Estadísticas</h1><p class="lede">Últimos 12 meses · de diciembre de 2025 a hoy</p></header>
+<dl class="tiles">
+  <div class="card"><dt>Distancia</dt><dd>3.500 <small>km</small></dd></div>
+  <div class="card"><dt>Tiempo</dt><dd>206 <small>h</small></dd></div>
+  <div class="card"><dt>Desnivel</dt><dd>↑ 57.800 <small>m</small></dd></div>
+  <div class="card"><dt>Salidas</dt><dd>101</dd></div>
+</dl>
+<div class="cols">
+  <section class="card" aria-labelledby="st-km">
+    <div class="card-h"><h2 id="st-km">Km por mes</h2><span class="muted">noviembre, en curso</span></div>
+    <figure class="chart" aria-describedby="st-km-d">
+      <div class="grid" aria-hidden="true"><span style="top:0"><em>500</em></span><span style="top:50%"><em>250</em></span><span style="top:100%"><em>0</em></span></div>
+      <ol class="bars" aria-label="Kilómetros por mes"><li class="b" style="--h:36.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">dic 2025: 180 km</span><span class="tip" aria-hidden="true">dic 2025: 180 km</span><span class="b-m" aria-hidden="true">dic</span></li><li class="b" style="--h:42.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">ene 2026: 210 km</span><span class="tip" aria-hidden="true">ene 2026: 210 km</span><span class="b-m" aria-hidden="true">ene</span></li><li class="b" style="--h:44.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">feb 2026: 220 km</span><span class="tip" aria-hidden="true">feb 2026: 220 km</span><span class="b-m" aria-hidden="true">feb</span></li><li class="b" style="--h:52.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">mar 2026: 260 km</span><span class="tip" aria-hidden="true">mar 2026: 260 km</span><span class="b-m" aria-hidden="true">mar</span></li><li class="b" style="--h:62.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">abr 2026: 310 km</span><span class="tip" aria-hidden="true">abr 2026: 310 km</span><span class="b-m" aria-hidden="true">abr</span></li><li class="b" style="--h:70.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">may 2026: 350 km</span><span class="tip" aria-hidden="true">may 2026: 350 km</span><span class="b-m" aria-hidden="true">may</span></li><li class="b" style="--h:84.0%"><span class="b-val" aria-hidden="true">420</span><span class="bar" aria-hidden="true"></span><span class="sr-only">jun 2026: 420 km</span><span class="tip" aria-hidden="true">jun 2026: 420 km</span><span class="b-m" aria-hidden="true">jun</span></li><li class="b" style="--h:72.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">jul 2026: 360 km</span><span class="tip" aria-hidden="true">jul 2026: 360 km</span><span class="b-m" aria-hidden="true">jul</span></li><li class="b" style="--h:66.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">ago 2026: 330 km</span><span class="tip" aria-hidden="true">ago 2026: 330 km</span><span class="b-m" aria-hidden="true">ago</span></li><li class="b" style="--h:82.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">sep 2026: 410 km</span><span class="tip" aria-hidden="true">sep 2026: 410 km</span><span class="b-m" aria-hidden="true">sep</span></li><li class="b" style="--h:90.0%"><span class="b-val" aria-hidden="true">450</span><span class="bar" aria-hidden="true"></span><span class="sr-only">oct 2026: 450 km</span><span class="tip" aria-hidden="true">oct 2026: 450 km</span><span class="b-m" aria-hidden="true">oct</span></li><li class="b cur" style="--h:0.0%"><span class="bar" aria-hidden="true"></span><span class="sr-only">nov 2026: 0 km · en curso</span><span class="tip" aria-hidden="true">nov 2026: 0 km · en curso</span><span class="b-m" aria-hidden="true">nov</span></li></ol>
+      <figcaption id="st-km-d" class="sr-only">Octubre es el mes con más kilómetros (450); le sigue junio con 420.</figcaption>
+    </figure>
+    <details class="tbl"><summary><svg class="ic xs sum-ic" aria-hidden="true"><use href="#i-chev-r"/></svg>Ver como tabla</summary><table><thead><tr><th scope="col">Mes</th><th scope="col">km</th></tr></thead><tbody><tr><th scope=row>dic</th><td>180</td></tr><tr><th scope=row>ene</th><td>210</td></tr><tr><th scope=row>feb</th><td>220</td></tr><tr><th scope=row>mar</th><td>260</td></tr><tr><th scope=row>abr</th><td>310</td></tr><tr><th scope=row>may</th><td>350</td></tr><tr><th scope=row>jun</th><td>420</td></tr><tr><th scope=row>jul</th><td>360</td></tr><tr><th scope=row>ago</th><td>330</td></tr><tr><th scope=row>sep</th><td>410</td></tr><tr><th scope=row>oct</th><td>450</td></tr><tr><th scope=row>nov</th><td>0</td></tr></tbody></table></details>
+  </section>
+  <section class="card" aria-labelledby="st-bk">
+    <h2 id="st-bk">Reparto por bici</h2>
+    <ul class="share">
+      <li><span class="s-name"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Orbea Rallon</span><span class="s-val">2.330 km · 67 %</span><span class="s-bar"><i style="width:67%"></i></span></li>
+      <li><span class="s-name"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Canyon Grizl</span><span class="s-val">1.020 km · 29 %</span><span class="s-bar"><i style="width:29%"></i></span></li>
+      <li><span class="s-name"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin bici (rodillo)</span><span class="s-val">150 km · 4 %</span><span class="s-bar"><i style="width:4%"></i></span></li>
+    </ul>
+    <h2 class="mt">Gasto en taller</h2>
+    <p class="money"><b>499,80</b> EUR <span class="muted">· 0,14 EUR/km</span></p>
+    <p class="note">5 intervenciones con importe: horquilla (01/06 y 05/08), amortiguador (26/06), cadena y casete (12/05) y purgado de frenos (03/10).</p>
+  </section>
+</div></div></section><section class="screen" id="mas" data-tab="mas" data-title="Más" aria-labelledby="mas-h"><div class="appbar"><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="mas-h">Más</h1></header>
+<div class="cols">
+  <section class="card" aria-labelledby="m-inv"><h2 id="m-inv" class="grp">Inventario</h2><ul class="rows menu">
+    <li><a class="row" href="#material"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-box"/></svg></span><span class="row-main"><span class="row-name">Material</span><span class=row-sub>Componentes, equipación y recambios</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+    <li><a class="row" href="#bici-rallon"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-bike"/></svg></span><span class="row-main"><span class="row-name">Orbea Rallon</span><span class=row-sub>Enduro · 3 avisos</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+    <li><a class="row" href="#bici-grizl"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-bike"/></svg></span><span class="row-main"><span class="row-name">Canyon Grizl</span><span class=row-sub>Gravel · todo al día</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+  </ul></section>
+  <section class="card" aria-labelledby="m-data"><h2 id="m-data" class="grp">Datos</h2><ul class="rows menu">
+    <li><a class="row" href="#strava"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-sync"/></svg></span><span class="row-main"><span class="row-name">Strava</span><span class=row-sub>Sincronizado hoy, 09:05</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+  </ul></section>
+  <section class="card" aria-labelledby="m-look"><h2 id="m-look" class="grp">Apariencia</h2>
+    <fieldset class="seg" data-theme-choice><legend class="sr-only">Tema</legend>
+      <input type="radio" name="tema" id="tm-auto" value="auto" checked><label for="tm-auto">Automático</label>
+      <input type="radio" name="tema" id="tm-light" value="light"><label for="tm-light">Claro</label>
+      <input type="radio" name="tema" id="tm-dark" value="dark"><label for="tm-dark">Oscuro</label>
+    </fieldset>
+    <p class="note">Automático sigue el ajuste del sistema. La elección se recuerda en este navegador.</p>
+  </section>
+  <section class="card" aria-labelledby="m-proto"><h2 id="m-proto" class="grp">Boceto</h2><ul class="rows menu">
+    <li><a class="row" href="#sobre"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg></span><span class="row-main"><span class="row-name">Sobre esta dirección</span><span class=row-sub>Opción 1 «Anillos»: intención, tokens y trade-offs</span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+  </ul></section>
+</div></div></section><section class="screen" id="strava" data-tab="mas" data-title="Strava" aria-labelledby="strava-h"><div class="appbar"><a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Más</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><h1 id="strava-h">Strava</h1>
+  <p class="lede">Garage lee tus salidas en bici y tus bicis de Strava. Sólo ciclismo: nada de mapas ni datos de salud.</p></header>
+<div class="cols">
+  <section class="card" aria-labelledby="sv-st">
+    <div class="card-h"><h2 id="sv-st">Estado</h2><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Conectado</span></div>
+    <p>Última sincronización: <b>hoy a las 09:05</b> · 1 salida nueva.</p>
+    <dl class="figs3 two"><div><dt>salidas importadas</dt><dd>350</dd></div><div><dt>posibles duplicados</dt><dd>0</dd></div></dl>
+    <form action="#strava" method="get"><button type="submit" class="btn"><svg class="ic sm" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</button></form>
+    <p class="note">Además se sincroniza sola cada día a las 9:05. Pide los últimos 7 días.</p>
+  </section>
+  <section class="card" aria-labelledby="sv-imp">
+    <h2 id="sv-imp">Importar histórico</h2>
+    <form class="form" action="#strava" method="get">
+      <div class="field"><label for="sv-from">Desde</label><input id="sv-from" name="desde" type="date" value="2019-01-01"></div>
+      <button type="submit" class="btn ghost"><svg class="ic sm" aria-hidden="true"><use href="#i-download"/></svg>Importar histórico</button>
+    </form>
+    <ul class="rows"><li><div class="row"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></span><span class="row-main"><span class="row-name">Completado · 350 salidas</span><span class=row-sub>lun 12/10/2026 · desde el 01/01/2019</span></span></div></li></ul>
+    <p class="note">Va por pasos: si Strava pide esperar, se guarda lo hecho y se puede continuar.</p>
+  </section>
+  <section class="card span2" aria-labelledby="sv-gear">
+    <h2 id="sv-gear">Bicis de Strava</h2>
+    <ul class="rows">
+      <li><a class="row" href="#bici-rallon"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg></span><span class="row-main"><span class="row-name">Rallon</span><span class=row-sub>Cuenta como Orbea Rallon</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-link"/></svg>Vinculada</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="row" href="#bici-grizl"><span class="tile"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg></span><span class="row-main"><span class="row-name">Grizl</span><span class=row-sub>Cuenta como Canyon Grizl</span><span class=row-chips><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-link"/></svg>Vinculada</span></span></span><svg class="ic go" aria-hidden="true"><use href="#i-chev-r"/></svg></a></li>
+    </ul>
+  </section>
+</div>
+<p class="note">Powered by Strava</p></div></section><section class="screen" id="sobre" data-tab="mas" data-title="Sobre esta dirección" aria-labelledby="sobre-h"><div class="appbar"><a class="back" href="#mas"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Más</span></a><span class="bar-title"></span><button type="button" class="icon-btn" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false"><svg class="ic t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button></div><div class="wrap">
+<header class="head"><p class="eyebrow">Dirección visual · opción 1</p><h1 id="sobre-h">Anillos</h1>
+  <p class="lede big">Una app móvil amable en la que cada pieza lleva su anillo de desgaste y el color del estado dice, de un vistazo, qué toca revisar o cambiar. Pensada para quien viene de ProBikeGarage o de las apps nativas de deporte y quiere ir de la bici a la pieza sin leer tablas.</p></header>
+<div class="cols">
+  <section class="card" aria-labelledby="so-idea">
+    <h2 id="so-idea">Qué toma de ProBikeGarage y qué no</h2>
+    <ul class="bullets">
+      <li>Toma la <b>idea</b>: estructura bici → componentes, un anillo por pieza que se llena con el uso y un triángulo de aviso en la bici.</li>
+      <li>No toma la piel: paleta, tipografía, iconos, formas y textos son propios. Los iconos son dibujos SVG hechos para este boceto.</li>
+      <li>Del estilo actual de Garage («B Instrumentos») conserva el anillo de fila, los chips con icono y palabra y los iconos de estado: <b>es la opción continuista</b>.</li>
+      <li>Vocabulario de Garage: Requiere atención, Vencido, Pronto, En curso, Al día, Sin datos, Montado, Disponible, Sin estrenar, En uso, Retirado.</li>
+    </ul>
+  </section>
+  <section class="card" aria-labelledby="so-type">
+    <h2 id="so-type">Tipografía</h2>
+    <p class="type-sample display">Outfit · títulos y cifras</p>
+    <p class="type-sample">Figtree · texto, etiquetas y formularios</p>
+    <p class="note">Google Fonts (2 familias variables: Outfit 500–700 y Figtree 400–700). Sin conexión caen a <code>ui-rounded</code> / <code>system-ui</code> (SF Pro Rounded y SF Pro en Apple, Roboto en Android, Segoe UI en Windows).</p>
+    <ul class="scale"><li><span style="font:600 38px/1.1 var(--font-display)">58 h</span><span class="row-sub">Cifra del medidor de la ficha · 34 en un SVG de 160 dibujado a 180 px: unos 38 en pantalla · Outfit 600</span></li><li><span style="font:700 30px/1.1 var(--font-display)">Taller</span><span class="row-sub">Título de pantalla · 30 / 33 (34 / 37 desde 640 px) · Outfit 700</span></li><li><span style="font:600 26px/1.15 var(--font-display)">3.500 km</span><span class="row-sub">Cifra de resumen (Estadísticas) · 26 / 30 · Outfit 600</span></li><li><span style="font:600 20px/1.25 var(--font-display)">Componentes montados</span><span class="row-sub">Título de tarjeta o sección · 20 / 25 · Outfit 600</span></li><li><span style="font:700 19px/1.2 var(--font-display)">Orbea Rallon</span><span class="row-sub">Nombre de bici (y de salida, en 600) · 19 / 23 · Outfit 700</span></li><li><span style="font:650 16.5px/1.3 var(--font-body)">Cadena SRAM GX Eagle</span><span class="row-sub">Nombre de fila · 16,5 / 21 · Figtree 650</span></li><li><span style="font:400 16px/1.5 var(--font-body)">Faltan 140 km para cambiarla.</span><span class="row-sub">Texto · 16 / 24 · Figtree 400</span></li><li><span style="font:400 14px/1.4 var(--font-body)">Orbea Rallon · Vida útil 2.000 km</span><span class="row-sub">Secundario · 14 / 20 · Figtree 400</span></li><li><span style="font:600 13px/1.2 var(--font-body)">Vencido · 8 h de más</span><span class="row-sub">Chip, etiqueta, grupo en mayúsculas · 13 / 16 · Figtree 600</span></li><li><span style="font:600 12px/1.25 var(--font-body)">Estadísticas</span><span class="row-sub">Etiqueta de pestaña (700 en la activa) · 12 / 15 · Figtree 600 y 700</span></li></ul>
+  </section>
+  <section class="card span2" aria-labelledby="so-st">
+    <h2 id="so-st">Estados</h2>
+    <p class="row-chips"><span class="chip st-due"><svg class="ic xs" aria-hidden="true"><use href="#i-octagon"/></svg>Vencido</span><span class="chip st-review"><svg class="ic xs" aria-hidden="true"><use href="#i-search"/></svg>Revisar</span><span class="chip st-soon"><svg class="ic xs" aria-hidden="true"><use href="#i-alert"/></svg>Pronto</span><span class="chip st-prog"><svg class="ic xs" aria-hidden="true"><use href="#i-gauge"/></svg>En curso</span><span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Al día</span><span class="chip st-nodata"><svg class="ic xs" aria-hidden="true"><use href="#i-help"/></svg>Sin datos</span><span class="chip st-snoozed"><svg class="ic xs" aria-hidden="true"><use href="#i-clock"/></svg>Pospuesto</span></p>
+    <p class="note">Mantenimiento: siete estados con icono y palabra. «Revisar» (lupa) usa el ámbar de Pronto y «Pospuesto» (reloj) el gris de Sin datos; no salen en el garaje de ejemplo.</p>
+    <p class="row-chips"><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-bike"/></svg>Montado</span><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-box"/></svg>Disponible</span><span class="lchip lc-new"><svg class="ic xs" aria-hidden="true"><use href="#i-sparkle"/></svg>Sin estrenar</span><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-user"/></svg>En uso</span><span class="lchip"><svg class="ic xs" aria-hidden="true"><use href="#i-archive"/></svg>Retirado</span></p>
+    <p class="note">Ciclo de vida del material: chips neutros con icono propio, para no confundirlos con los de mantenimiento.</p>
+  </section>
+  <section class="card span2" aria-labelledby="so-pal">
+    <h2 id="so-pal">Paleta</h2>
+    <div class="tbl-wrap"><table class="swatches"><thead><tr><th scope="col">Token</th><th scope="col">Claro</th><th scope="col">Oscuro</th></tr></thead><tbody><tr><th scope="row"><code>--bg</code></th><td><span class="sw" style="background:#F5F3EF"></span><code>#F5F3EF</code></td><td><span class="sw" style="background:#131118"></span><code>#131118</code></td></tr><tr><th scope="row"><code>--surface</code></th><td><span class="sw" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td><span class="sw" style="background:#1D1A23"></span><code>#1D1A23</code></td></tr><tr><th scope="row"><code>--surface-2</code></th><td><span class="sw" style="background:#EFEBE4"></span><code>#EFEBE4</code></td><td><span class="sw" style="background:#29252F"></span><code>#29252F</code></td></tr><tr><th scope="row"><code>--line</code></th><td><span class="sw" style="background:#E4DFD7"></span><code>#E4DFD7</code></td><td><span class="sw" style="background:#2F2B37"></span><code>#2F2B37</code></td></tr><tr><th scope="row"><code>--ink</code></th><td><span class="sw" style="background:#1C1A21"></span><code>#1C1A21</code></td><td><span class="sw" style="background:#F3F1F6"></span><code>#F3F1F6</code></td></tr><tr><th scope="row"><code>--ink-2</code></th><td><span class="sw" style="background:#5D5866"></span><code>#5D5866</code></td><td><span class="sw" style="background:#B3ADBD"></span><code>#B3ADBD</code></td></tr><tr><th scope="row"><code>--field</code></th><td><span class="sw" style="background:#8C8694"></span><code>#8C8694</code></td><td><span class="sw" style="background:#7F7889"></span><code>#7F7889</code></td></tr><tr><th scope="row"><code>--primary</code></th><td><span class="sw" style="background:#5536C8"></span><code>#5536C8</code></td><td><span class="sw" style="background:#B6A2FF"></span><code>#B6A2FF</code></td></tr><tr><th scope="row"><code>--on-primary</code></th><td><span class="sw" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td><span class="sw" style="background:#1B1035"></span><code>#1B1035</code></td></tr><tr><th scope="row"><code>--primary-soft</code></th><td><span class="sw" style="background:#ECE6FD"></span><code>#ECE6FD</code></td><td><span class="sw" style="background:#2D2550"></span><code>#2D2550</code></td></tr><tr><th scope="row"><code>--focus</code></th><td><span class="sw" style="background:#C2410C"></span><code>#C2410C</code></td><td><span class="sw" style="background:#FF9A5C"></span><code>#FF9A5C</code></td></tr><tr><th scope="row"><code>--due</code></th><td><span class="sw" style="background:#D2312F"></span><code>#D2312F</code></td><td><span class="sw" style="background:#FF7B72"></span><code>#FF7B72</code></td></tr><tr><th scope="row"><code>--due-soft</code></th><td><span class="sw" style="background:#FCE4E2"></span><code>#FCE4E2</code></td><td><span class="sw" style="background:#3D1F22"></span><code>#3D1F22</code></td></tr><tr><th scope="row"><code>--soon</code></th><td><span class="sw" style="background:#B86200"></span><code>#B86200</code></td><td><span class="sw" style="background:#F2B13B"></span><code>#F2B13B</code></td></tr><tr><th scope="row"><code>--soon-soft</code></th><td><span class="sw" style="background:#FFEFD2"></span><code>#FFEFD2</code></td><td><span class="sw" style="background:#3A2B12"></span><code>#3A2B12</code></td></tr><tr><th scope="row"><code>--ok</code></th><td><span class="sw" style="background:#1E8449"></span><code>#1E8449</code></td><td><span class="sw" style="background:#4FCB83"></span><code>#4FCB83</code></td></tr><tr><th scope="row"><code>--ok-soft</code></th><td><span class="sw" style="background:#DDF3E5"></span><code>#DDF3E5</code></td><td><span class="sw" style="background:#15301F"></span><code>#15301F</code></td></tr><tr><th scope="row"><code>--nodata</code></th><td><span class="sw" style="background:#7A7482"></span><code>#7A7482</code></td><td><span class="sw" style="background:#A29CAB"></span><code>#A29CAB</code></td></tr><tr><th scope="row"><code>--nodata-soft</code></th><td><span class="sw" style="background:#EEEBF0"></span><code>#EEEBF0</code></td><td><span class="sw" style="background:#2A2730"></span><code>#2A2730</code></td></tr></tbody></table></div>
+    <p class="note">Los colores de estado nunca van solos: cada chip lleva icono y palabra, y el anillo tiene su cifra en el texto. El texto siempre usa <code>ink</code> o <code>ink-2</code>, nunca el color del estado.</p>
+  </section>
+  <section class="card span2" aria-labelledby="so-cr">
+    <h2 id="so-cr">Contraste WCAG 2.x calculado</h2>
+    <p class="note">Fórmula de luminancia relativa de WCAG sobre los mismos valores que usa esta página. Los 28 pares cumplen en claro y en oscuro: texto normal ≥ 4,5:1; bordes, iconos, anillos y la marca de la pestaña o el segmento elegidos ≥ 3:1. Cada par aparece una vez; si también se usa como borde o icono, manda el mínimo de texto.</p>
+    <div class="tbl-wrap"><table class="cr"><thead><tr><th scope="col">Par, mínimo y uso</th><th scope="col">Claro</th><th scope="col">Oscuro</th></tr></thead><tbody><tr data-pair="ink|bg|text"><th scope="row"><code>ink</code> sobre <code>bg</code><span class="row-sub">texto ≥ 4,5 · texto de pantalla y títulos</span></th><td><span class="smp" style="background:#F5F3EF;color:#1C1A21">Aa</span><b data-ratio>15,54</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#131118;color:#F3F1F6">Aa</span><b data-ratio>16,70</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|surface|text"><th scope="row"><code>ink</code> sobre <code>surface</code><span class="row-sub">texto ≥ 4,5 · texto en tarjetas y barra de pestañas; etiqueta de la pestaña activa</span></th><td><span class="smp" style="background:#FFFFFF;color:#1C1A21">Aa</span><b data-ratio>17,23</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23;color:#F3F1F6">Aa</span><b data-ratio>15,29</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|surface-2|text"><th scope="row"><code>ink</code> sobre <code>surface-2</code><span class="row-sub">texto ≥ 4,5 · cifras, chips neutros, casillas, segmentos no elegidos</span></th><td><span class="smp" style="background:#EFEBE4;color:#1C1A21">Aa</span><b data-ratio>14,50</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#29252F;color:#F3F1F6">Aa</span><b data-ratio>13,37</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|primary-soft|text"><th scope="row"><code>ink</code> sobre <code>primary-soft</code><span class="row-sub">texto ≥ 4,5 · chip «Sin estrenar», «En curso» y muestras</span></th><td><span class="smp" style="background:#ECE6FD;color:#1C1A21">Aa</span><b data-ratio>14,19</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#2D2550;color:#F3F1F6">Aa</span><b data-ratio>12,55</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|due-soft|text"><th scope="row"><code>ink</code> sobre <code>due-soft</code><span class="row-sub">texto ≥ 4,5 · chip y aviso Vencido</span></th><td><span class="smp" style="background:#FCE4E2;color:#1C1A21">Aa</span><b data-ratio>14,22</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#3D1F22;color:#F3F1F6">Aa</span><b data-ratio>13,21</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|soon-soft|text"><th scope="row"><code>ink</code> sobre <code>soon-soft</code><span class="row-sub">texto ≥ 4,5 · chips Pronto y Revisar</span></th><td><span class="smp" style="background:#FFEFD2;color:#1C1A21">Aa</span><b data-ratio>15,20</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#3A2B12;color:#F3F1F6">Aa</span><b data-ratio>12,20</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|ok-soft|text"><th scope="row"><code>ink</code> sobre <code>ok-soft</code><span class="row-sub">texto ≥ 4,5 · chip y aviso Al día</span></th><td><span class="smp" style="background:#DDF3E5;color:#1C1A21">Aa</span><b data-ratio>14,79</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#15301F;color:#F3F1F6">Aa</span><b data-ratio>12,70</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink|nodata-soft|text"><th scope="row"><code>ink</code> sobre <code>nodata-soft</code><span class="row-sub">texto ≥ 4,5 · chips Sin datos y Pospuesto</span></th><td><span class="smp" style="background:#EEEBF0;color:#1C1A21">Aa</span><b data-ratio>14,58</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#2A2730;color:#F3F1F6">Aa</span><b data-ratio>13,08</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink-2|bg|text"><th scope="row"><code>ink-2</code> sobre <code>bg</code><span class="row-sub">texto ≥ 4,5 · antetítulos y entradillas</span></th><td><span class="smp" style="background:#F5F3EF;color:#5D5866">Aa</span><b data-ratio>6,21</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#131118;color:#B3ADBD">Aa</span><b data-ratio>8,59</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink-2|surface|text"><th scope="row"><code>ink-2</code> sobre <code>surface</code><span class="row-sub">texto ≥ 4,5 · texto secundario, pestañas inactivas, chevrones</span></th><td><span class="smp" style="background:#FFFFFF;color:#5D5866">Aa</span><b data-ratio>6,88</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23;color:#B3ADBD">Aa</span><b data-ratio>7,87</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ink-2|surface-2|text"><th scope="row"><code>ink-2</code> sobre <code>surface-2</code><span class="row-sub">texto ≥ 4,5 · etiquetas de cifras, fecha de salida, iconos de chips neutros</span></th><td><span class="smp" style="background:#EFEBE4;color:#5D5866">Aa</span><b data-ratio>5,79</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#29252F;color:#B3ADBD">Aa</span><b data-ratio>6,88</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="primary|bg|text"><th scope="row"><code>primary</code> sobre <code>bg</code><span class="row-sub">texto ≥ 4,5 · enlace «atrás»</span></th><td><span class="smp" style="background:#F5F3EF;color:#5536C8">Aa</span><b data-ratio>6,90</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#131118;color:#B6A2FF">Aa</span><b data-ratio>8,56</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="primary|surface|text"><th scope="row"><code>primary</code> sobre <code>surface</code><span class="row-sub">texto ≥ 4,5 · enlaces; arco y barras «En curso»; pastilla de la pestaña activa</span></th><td><span class="smp" style="background:#FFFFFF;color:#5536C8">Aa</span><b data-ratio>7,64</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23;color:#B6A2FF">Aa</span><b data-ratio>7,84</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="primary|primary-soft|text"><th scope="row"><code>primary</code> sobre <code>primary-soft</code><span class="row-sub">texto ≥ 4,5 · píldora «Boceto»; arco «En curso» sobre su pista</span></th><td><span class="smp" style="background:#ECE6FD;color:#5536C8">Aa</span><b data-ratio>6,30</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#2D2550;color:#B6A2FF">Aa</span><b data-ratio>6,43</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="on-primary|primary|text"><th scope="row"><code>on-primary</code> sobre <code>primary</code><span class="row-sub">texto ≥ 4,5 · botón principal, filtro elegido, icono de la pestaña activa, segmento elegido</span></th><td><span class="smp" style="background:#5536C8;color:#FFFFFF">Aa</span><b data-ratio>7,64</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#B6A2FF;color:#1B1035">Aa</span><b data-ratio>8,19</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="primary|surface-2|ui"><th scope="row"><code>primary</code> sobre <code>surface-2</code><span class="row-sub">borde, icono o anillo ≥ 3 · segmento elegido sobre su carril; barra de reparto sobre su pista</span></th><td><span class="smp" style="background:#EFEBE4"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#5536C8" stroke-width="3"/></svg></span><b data-ratio>6,43</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#29252F"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#B6A2FF" stroke-width="3"/></svg></span><b data-ratio>6,86</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="due|surface|ui"><th scope="row"><code>due</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco e icono Vencido sobre la tarjeta</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#D2312F" stroke-width="3"/></svg></span><b data-ratio>4,98</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#FF7B72" stroke-width="3"/></svg></span><b data-ratio>6,80</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="due|due-soft|ui"><th scope="row"><code>due</code> sobre <code>due-soft</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco Vencido sobre su pista; icono del chip</span></th><td><span class="smp" style="background:#FCE4E2"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#D2312F" stroke-width="3"/></svg></span><b data-ratio>4,11</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#3D1F22"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#FF7B72" stroke-width="3"/></svg></span><b data-ratio>5,88</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="soon|surface|ui"><th scope="row"><code>soon</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco e icono Pronto / Revisar sobre la tarjeta</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#B86200" stroke-width="3"/></svg></span><b data-ratio>4,39</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#F2B13B" stroke-width="3"/></svg></span><b data-ratio>9,09</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="soon|soon-soft|ui"><th scope="row"><code>soon</code> sobre <code>soon-soft</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco Pronto sobre su pista; icono del chip</span></th><td><span class="smp" style="background:#FFEFD2"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#B86200" stroke-width="3"/></svg></span><b data-ratio>3,87</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#3A2B12"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#F2B13B" stroke-width="3"/></svg></span><b data-ratio>7,25</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ok|surface|ui"><th scope="row"><code>ok</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco e icono Al día sobre la tarjeta</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#1E8449" stroke-width="3"/></svg></span><b data-ratio>4,72</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#4FCB83" stroke-width="3"/></svg></span><b data-ratio>8,33</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="ok|ok-soft|ui"><th scope="row"><code>ok</code> sobre <code>ok-soft</code><span class="row-sub">borde, icono o anillo ≥ 3 · arco Al día sobre su pista; icono del chip</span></th><td><span class="smp" style="background:#DDF3E5"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#1E8449" stroke-width="3"/></svg></span><b data-ratio>4,05</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#15301F"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#4FCB83" stroke-width="3"/></svg></span><b data-ratio>6,92</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="nodata|surface|ui"><th scope="row"><code>nodata</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · anillo punteado Sin datos</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#7A7482" stroke-width="3"/></svg></span><b data-ratio>4,52</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#A29CAB" stroke-width="3"/></svg></span><b data-ratio>6,44</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="nodata|nodata-soft|ui"><th scope="row"><code>nodata</code> sobre <code>nodata-soft</code><span class="row-sub">borde, icono o anillo ≥ 3 · icono de los chips Sin datos y Pospuesto</span></th><td><span class="smp" style="background:#EEEBF0"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#7A7482" stroke-width="3"/></svg></span><b data-ratio>3,82</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#2A2730"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#A29CAB" stroke-width="3"/></svg></span><b data-ratio>5,51</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="field|surface|ui"><th scope="row"><code>field</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · borde de los campos del formulario</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#8C8694" stroke-width="3"/></svg></span><b data-ratio>3,53</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#7F7889" stroke-width="3"/></svg></span><b data-ratio>4,04</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="focus|bg|ui"><th scope="row"><code>focus</code> sobre <code>bg</code><span class="row-sub">borde, icono o anillo ≥ 3 · anillo de foco sobre el fondo</span></th><td><span class="smp" style="background:#F5F3EF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#C2410C" stroke-width="3"/></svg></span><b data-ratio>4,67</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#131118"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#FF9A5C" stroke-width="3"/></svg></span><b data-ratio>8,95</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="focus|surface|ui"><th scope="row"><code>focus</code> sobre <code>surface</code><span class="row-sub">borde, icono o anillo ≥ 3 · anillo de foco sobre una tarjeta</span></th><td><span class="smp" style="background:#FFFFFF"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#C2410C" stroke-width="3"/></svg></span><b data-ratio>5,18</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#1D1A23"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#FF9A5C" stroke-width="3"/></svg></span><b data-ratio>8,19</b><span class="sr-only"> a 1, cumple</span></td></tr><tr data-pair="focus|surface-2|ui"><th scope="row"><code>focus</code> sobre <code>surface-2</code><span class="row-sub">borde, icono o anillo ≥ 3 · anillo de foco dentro de casillas y del selector de tema</span></th><td><span class="smp" style="background:#EFEBE4"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#C2410C" stroke-width="3"/></svg></span><b data-ratio>4,36</b><span class="sr-only"> a 1, cumple</span></td><td><span class="smp" style="background:#29252F"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#FF9A5C" stroke-width="3"/></svg></span><b data-ratio>7,16</b><span class="sr-only"> a 1, cumple</span></td></tr></tbody></table></div>
+  </section>
+  <section class="card" aria-labelledby="so-shape">
+    <h2 id="so-shape">Radios y espaciado</h2>
+    <div class="radii"><span style="border-radius:10px">10</span><span style="border-radius:14px">14</span><span style="border-radius:16px">16</span><span style="border-radius:20px">20</span><span style="border-radius:22px">22</span><span style="border-radius:26px">26</span><span style="border-radius:28px">28</span><span style="border-radius:999px">píldora</span></div>
+    <p class="note">10 información emergente del gráfico · 14 campos del formulario · 16 teselas de icono, botones, cifras, fila de la barra lateral · 20 tesela grande de la ficha · 22 tarjetas · 26 barra de pestañas flotante · 28 cabecera de bici · píldora chips, filtros, selector de tema y pastilla de la pestaña activa.</p>
+    <div class="space"><span style="width:4px"></span><span style="width:8px"></span><span style="width:12px"></span><span style="width:16px"></span><span style="width:20px"></span><span style="width:24px"></span><span style="width:32px"></span><span style="width:40px"></span></div>
+    <p class="note">Base de 4 px: 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40. Márgenes de pantalla 16 (móvil) y 32 (escritorio); separación entre tarjetas 16–20; filas de 64 px como mínimo. Sombras suaves en claro; en oscuro, borde de 1 px.</p>
+  </section>
+  <section class="card" aria-labelledby="so-to">
+    <h2 id="so-to">Trade-offs</h2>
+    <ul class="bullets"><li><b>Es la opción continuista.</b> El anillo de fila (52 px, trazo 6, extremo redondeado, pista punteada para «Sin datos»), los chips con icono y palabra, los iconos de cada estado y la fila de 64 px son los del estilo actual «B Instrumentos» de <code>garage.css</code>. Cambian la piel (fuentes, violeta, tarjetas con aire), el icono de la pieza dentro del anillo en vez del porcentaje y la barra lateral en escritorio. Aporta menos novedad que una dirección nueva; a cambio, cuesta poco llevarla a la app.</li><li><b>Menos densidad.</b> Tarjetas con aire y anillos de 52 px: en un móvil caben unas 5 piezas por pantalla, frente a 8–9 del estilo actual. Con 30 piezas, la ficha de la bici obliga a desplazarse mucho.</li><li><b>Cifras menos precisas a primera vista.</b> El anillo dice «cuánto» de un vistazo; el número exacto queda en segundo plano (texto de 14 px).</li><li><b>Más color.</b> Cinco colores de estado más el violeta de marca: alegre, pero cansa antes y exige disciplina para no colorear lo que no es estado. El ámbar en claro tuvo que oscurecerse (<code>#B86200</code>) para cumplir 3:1 y queda menos «vivo» que en oscuro.</li><li><b>«En curso» comparte color con la marca.</b> Es tranquilo a propósito, pero un violeta en un anillo se lee como «normal» aunque en Garage signifique histórico incompleto.</li><li><b>Fuentes externas.</b> Dos familias de Google Fonts (unos 52 kB en WOFF2 variable, subconjunto latino: Figtree 20 kB + Outfit 32 kB); sin red cae al sistema y pierde parte del carácter redondeado.</li><li><b>Parecido a ProBikeGarage.</b> Quien venga de allí se orienta antes; a cambio, Garage gana menos identidad propia.</li><li><b>Envejece con la moda.</b> Tarjetas redondeadas, sombras suaves y barra flotante son el lenguaje de las apps de 2020–2026; puede verse fechado antes que una dirección más sobria.</li><li><b>Coste de implementar bajo-medio.</b> Como el anillo y los chips ya existen, el cambio es sobre todo de <code>garage.css</code> (fuentes, colores, tarjetas, barra flotante y lateral) y de las plantillas de filas (<code>_wear_row.html</code>, <code>_ring.html</code>: icono en vez de porcentaje); hay que dibujar y mantener los iconos de componente. El modelo de datos no cambia.</li></ul>
+  </section>
+  <section class="card span2" aria-labelledby="so-as">
+    <h2 id="so-as">Supuestos de este boceto</h2>
+    <ul class="bullets"><li>Garaje ficticio, el mismo en las tres opciones; «hoy» es el domingo 1 de noviembre de 2026. Fechas, importes, km de los neumáticos y de las piezas de la Grizl, el uso del Assegai, el reparto mensual y las intervenciones anteriores son inventados y cuadran entre sí (comprobado con un script): la Rallon hace 1.860 km desde el cambio de cadena del 12/05, la horquilla lleva 58 h desde el servicio del 05/08 y el amortiguador 89 h desde el del 26/06.</li><li>El casete lleva los mismos 1.860 km que la cadena porque se cambiaron juntos el 12/05/2026; el casete anterior no se dibuja en Retirados porque el juego de datos sólo da la cadena retirada.</li><li>«Pronto» es el estado que la app llama hoy «Próximo» (90 % del umbral). «En curso» se pinta tranquilo, con el color de marca; el boceto no añade el «≥» del histórico incompleto.</li><li>«Revisar» y «Pospuesto» existen en la app pero no en el garaje de ejemplo, así que sólo aparecen en «Sobre esta dirección». Usan los colores de Pronto y de Sin datos con su propio icono (lupa y reloj): la paleta no crece.</li><li>El neumático Assegai no tiene reglas propias: su aviso viene del líquido tubeless que lleva dentro, y la alerta del líquido abre la ficha del neumático.</li><li>Sólo hay fichas completas de la horquilla, la cadena y el neumático; el resto de filas no navega (no tiene flecha). Posponer, editar, montar y retirar no están dibujados.</li><li>Material vive en Más, como en la app actual; por eso su «atrás» vuelve a Más aunque se llegue desde el Garaje.</li><li>Salidas enseña las 4 más recientes (las del encargo). Octubre suma 450 km en Estadísticas porque antes del 24/10 hubo más salidas.</li><li>Guardar el formulario o «Sincronizar ahora» vuelve a la pantalla correspondiente sin recargar ni cambiar datos: el script intercepta el envío, así que <code>?tema=</code> se conserva. Sin JavaScript, el formulario hace un GET normal.</li><li>El modo claro u oscuro se recuerda en <code>localStorage</code> (<code>garage-opcion1-tema</code>); <code>?tema=claro</code> u <code>?tema=oscuro</code> en la URL lo fuerza sin guardarlo.</li><li>JavaScript mínimo: conmutador de tema, pestaña activa (<code>aria-current</code>), título de la página y envíos del boceto. La navegación funciona sin JS con <code>:target</code>.</li><li>«Powered by Strava» como texto; no se usa el logotipo de Strava.</li></ul>
+  </section>
+</div></div></section></main>
+<nav class="nav" aria-label="Secciones de Garage">
+  <a class="brand" href="#garaje"><svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" fill="none" stroke="var(--primary-soft)" stroke-width="5"/><circle cx="17" cy="17" r="13" fill="none" stroke="var(--primary)" stroke-width="5" stroke-linecap="round" stroke-dasharray="57 82" transform="rotate(-90 17 17)"/></svg><span>Garage<small>Opción 1 · Anillos</small></span></a>
+  <ul class="tabs"><li><a class="tab t-garaje" data-tab="garaje" href="#garaje"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-garage"/></svg></span><span class="tab-l">Garaje</span></a></li><li><a class="tab t-salidas" data-tab="salidas" href="#salidas"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-route"/></svg></span><span class="tab-l">Salidas</span></a></li><li><a class="tab t-taller" data-tab="taller" href="#taller"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg></span><span class="tab-l">Taller</span></a></li><li><a class="tab t-estadisticas" data-tab="estadisticas" href="#estadisticas"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span class="tab-l">Estadísticas</span></a></li><li><a class="tab t-mas" data-tab="mas" href="#mas"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></span><span class="tab-l">Más</span></a></li></ul>
+</nav>
+<script>(function(){var r=document.documentElement,K='garage-opcion1-tema',mq=matchMedia('(prefers-color-scheme: dark)');
+document.body.classList.add('js');
+function cur(){return r.getAttribute('data-theme')||'auto'}
+function dark(){var c=cur();return c==='dark'||(c==='auto'&&mq.matches)}
+function set(m){if(m==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',m);
+ if(!window.__temaURL){try{m==='auto'?localStorage.removeItem(K):localStorage.setItem(K,m)}catch(e){}}sync()}
+function sync(){var d=dark();document.querySelectorAll('[data-theme-toggle]').forEach(function(b){b.setAttribute('aria-pressed',String(d))});
+ var i=document.querySelector('[data-theme-choice] input[value="'+cur()+'"]');if(i)i.checked=true}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-theme-toggle]');if(b)set(dark()?'light':'dark')});
+document.addEventListener('change',function(e){if(e.target.name==='tema')set(e.target.value)});
+mq.addEventListener('change',sync);
+document.addEventListener('submit',function(e){var a=e.target.getAttribute('action')||'';if(a.charAt(0)!=='#')return;e.preventDefault();
+ if(location.hash!==a)location.hash=a;else scrollTo(0,0)});
+function nav(){var id=location.hash.slice(1),s=id&&document.getElementById(id);if(!s||!s.classList.contains('screen'))s=document.getElementById('garaje');
+ document.querySelectorAll('.tab').forEach(function(a){if(a.dataset.tab===s.dataset.tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+ document.title=s.dataset.title+' · Garage · Opción 1 «Anillos»'}
+addEventListener('hashchange',nav);nav();sync();})();</script>
+</body>
+</html>

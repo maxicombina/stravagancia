@@ -12,7 +12,7 @@ from .icons import item_icon_key
 
 STATES = {
     "due": ("Vencido", "octagon"),
-    "review": ("Revisar", "alert"),
+    "review": ("Revisar", "search"),
     "soon": ("Próximo", "alert"),
     "progress": ("En curso", "gauge"),
     "current": ("Al día", "check-circle"),

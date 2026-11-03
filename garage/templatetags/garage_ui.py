@@ -7,7 +7,7 @@ from django.utils.html import format_html
 
 from garage.assets import asset_url
 from garage.icons import ICON_LABELS, category_icon_key, item_icon_key
-from garage.presentation import number, power_figures as ride_power_figures, quantity, thresholds as rule_thresholds
+from garage.presentation import STATES, number, power_figures as ride_power_figures, quantity, thresholds as rule_thresholds
 from garage.services.lifecycle import RETIRES_TEXT
 from garage.sports import sport_label as modality_label
 from garage.timezones import DEFAULT_ZONE, user_time_zone
@@ -96,6 +96,18 @@ def category_icon(category):
 def icon_label(key):
     """Spanish name of an icon key; empty for unknown keys."""
     return ICON_LABELS.get(key, "")
+
+
+@register.filter
+def state_word(state):
+    """Spanish word of a state of presentation.STATES; empty for unknown keys."""
+    return STATES.get(state, ("", ""))[0]
+
+
+@register.filter
+def state_icon(state):
+    """Sprite key of a state of presentation.STATES; empty for unknown keys."""
+    return STATES.get(state, ("", ""))[1]
 
 
 @register.filter

@@ -5,8 +5,8 @@
   <div><h1>{{ name }}</h1><p class="lede">{{ target.name }} · {{ rule|thresholds_or }}, lo primero que llegue</p></div>
 </div>
 {% with metric=w.headline %}
-<section class="panel st-{{ w.real_state }}" aria-label="Estado de {{ name }}">
-  <p><span class="chip st-{{ w.real_state }}"><svg class="ic xs"><use href="#i-{{ w.real_icon }}"/></svg>{{ w.real_word }}</span>
+<section class="panel st-{{ w.real_state }}{% if metric.over_class %} {{ metric.over_class }}{% endif %}" aria-label="Estado de {{ name }}">
+  <p><span class="chip st-{{ w.real_state }}{% if metric.over_class %} {{ metric.over_class }}{% endif %}"><svg class="ic xs"><use href="#i-{{ w.real_icon }}"/></svg>{{ w.real_word }}</span>
     {% if metric and metric.state != 'nodata' %}<b class="num">{{ metric.big }}</b> {{ metric.big_caption }} · {{ metric.percent_text }} de {{ metric.threshold_label }}{% endif %}</p>
   <p><a class="btn" href="{{ event_url }}"><svg class="ic sm"><use href="#i-wrench"/></svg>Registrar {{ rule.service_type.name|lower }}</a></p>
   {% include "garage/_elevation_rule_note.html" %}

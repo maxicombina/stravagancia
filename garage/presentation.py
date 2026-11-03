@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 from math import pi
 
+from .icons import item_icon_key
+
 STATES = {
     "due": ("Vencido", "octagon"),
     "review": ("Revisar", "alert"),
@@ -203,6 +205,13 @@ class WearMetric:
         return STATES[self.state][1]
 
     @property
+    def over_class(self):
+        """Deepens a due color past 150 % and 200 %, by the percent shown so that color and figure never disagree."""
+        if self.state != "due" or self.percent is None:
+            return ""
+        return "over-200" if self.percent >= 200 else "over-150" if self.percent >= 150 else ""
+
+    @property
     def small_ring(self):
         return ring(self.ratio, SMALL_RING)
 
@@ -282,12 +291,23 @@ class Wear:
         return STATES[self.state][1]
 
     @property
+    def over_class(self):
+        """Only a rule shown as due deepens: «Pospuesto» never does, however far its metric has gone."""
+        return self.headline.over_class if self.state == "due" else ""
+
+    @property
     def rule(self):
         return self.due.rule
 
     @property
     def target(self):
         return self.due.rule.item or self.due.rule.bike
+
+    @property
+    def piece_icon(self):
+        """Sprite key for the centre of the ring: the piece's icon, or the bike on a bike's rule. Reads item.category."""
+        item = self.due.rule.item
+        return item_icon_key(item) if item else "bike"
 
     @property
     def needs_attention(self):

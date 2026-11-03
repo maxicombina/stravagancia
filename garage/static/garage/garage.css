@@ -121,6 +121,8 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; padding: 2px 9px 2px 6px; border-radius: 999px; white-space: nowrap;
   background: var(--soft, var(--surface-2)); color: var(--ink); }
 .chip .ic { color: var(--c, var(--ink-2)); }
+/* A rule's chip goes on to a second line, with its figure whole: at 320 px, beside a long caption, it would run over the figure of the row. */
+.entry-sub .chip { flex-wrap: wrap; row-gap: 0; max-width: 100%; }
 .meter { display: block; height: 5px; border-radius: 3px; overflow: hidden; background: var(--soft, var(--surface-2)); }
 .meter > i { display: block; height: 100%; border-radius: 3px; background: var(--c, var(--primary)); }
 .st-nodata .meter { background: repeating-linear-gradient(135deg, var(--surface-2) 0 4px, transparent 4px 8px); }
@@ -135,12 +137,13 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .big { display: grid; justify-items: end; line-height: 1.05; text-align: right; }
 .big b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; white-space: nowrap; }
 .big small { font-size: 11px; color: var(--ink-2); }
-.ring { width: 52px; height: 52px; }
+.ring { width: 52px; height: 52px; color: var(--ink); }
+.st-nodata .ring { color: var(--ink-2); }
 .ring .trk { fill: none; stroke: var(--soft, var(--surface-2)); stroke-width: 6; }
 .ring .arc { fill: none; stroke: var(--c, var(--primary)); stroke-width: 6; stroke-linecap: round; }
-.st-nodata .ring .trk { stroke: var(--c, var(--nodata)); stroke-dasharray: 3 5; stroke-width: 3; }
-.ring text { fill: var(--ink); font: 700 12px var(--font-body); text-anchor: middle; }
-.ring text.long { font-size: 9.5px; }
+.st-nodata .ring .trk { stroke: var(--c, var(--nodata)); stroke-dasharray: 3 5; stroke-width: 2.5; }
+/* The piece's icon. currentColor, not --ink: forced colors force `color`, but not a stroke of a fixed color. */
+.ring .ring-glyph { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ring-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--c, var(--primary)); color: var(--c, var(--primary)); }
 .glyph { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--ink); }
 .glyph.accent { color: var(--primary); }
@@ -163,7 +166,8 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .gauge .arc { fill: none; stroke: var(--c, var(--primary)); stroke-width: 12; stroke-linecap: round; }
 .st-nodata .gauge .trk { stroke: var(--c, var(--nodata)); stroke-dasharray: 4 7; stroke-width: 4; }
 .gauge .g-num { fill: var(--ink); font: 600 36px var(--num); font-variant-numeric: tabular-nums; text-anchor: middle; }
-.gauge .g-lbl { fill: var(--ink-2); font: 12.5px var(--font-body); text-anchor: middle; }
+.gauge .g-lbl { fill: var(--ink-2); font: 12.5px var(--font-body); text-anchor: middle; /* A halo: a long caption reaches the ring, by then black or almost white (D21). */
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
 .gauge-title { font-weight: 650; text-align: center; }
 .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 12px; width: 100%; }
 .trio > div { display: grid; gap: 5px; min-width: 0; }

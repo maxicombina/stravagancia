@@ -187,7 +187,7 @@ class TestScreens:
         html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
         trio = find_all(parse(html), cls="trio")[0]
         metrics = [node for node in find_all(trio, "div") if node.attrs.get("class", "").startswith("st-")]
-        states = [node.attrs["class"].removeprefix("st-") for node in metrics]
+        states = [node.attrs["class"].split()[0].removeprefix("st-") for node in metrics]
         assert len(metrics) == 2 and len(set(states)) == 2, states  # Two metrics, in two different states: else this proves nothing.
         for node, state in zip(metrics, states):
             word, icon = STATES[state]

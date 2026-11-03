@@ -171,7 +171,7 @@ def maintenance_due(actor, *, at=None):
     at = _instant(timezone.now() if at is None else at, "at")
     with transaction.atomic():
         owner = _lock_owner(actor)
-        rules = list(MaintenanceRule.objects.filter(owner=owner).select_related("item", "bike", "service_type").order_by("id"))
+        rules = list(MaintenanceRule.objects.filter(owner=owner).select_related("item", "item__category", "bike", "service_type").order_by("id"))
         if not rules:
             return ()
         events = {}

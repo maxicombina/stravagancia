@@ -1,6 +1,6 @@
 """Version token for Garage's unhashed static files (STATICFILES_STORAGE is ignored
 by Django 5.2, so names carry no hash). Shared by templates and the service worker,
-it also covers what the worker precaches: icons and the offline page templates."""
+it also covers what the worker precaches: icons, fonts and the offline page templates."""
 import hashlib
 from functools import cache
 
@@ -10,7 +10,8 @@ from django.templatetags.static import static
 
 VERSIONED = ("garage/garage.css", "garage/garage.js", "garage/icons/icon.svg", "garage/icons/favicon-32.png",
              "garage/icons/apple-touch-icon.png", "garage/icons/icon-192.png", "garage/icons/icon-512.png",
-             "garage/icons/icon-maskable-512.png")
+             "garage/icons/icon-maskable-512.png", "garage/fonts/figtree-latin-wght-v1.woff2",
+             "garage/fonts/outfit-latin-wght-v1.woff2")
 TEMPLATES = ("garage/offline.html", "garage/shell.html", "garage/_icons.html")
 
 

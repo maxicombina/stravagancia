@@ -15,6 +15,8 @@ from .assets import asset_url, asset_version
 
 STATIC_ASSETS = ("garage/garage.css", "garage/garage.js", "garage/icons/icon.svg", "garage/icons/favicon-32.png",
                  "garage/icons/apple-touch-icon.png", "garage/icons/icon-192.png")
+# garage.css asks for these without ?v= and the worker matches the whole URL, so they are precached as they are asked for.
+STATIC_FONTS = ("garage/fonts/figtree-latin-wght-v1.woff2", "garage/fonts/outfit-latin-wght-v1.woff2")
 
 
 @require_GET
@@ -45,7 +47,8 @@ def manifest(request):
 def service_worker(request):
     # Server-generated paths only, serialized as JS literals (the file is JavaScript, not HTML).
     context = {"version": asset_version(), "offline_url": json.dumps(reverse("garage:offline")),
-               "static_prefix": json.dumps(static("garage/")), "assets": json.dumps([asset_url(path) for path in STATIC_ASSETS])}
+               "static_prefix": json.dumps(static("garage/")),
+               "assets": json.dumps([asset_url(path) for path in STATIC_ASSETS] + [static(path) for path in STATIC_FONTS])}
     return render(request, "garage/sw.js", context, content_type="text/javascript; charset=utf-8")
 
 

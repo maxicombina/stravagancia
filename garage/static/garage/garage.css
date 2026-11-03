@@ -67,7 +67,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ic { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: middle; }
 .ic.sm { width: 18px; height: 18px; }
-.ic.xs { width: 14px; height: 14px; stroke-width: 2.2; }
+.ic.xs { width: 15px; height: 15px; stroke-width: 2.1; }
 [hidden] { display: none !important; }
 .only-android { display: none !important; }
 html[data-os="android"] .only-android:not([hidden]) { display: revert !important; }
@@ -102,40 +102,46 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
    minimum width, and on the whole page it broke ordinary words where they have little room («desconocid/a» in .choice, the captions in .stats). */
 .page h1, .page h2, .page h3, .page h4, .page p, .page summary, .page .help, .page .field label, .checks label, .timeline, .gauge-title, .chip-link { overflow-wrap: anywhere; }
 .lede { color: var(--ink-2); font-size: 14.5px; }
-.messages { list-style: none; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--primary-soft); display: grid; gap: 4px; }
+.messages { list-style: none; margin: 0; padding: 12px 14px; border-radius: var(--r-md); background: var(--primary-soft); display: grid; gap: 4px; }
 .messages p { margin: 0; }
 
 /* Sections */
 .sec { display: grid; gap: 10px; }
+.page form > .sec + .sec { margin-top: var(--s6); } /* A form is no grid: the page's gap between sections does not reach inside it. */
 .sec-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; }
-.sec-h h2, .sec-h h3 { margin: 0; font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); font-weight: 650; }
-.sec-h .count, .pill-count { font-size: 12px; font-weight: 700; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--ink); }
+.sec-h h2, .sec-h h3 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 600; }
+.sec-h > .link { flex: none; } /* Beside a title that now wraps, «Ver todo» would go on to two lines. */
+.count, .pill-count { font: 600 14px/1 var(--font-body); min-width: 28px; height: 28px; padding: 0 9px; border-radius: var(--r-pill); display: inline-grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
 .link { color: var(--primary); font-weight: 600; text-decoration: none; font-size: 15px; padding: 6px 0; }
 .link .ic { margin-right: 6px; }
 .note { font-size: 12.5px; color: var(--ink-2); }
 .empty { color: var(--ink-2); font-size: 14.5px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 
 /* Status chips and meters: color carries severity, icon and word carry meaning */
-.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; padding: 2px 9px 2px 6px; border-radius: 999px; white-space: nowrap;
+.chip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; font: 600 13px/1.2 var(--font-body); padding: 3px 10px 3px 7px; border-radius: var(--r-pill); white-space: nowrap;
   background: var(--soft, var(--surface-2)); color: var(--ink); }
 .chip .ic { color: var(--c, var(--ink-2)); }
 /* A rule's chip goes on to a second line, with its figure whole: at 320 px, beside a long caption, it would run over the figure of the row. */
-.entry-sub .chip { flex-wrap: wrap; row-gap: 0; max-width: 100%; }
+.entry-sub .chip { flex-wrap: wrap; row-gap: 0; max-width: 100%; margin-top: 3px; }
 .meter { display: block; height: 5px; border-radius: 3px; overflow: hidden; background: var(--soft, var(--surface-2)); }
 .meter > i { display: block; height: 100%; border-radius: 3px; background: var(--c, var(--primary)); }
 .st-nodata .meter { background: repeating-linear-gradient(135deg, var(--surface-2) 0 4px, transparent 4px 8px); }
 
 /* Entries */
 .rows { display: grid; margin: 0; padding: 0; list-style: none; }
-.entry { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line);
+.entry { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line);
   color: inherit; text-decoration: none; min-height: 64px; }
-.entry.compact { grid-template-columns: 36px minmax(0, 1fr) auto; min-height: 56px; }
-.entry-name { display: block; font-weight: 650; overflow-wrap: anywhere; }
-.entry-sub { display: block; font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.entry.compact { grid-template-columns: 48px minmax(0, 1fr) auto; min-height: 56px; }
+:is(.card, .panel) .rows > li:last-child > .entry, :is(.card, .panel) .rows > li.entry:last-child, :is(.card, .panel) .empty:last-child { border-bottom: 0; }
+.entry-name { display: block; font-size: 16.5px; line-height: 1.3; font-weight: 650; overflow-wrap: anywhere; }
+.entry-sub { display: block; font-size: 14px; line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; }
+.entry > .ic { color: var(--ink-2); } /* The chevron of a row that navigates. */
 .big { display: grid; justify-items: end; line-height: 1.05; text-align: right; }
-.big b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; white-space: nowrap; }
-.big small { font-size: 11px; color: var(--ink-2); }
+.big b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; white-space: nowrap; }
+.big small { font-size: 12px; color: var(--ink-2); }
+@media (max-width: 389px) { .big small { max-width: 92px; text-wrap: balance; } } /* «↑ m de más como mín.» in one line leaves the name and the chip 90 px at 320 px. */
 .ring { width: 52px; height: 52px; color: var(--ink); }
+.entry.compact .ring { width: 48px; height: 48px; }
 .st-nodata .ring { color: var(--ink-2); }
 .ring .trk { fill: none; stroke: var(--soft, var(--surface-2)); stroke-width: 6; }
 .ring .arc { fill: none; stroke: var(--c, var(--primary)); stroke-width: 6; stroke-linecap: round; }
@@ -143,25 +149,36 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 /* The piece's icon. currentColor, not --ink: forced colors force `color`, but not a stroke of a fixed color. */
 .ring .ring-glyph { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ring-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--c, var(--primary)); color: var(--c, var(--primary)); }
-.glyph { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--ink); }
-.glyph.accent { color: var(--primary); }
+.glyph { width: 48px; height: 48px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
+.entry.compact .glyph { width: 40px; height: 40px; }
+.glyph.accent { background: var(--primary-soft); color: var(--primary); }
 .odo { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
 
 /* Install hint */
-.install { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 6px 12px 14px; border-radius: 16px; background: var(--primary-soft); font-size: 14px; }
+.install { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 6px 12px 14px; border-radius: var(--r-md); background: var(--primary-soft); font-size: 14px; }
 .install > .ic { color: var(--primary); margin-top: 2px; }
 .install .icon-btn { min-width: 36px; min-height: 36px; margin-top: -6px; color: var(--ink-2); }
 
 /* Component detail */
 .hero { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; }
-.hero .glyph { width: 56px; height: 56px; border-radius: 16px; }
+.hero .glyph { width: 56px; height: 56px; }
 .hero .glyph .ic { width: 28px; height: 28px; }
 .hero h1 { font-size: 26px; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.panel, .page .card { background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: var(--s4); margin: 0; display: grid; gap: var(--s3); min-width: 0; }
+/* A legacy article holds bare text and inline links («Editar regla · Posponer el aviso»): a grid would put each on a line of its own. */
+.page article.card { display: block; }
+.page article.card > * + * { margin-top: var(--s3); }
+.page .card + .card { margin-top: var(--s3); } /* In a <details> or a plain <section>, with their shadow and radius, they touched. */
+.page > .card + .card, .sec > .card + .card { margin-top: 0; }
+.page .card.form { gap: 4px; } /* Its fields bring their own margin. */
+.page form.card:not(.form) > p { margin: 0; }
+.page .card > button:not([class]) { justify-self: start; }
+.page .notes:empty { display: none; } /* It would add a gap of nothing. */
+.panel h2, .page .card h2 { font-size: 20px; line-height: 1.25; font-weight: 600; }
 .gauge { display: grid; justify-items: center; gap: 10px; }
-.gauge > svg { width: 168px; height: 168px; }
-.gauge .trk { fill: none; stroke: var(--soft, var(--surface-2)); stroke-width: 12; }
-.gauge .arc { fill: none; stroke: var(--c, var(--primary)); stroke-width: 12; stroke-linecap: round; }
+.gauge > svg { width: 180px; height: 180px; }
+.gauge .trk { fill: none; stroke: var(--soft, var(--surface-2)); stroke-width: 13; }
+.gauge .arc { fill: none; stroke: var(--c, var(--primary)); stroke-width: 13; stroke-linecap: round; }
 .st-nodata .gauge .trk { stroke: var(--c, var(--nodata)); stroke-dasharray: 4 7; stroke-width: 4; }
 .gauge .g-num { fill: var(--ink); font: 600 36px var(--num); font-variant-numeric: tabular-nums; text-anchor: middle; }
 .gauge .g-lbl { fill: var(--ink-2); font: 12.5px var(--font-body); text-anchor: middle; /* A halo: a long caption reaches the ring, by then black or almost white (D21). */
@@ -170,17 +187,17 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 12px; width: 100%; }
 .trio > div { display: grid; gap: 5px; min-width: 0; }
 .trio b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 17px; font-weight: 600; letter-spacing: .01em; }
-.trio span { font-size: 11.5px; color: var(--ink-2); }
+.trio span { font-size: 12.5px; color: var(--ink-2); }
 .trio .trio-state { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-weight: 650; }
 .trio-state .ic { color: var(--c, var(--ink-2)); }
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--line); }
-.stats > div { display: grid; gap: 2px; padding: 10px 0 10px 12px; min-width: 0; }
-.stats > div:first-child { padding-left: 0; }
-.stats > div + div { border-left: 1px solid var(--line); }
-.stats b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; white-space: nowrap; }
-.stats span { font-size: 11.5px; color: var(--ink-2); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.stats:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* Two figures: no empty third of a row. */
+.stats > div { display: grid; align-content: start; gap: 2px; padding: 10px; min-width: 0; border-radius: var(--r-md); background: var(--surface-2); }
+.stats b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 19px; line-height: 1.15; font-weight: 600; white-space: nowrap; }
+.stats span { font-size: 12px; line-height: 1.25; color: var(--ink-2); }
+.panel .stats > div { padding-inline: 8px; } /* A third of a panel at 320 px is 79 px, and «desconocida» 69. */
+.page > .stats + .stats { margin-top: calc(var(--s2) - 24px); } /* The second row of one set of figures: the page's gap would part them. */
 .c-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.c-head h2 { font-size: 15px; }
 .c-head span { font-size: 12px; color: var(--ink-2); }
 
 /* Charts */
@@ -200,16 +217,16 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chart .pt { fill: var(--primary); stroke: var(--surface); stroke-width: 2; opacity: 0; }
 .chart .pt.on { opacity: 1; }
 .chart .hl { stroke: var(--ink-2); stroke-width: 1; opacity: 0; }
-.tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 600;
-  padding: 4px 8px; border-radius: 7px; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--ink); border: 1px solid var(--field); box-shadow: var(--shadow);
+  font-size: 13px; font-weight: 600; padding: 5px 9px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
 
 /* Timeline */
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; }
-.timeline li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0; position: relative; }
-.timeline li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; margin: 5px 0 0 4px; background: var(--bg); border: 2px solid var(--primary); }
+.timeline li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0; position: relative; }
+.timeline li::before { content: ""; width: 12px; height: 12px; border-radius: 50%; margin: 5px 0 0 4px; background: var(--surface); border: 2.5px solid var(--primary); }
 .timeline li.open::before { background: var(--primary); }
-.timeline li:not(:last-child)::after { content: ""; position: absolute; left: 8px; top: 23px; bottom: -5px; width: 2px; background: var(--line); }
-.timeline b { display: block; font-weight: 600; }
+.timeline li:not(:last-child)::after { content: ""; position: absolute; left: 9px; top: 25px; bottom: -5px; width: 2px; background: var(--line); }
+.timeline b { display: block; font-weight: 650; }
 .timeline span { font-size: 12.5px; color: var(--ink-2); }
 .num { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 
@@ -218,12 +235,13 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
   padding: 14px 0 12px; background: linear-gradient(to bottom, transparent, var(--bg) 32%); }
 .actionbar > * { flex: 1; }
 .actionbar > .btn.ghost { flex: 0 0 auto; }
+.actionbar .btn { padding-inline: 14px; } /* Side by side on a phone; with the 20 px of a button alone, «Registrar mantenimiento» and «Mover» overflow at 320 px. */
 .btn, .button {
-  border: 0; border-radius: 14px; min-height: 48px; padding: 0 18px; font-weight: 650; cursor: pointer; display: inline-flex; align-items: center;
+  border: 0; border-radius: var(--r-md); min-height: 50px; padding: 0 20px; font-weight: 650; line-height: 1.2; text-align: center; cursor: pointer; display: inline-flex; align-items: center;
   justify-content: center; gap: 8px; background: var(--primary); color: var(--on-primary); text-decoration: none; }
 .btn.ghost { background: var(--surface-2); color: var(--ink); }
 /* Legacy class-less buttons (including destructive ones) stay neutral, never primary. */
-.page button:not([class]) { border: 1px solid var(--line); border-radius: 14px; min-height: 44px; padding: 0 16px; font-weight: 600; cursor: pointer;
+.page button:not([class]) { border: 1px solid var(--line); border-radius: var(--r-md); min-height: 44px; padding: 0 16px; font-weight: 600; cursor: pointer;
   background: var(--surface-2); color: var(--ink); }
 html[data-os="android"] body:has(.fab) .page { padding-bottom: 96px; }
 .link-btn { border: 0; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; padding: 6px 2px; min-height: 36px; }
@@ -233,17 +251,17 @@ html[data-os="android"] body:has(.fab) .page { padding-bottom: 96px; }
 html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !important; }
 
 /* Ride review */
-.pending { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: var(--soft, var(--surface-2)); font-size: 14px; }
+.pending { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-md); background: var(--soft, var(--surface-2)); font-size: 14px; }
 .pending .ic { color: var(--c, var(--ink-2)); margin-top: 1px; }
 .choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; border: 0; margin: 0; padding: 0; min-width: 0; }
-.choice label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px; border-radius: 16px;
+.choice label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px; border-radius: var(--r-md);
   border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; min-height: 56px; }
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice input:checked + label { border-color: var(--primary); background: var(--primary-soft); }
 .choice input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
 .choice .tick { opacity: 0; color: var(--primary); }
 .choice input:checked + label .tick { opacity: 1; }
-.choice small { display: block; font-size: 11.5px; color: var(--ink-2); }
+.choice small { display: block; font-size: 12px; color: var(--ink-2); }
 /* Segmented choice: the theme in Más → Apariencia. */
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 4px; border: 0; min-width: 0; border-radius: var(--r-pill); background: var(--surface-2); }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
@@ -258,7 +276,7 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .switches label { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; min-height: 56px; cursor: pointer; }
 .switches .tag { display: block; font-size: 12px; color: var(--ink-2); }
 .switches .tag.ex { color: var(--primary); font-weight: 600; }
-.sw { appearance: none; -webkit-appearance: none; margin: 0; width: 51px; height: 31px; border-radius: 16px; background: var(--field); position: relative; cursor: pointer; flex: none; }
+.sw { appearance: none; -webkit-appearance: none; margin: 0; width: 51px; height: 31px; border-radius: var(--r-pill); background: var(--field); position: relative; cursor: pointer; flex: none; }
 .sw::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: var(--knob); box-shadow: var(--knob-shadow); }
 .sw:checked { background: var(--primary); }
 .sw:checked::before { background: var(--on-primary); transform: translateX(20px); }
@@ -276,10 +294,10 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 
 /* Menu lists (Más, Añadir) */
 .menu { list-style: none; margin: 0; padding: 0; }
-.menu a, .menu button { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 56px; padding: 8px 0;
-  border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; width: 100%; text-align: left; cursor: pointer; font-size: 16px; }
+.menu a, .menu button { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 64px; padding: 10px 0;
+  border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; width: 100%; text-align: left; cursor: pointer; font-size: 16.5px; line-height: 1.3; font-weight: 650; }
 .menu .ic.go { color: var(--ink-2); }
-.menu small { display: block; color: var(--ink-2); font-size: 12.5px; }
+.menu small { display: block; color: var(--ink-2); font-size: 14px; line-height: 1.4; font-weight: 400; }
 
 /* Tab bar */
 .tabbar { position: fixed; z-index: 5; left: 0; right: 0; bottom: 0; background: var(--surface); -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px);
@@ -291,17 +309,19 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 .tab-ic { display: grid; place-items: center; height: 28px; width: 56px; border-radius: 15px; }
 
 /* Generic styling for the existing pages (forms, cards, tables) */
-.page .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 0; min-width: 0; }
 .page .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .page .actions, .page .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .page input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page select, .page textarea {
-  width: 100%; max-width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  width: 100%; max-width: 100%; min-height: 50px; padding: 11px 14px; border: 1.5px solid var(--field); border-radius: 14px; background: var(--surface); }
+/* Also on a mouse's click, as in the mockup: a box being typed in says so. :focus-within, for the parts of a date box that take the focus themselves. */
+.page input:not([type="checkbox"]):not([type="radio"]):not(.sw):is(:focus, :focus-within), .page select:is(:focus, :focus-within), .page textarea:is(:focus, :focus-within) { outline: 3px solid var(--focus); outline-offset: 2px; }
 .page textarea { min-height: 96px; height: 96px; resize: vertical; }
 ::placeholder { color: var(--ink-2); opacity: 1; }
 .page input[type="checkbox"]:not(.sw), .page input[type="radio"] { width: 20px; height: 20px; accent-color: var(--primary); }
 .page .field, .page form p { margin: 0 0 16px; }
 .page label { font-weight: 600; }
+.page .field > label { font-size: 15px; font-weight: 650; }
 .page .help, .page .helptext { display: block; color: var(--ink-2); font-size: 13px; font-weight: 400; }
 .page .errorlist { color: var(--danger-ink); margin: 4px 0; padding-left: 18px; }
 .page .badge { background: var(--surface-2); border-radius: 8px; padding: 2px 8px; font-size: 13px; }
@@ -328,7 +348,7 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
   .page { padding-top: 12px; }
 }
 .offline-hero { margin-top: 12vh; }
-.login { display: grid; gap: 16px; max-width: 420px; width: 100%; margin: 10vh auto 0; }
+.login { display: grid; gap: var(--s4); max-width: 420px; width: 100%; margin: 10vh auto 0; padding: var(--s4); background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow); }
 .login-form { display: grid; gap: 4px; }
 .login-form .btn { width: 100%; margin-top: 8px; }
 .bar { display: block; width: 100%; height: 5px; }
@@ -346,15 +366,15 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .page .field.check > label { grid-column: 2; grid-row: 1; }
 .page .field.check > input { grid-column: 1; grid-row: 1; }
 .page .field.check > .help, .page .field.check > .errorlist { grid-column: 1 / -1; }
-/* A control alone on its line: room for a finger. Only plain links: this would outweigh the 48 px of .btn and .button. */
+/* A control alone on its line: room for a finger. Only plain links: this would outweigh the 50 px of .btn and .button. */
 .page .pagination a, .page .actions > a:not([class]), .page h3 > a, .link.solo { display: inline-flex; align-items: center; min-height: 44px; }
 .page .field.check > label, .page .field label:has(> :is(input[type="checkbox"], input[type="radio"])) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .page .field label > :is(input[type="checkbox"], input[type="radio"]) { flex: none; }
 .page .field.has-error input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page .field.has-error select, .page .field.has-error textarea { border-color: var(--danger-ink); }
 .page .errorlist { list-style: none; padding: 0; font-size: 14px; font-weight: 600; }
-.page input[type="datetime-local"], .page input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 44px; }
-details.zone { margin: 0 0 14px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; background: var(--surface); }
-details.zone > summary { min-height: 44px; color: var(--ink-2); font-weight: 500; font-size: 14px; }
+.page input[type="datetime-local"], .page input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 50px; }
+details.zone { margin: 0 0 14px; border: 1.5px solid var(--field); border-radius: 14px; padding: 0 14px; background: var(--surface); }
+details.zone > summary { min-height: 47px; color: var(--ink-2); font-weight: 500; font-size: 14px; }
 details.zone[open] > summary { margin-bottom: 4px; }
 .btn.danger { background: transparent; color: var(--danger-ink); border: 1.5px solid var(--danger-ink); }
 .link-btn.danger { color: var(--danger-ink); }
@@ -362,55 +382,52 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .danger-zone form { margin: 0; }
 .photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .photos li { display: grid; gap: 6px; min-width: 0; }
-.photos img.photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
+.photos img.photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--surface-2); }
 .photo-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
 .photo-actions form { margin: 0; }
 .photo-actions .note { flex-basis: 100%; }
-.chip-link { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 36px; padding: 4px 12px; border-radius: 999px; background: var(--primary-soft);
-  color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; }
+.chip-link { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 4px 16px; border: 1px solid var(--card-border); border-radius: var(--r-pill); background: var(--primary-soft);
+  color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
 .together { border: 0; padding: 0; margin: 18px 0 6px; display: grid; gap: 8px; min-width: 0; }
 .together legend { font-weight: 700; font-size: 17px; margin-bottom: 4px; }
 .together details.more > summary { gap: 8px; flex-wrap: wrap; }
 .together summary .note { font-weight: 500; }
 .form select:disabled, .form input:disabled { opacity: .7; }
-.checks { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
-.checks label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px; padding: 4px 2px; }
-.checks input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--primary); }
-.sub-h { font-size: 15px; font-weight: 600; margin: 14px 0 6px; color: var(--ink-2); }
+.checks { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: var(--s2); }
+.checks label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; }
+.page .checks input[type=checkbox] { width: 22px; height: 22px; margin: 0; flex: none; }
+.page .sub-h { font: 600 13px/1.2 var(--font-body); letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 6px; color: var(--ink-2); }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
-.presets .chip-link { border: 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 14px; }
+.presets .chip-link { cursor: pointer; font: inherit; font-weight: 600; font-size: 15px; }
 .entry.nested { padding-left: 20px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips .chip-link { background: var(--surface-2); font-weight: 600; }
-.chips .chip-link.on { background: var(--primary); color: var(--on-primary); }
+.chips .chip-link { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
+.chips .chip-link.on { background: var(--primary); color: var(--on-primary); font-weight: 700; }
 .bar.share { margin-top: 6px; height: 4px; }
 .page form.filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.page form.filters > button { min-height: 44px; }
+.page form.filters > button { min-height: 50px; }
 .page .field > .link-btn { justify-self: start; padding-left: 0; }
-.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; } /* A label on two lines beside one on a line stretched the other's box. */
 .field-row .field { margin-bottom: 0; }
 .suggest { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* garage-041: category icons (radio grid without JavaScript) and the starter set */
 .page fieldset.icon-field { border: 0; padding: 0; min-width: 0; }
-.icon-field > legend { font-weight: 600; padding: 0; margin: 0 0 6px; }
+.icon-field > legend { font-size: 15px; font-weight: 650; padding: 0; margin: 0 0 6px; }
 .choice.icons { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 /* Each radio covers its own tile: arrow keys scroll to the focused tile and a screen reader's box matches it. */
 .choice.icons .tile { position: relative; display: grid; }
 .choice.icons input { inset: 0; width: 100%; height: 100%; margin: 0; }
 .choice.icons label { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 4px; min-height: 72px; padding: 10px 4px;
-  border-radius: 14px; font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+  border-radius: var(--r-md); font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
 .choice.icons input:checked + label { box-shadow: inset 0 0 0 1px var(--primary); }
-.panel.starter h2 { margin: 0; font-size: 15px; }
 .starter form { margin: 0; }
 .starter .btn { width: 100%; }
 
 /* garage-030 phase 3: elevation as a fourth figure; power only on the ride screens */
-.stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.stats.four > div { padding-left: 10px; }
-.stats.four > div:first-child { padding-left: 0; }
+.stats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* Four tiles in a row leave a phone 42 px for a figure. */
+@media (min-width: 480px) { .stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .stats.four b { font-size: 17px; letter-spacing: .01em; }
-.stats + .stats { border-top: 0; }
 
 /* Forced colors repaint HTML, but neither an SVG's fill and stroke nor an icon's own color and focus ring: with a theme chosen against
    the system's palette, those would keep the theme's color on the wrong canvas. So, inside an SVG, the tokens become system colors.
@@ -427,4 +444,15 @@ details.zone[open] > summary { margin-bottom: 4px; }
   /* Gradients and filled backgrounds go as well: what scrolls under the bar would show through it, and a button would be bare text. */
   .actionbar { background: Canvas; }
   .btn, .button, .fab { border: 1px solid; }
+  /* What a background told apart now needs a line. */
+  .chip { border: 2px solid; }
+  .tab[aria-current="page"] .tab-ic, .seg input:checked + label { border: 2px solid; }
+  /* With the same border on all, the chosen filter would not show. */
+  .chip-link { border: 1px solid; }
+  .chip-link.on { border: 3px solid; text-decoration: underline; }
+  /* The switch would vanish: neither its track nor its knob has anything but a background. The border takes 4 px of the track, the knob shrinks by as much. */
+  .sw { border: 2px solid ButtonText; }
+  .sw::before { width: 23px; height: 23px; background: ButtonText; }
+  .sw:checked { background: Highlight; }
+  .sw:checked::before { background: HighlightText; }
 }

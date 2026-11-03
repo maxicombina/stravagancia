@@ -183,7 +183,8 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .chart text { font: 10.5px var(--font-body); fill: var(--ink-2); }
 .chart .ticks text { text-anchor: end; font-variant-numeric: tabular-nums; }
 .chart .months text { text-anchor: middle; }
-.chart .val { fill: var(--ink); font-weight: 650; text-anchor: middle; font-size: 11px; }
+.chart .val { fill: var(--ink); font-weight: 650; text-anchor: middle; font-size: 11px; /* A halo: the last label can fall on its own dashed stretch. */
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
 .chart .area { fill: var(--primary); fill-opacity: .1; stroke: none; }
 .chart .line { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .chart .dash { stroke-dasharray: 3 4; }

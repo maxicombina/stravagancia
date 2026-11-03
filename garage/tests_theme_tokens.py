@@ -335,6 +335,13 @@ class StylesheetTests(SimpleTestCase):
         normal = max(position for position, rule in enumerate(order) if rule.selector == selector and not rule.conditions)
         self.assertGreater(order.index(found[0]), normal)
 
+    def test_a_chart_figure_keeps_clear_of_the_line_it_sits_on(self):
+        # The last month's label falls on its own dashed stretch when the month in progress drops far below the one before.
+        figure = self.rule(".chart .val")
+        self.assertEqual(figure.get("paint-order"), "stroke")  # Under the figure, not over it.
+        self.assertEqual(figure.get("stroke"), "var(--surface)")  # What a chart sits on: every one of them is in a .panel.
+        self.assertEqual(figure.get("stroke-linejoin"), "round")  # A mitered halo pokes out of the corners of the digits.
+
     def test_the_chart_table_for_screen_readers_does_not_widen_the_page(self):
         # `.page table` is more specific than `.sr-only`: at 100 % from where it sits, it overflows every page with a chart.
         self.assertEqual(self.rule(".page table").get("width"), "100%")

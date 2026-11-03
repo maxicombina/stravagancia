@@ -1,11 +1,17 @@
 {
- "updated_at": "2026-11-03T15:52:32+00:00",
- "focus": "garage-050: la spec «Anillos» está revisada sólo hasta F1a (la aplicación de R1–R29 se cortó el 1 nov por un error de la API). Siguiente: terminarla con un agente Opus; después el usuario responde §8.1 y decide el orden con garage-047. Demo 8766 y tablero 8765 en marcha.",
+ "updated_at": "2026-11-03T17:09:16+00:00",
+ "focus": "garage-050 «Anillos» en implementación antes de prod (decisión del usuario, 3 nov), §8.1 con las opciones recomendadas. Copia aparte ../stravagancia-garage-050, servidor 8768. garage-045 adoptándose. Bucket de fotos sin decidir.",
  "agents": [
   {
    "name": "Claude Opus 5.5 (sesión principal)",
    "role": "orquestación, documentación, Beads y verificación",
    "status": "en curso con el usuario (3 nov)",
+   "task": "garage-050"
+  },
+  {
+   "name": "Agente Opus: terminar de aplicar R1–R29 a la spec «Anillos»",
+   "role": "editar sólo la spec: F1b en adelante, §7, §8 y tabla de §9",
+   "status": "terminado 3 nov: 25 corregidos, 4 parciales, 0 refutados del todo (spec §9)",
    "task": "garage-050"
   },
   {

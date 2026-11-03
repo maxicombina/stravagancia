@@ -1,24 +1,22 @@
 # Garage · Estilo «Anillos» (opción 1) en la app (1 nov 2026)
 
-> **Estado: revisión aplicada a medias (comprobado el 3 nov 2026). No está lista
-> para que el usuario decida.** El borrador (inventarios en
+> **Estado: revisión aplicada entera y §8.1 respondida (3 nov 2026); en
+> implementación.** El borrador (inventarios en
 > `~/.cache/stravagancia/session-2026-11-01/anillos-spec-inventarios.md`) pasó la
-> revisión adversarial de un agente Opus: 29 hallazgos (1 alto, 10 medios y 18
-> bajos). El agente que los aplicaba editó de arriba abajo y **se cortó por un
-> error de la API** (última edición 1 nov 22:01 UTC; fallo 2 nov 04:27 UTC) justo
-> después de F1a. **Revisado:** §1–§5, §6.0, F0 y F1a. **Sin aplicar:** F1b en
-> adelante, §7 y §8, incluido R1, el único alto: §8.2 todavía contradice esta
-> cabecera y §8.1 está desfasada. La lista de hallazgos está literal en §9, todavía
-> sin veredictos. **Rige la regla más estricta: ninguna fase visible (F1a en
-> adelante) se implementa antes de que el usuario responda §8.1, ni siquiera en
-> la copia aparte de §6.0.** Antes de eso sólo F0 y la preparación.
+> revisión de un agente Opus: 29 hallazgos (1 alto, 10 medios y 18 bajos), con los
+> veredictos en la tabla de §9. **Respuesta del usuario a §8.1, literal:** «de
+> momento haz todo anilos, merges, etc». Se aplica la opción recomendada en todos
+> los puntos. Dos precisiones: la foto (punto 1) se implementa como dice §8.1, pero
+> si se crea el bucket (garage-010) «lo tengo que pensar»; y en el punto 8 no se
+> para a aprobar por bloques: se avanza y las capturas quedan para su revisión. F4d
+> (opcional, icono violeta) no se hace salvo que lo pida.
 
 Especificación para llevar a la app la dirección visual que eligió el usuario:
 la maqueta `design/option-1/index.html`, con su README `design/option-1/README.md`.
 La comparación entre las tres opciones está en `design/README.md`.
 
 Esta fase es sólo de análisis: no se ha tocado código, plantillas, CSS, pruebas,
-Beads ni git, y no se ha arrancado nada. Las cifras de contraste de §3 se han
+Beads ni git, y no se ha arrancado ningún servidor. Las cifras de contraste de §3 se han
 **recalculado** con la fórmula WCAG 2.x (36 pares, 0 fallos) y las afirmaciones
 sobre el código se han comprobado leyéndolo.
 
@@ -70,14 +68,15 @@ significado. Por ejemplo, su «En curso · 71 %» sin «≥» contradice la app.
 ## 2. Supuestos tomados sin preguntar
 
 Cada supuesto lleva la alternativa descartada. Los marcados **[confirmar con el
-usuario]** son ambiguos o visibles para él.
+usuario]** necesitan su decisión (§8.1). Los que dicen «por defecto» se aplican si
+no dice otra cosa al responder §8.1. El resto son decisiones técnicas.
 
 **D1 · «a» es la foto de la bici en su cabecera.** [confirmar con el usuario]
 - *Alternativa descartada:* leer «a» como «la primera variante» de algo de la
   maqueta. La maqueta no tiene variantes a/b, y la última pregunta del usuario
   fue la foto.
 
-**D2 · Foto de portada.** [confirmar con el usuario]
+**D2 · Foto de portada.** Por defecto (§8.1, punto 1).
 - Es la primera foto de la bici en orden de alta. `Photo.Meta.ordering =
   ("created_at", "pk")` (`garage/models.py:1150`), así que `owned_photos()` ya
   sale ordenada.
@@ -132,7 +131,7 @@ usuario]** son ambiguos o visibles para él.
   - contradice `garage.css:1` («no external fonts»).
 
 **D5 · El tema se recuerda en el navegador, no en el perfil, y se guarda en una
-cookie `garage_theme`.** [confirmar con el usuario]
+cookie `garage_theme`.** Por defecto (§8.1, punto 2).
 - La cookie vale `light` o `dark`; si no existe, el tema es automático.
 - El servidor la pinta como `<html data-theme>`, igual que ya pinta `data-os`
   (`shell.html:2`, `garage_ui.py:47-51`).
@@ -151,9 +150,9 @@ cookie `garage_theme`.** [confirmar con el usuario]
 - La cookie es del navegador: en iOS, la app instalada guarda sus cookies
   aparte de Safari, así que el tema se elige en cada una (§4.8).
 - La descripción de garage-050 en Beads dice «tema en localStorage». Fable la
-  corrige cuando el usuario confirme D5.
+  corrige cuando el usuario responda §8.1.
 
-**D6 · El tema se elige en Más → Apariencia.** [confirmar con el usuario]
+**D6 · El tema se elige en Más → Apariencia.** Por defecto (§8.1, punto 2).
 - Opciones: Automático, Claro y Oscuro, en un formulario POST que funciona sin
   JS.
 - **No hay botón de tema en cada barra superior.**
@@ -225,7 +224,7 @@ usuario]
     Al día, Sin datos);
   - zonas deducidas de los grupos de iconos de `icons.py`.
 
-**D11 · Una sola piel para iOS y Android.** [confirmar con el usuario]
+**D11 · Una sola piel para iOS y Android.** Por defecto (§8.1, punto 6).
 - `data-os` se queda sólo para lo funcional:
   - FAB en Android y «+» en la barra en iOS;
   - atrás con flecha o con chevron y texto (`_back.html:1`);
@@ -235,7 +234,7 @@ usuario]
   252-255`.
 - **Se conservan 6**: `:46, 50, 58-59, 193, 198`, incluida la del FAB que lee
   `tests_mobile_shell.py:74`. Sólo declaran `display`, `height` y
-  `padding-bottom`.
+  `padding-bottom`, más el `min-height: 0` que F2d añade al pliegue (§4.5).
 - Como 221-224 son el interruptor y 252-255 la barra de pestañas, F2e se hace
   **antes** que F2c y F2d (§6). Si no, entre fases, en Android la línea 255
   pintaría la pastilla activa en `--primary-soft` sobre la barra (1,21:1), que
@@ -322,7 +321,7 @@ borrar** (`.errorlist`, `.btn.danger`, `.link-btn.danger`).
   reglas Sin datos o Pospuestas saldría «al día» sin estarlo.
 
 **D18 · Iconos PNG de la app y del manifiesto: siguen en cobalto `#2450d6`
-hasta que el usuario lo pida.** [confirmar con el usuario]
+hasta que el usuario lo pida.** Por defecto (§8.1, punto 7).
 - Están en `tools/garage_icons.py:70-75`.
 - Pasarlos al violeta `#5536C8` es la fase opcional F4d. Cambia el icono de la
   pantalla de inicio del teléfono.
@@ -647,7 +646,9 @@ w=alert.wear metric=alert.wear.headline %}` (Taller, F3d) o con
     una tarjeta;
   - `.entry-name` en Figtree 650 de 16,5 px;
   - `.entry-sub` en 14 px y `--ink-2`.
-- **`.entry.compact`**: rejilla de 48 px y alto mínimo 56.
+- **`.entry.compact`**: rejilla de 48 px y alto mínimo 56. Su `.ring` baja a 48 px
+  (F2c), porque «Montado ahora» (F3b) y Pospuestos y Sin datos (F3d) ponen el anillo
+  en filas `compact`, y a 52 px no cabría en la columna.
 - **`.glyph`** (tesela): 48 px (40 en `compact`), radio 16, `--surface-2`, sin
   borde. `.glyph.accent` pasa a `--primary-soft` con icono `--primary`.
 - **`.big`**: la cifra en Outfit 600 tabular de 20 px y el pie en 12 px.
@@ -823,7 +824,7 @@ Las fases están en §6.
 | `_ring.html` | anillo | `.ringi` | C: icono de la pieza en el centro; sin `<text>` | F2a |
 | `_wear_row.html` | fila de regla | `.row` | C: chip con %; sin `sr-only` duplicado | F2a |
 | `index.html` | Garaje | `#garaje` | C: secciones en tarjeta; tarjetas de bici con insignia (D17); fila «salidas por revisar» con icono de `STATES` (F2b); FAB y «+» iguales. **No se lleva** «Última salida» (dato nuevo) | F3a |
-| `bike_detail.html` | Bici | `#bici-rallon` | C: cabecera con foto (§4.6); tarjetas; «Montado ahora» con anillo si hay `row.wear`, y tesela si no; gráfico y montajes en tarjeta | F3b, F4b |
+| `bike_detail.html` | Bici | `#bici-*` | C: cabecera con foto (§4.6); tarjetas; «Montado ahora» con anillo si hay `row.wear`, y tesela si no; gráfico y montajes en tarjeta | F3b, F4b |
 | `item_detail.html` | Pieza | `#pieza-*` | C: `piece-hero`, chip de ciclo de vida, tarjeta de medidor; el `aria-label` del medidor no cambia (§4.1) | F3c |
 | `maintenance.html` | Taller | `#taller` | C: un grupo por tarjeta en el orden actual (D10); filas Pospuestos y Sin datos con anillo, icono de la pieza **y chip de estado con icono y palabra**, mismos enlaces | F3d |
 | `maintenance_alerts.html` | detalles técnicos | — | G: `.card` heredada. Su nota «Próximo…» (`:3`) y `LABELS` no cambian (D7) | F4c |
@@ -900,8 +901,8 @@ Todo garage-050, F0 incluida, se hace en un worktree. La demo 8766 y el árbol
 principal no se tocan hasta que el usuario apruebe.
 
 1. **Comprobar** que `git -C /Users/maxicombina/src/learning/django/stravagancia
-   status --short garage/` sale vacío (el 1 nov lo estaba: el código de
-   `garage/` está entero en el commit `576ec9c`). Si no, parar y preguntar.
+   status --short garage/` sale vacío (el 3 nov lo estaba, en `08eeeae`). Si no,
+   parar y preguntar.
 2. **Crear la copia** (rama nueva desde `garage`; sin push; no cambia ni
    `garage` ni su árbol de trabajo):
 
@@ -912,10 +913,10 @@ principal no se tocan hasta que el usuario apruebe.
 
    Va fuera de `/private/tmp`, porque un reinicio lo vacía: el worktree de
    garage-045, que estaba en un scratchpad, sale hoy «prunable» en `git worktree
-   list`. Lo que no está en el commit tampoco está en la copia: `design/`, las
-   specs nuevas y los archivos de garage-044/048 (`tests_local_strava*.py`,
-   `test_support/local_strava.py`…). La maqueta se lee del árbol principal,
-   sólo para consulta.
+   list`. Lo que no esté en un commit no estará en la copia. Desde el 3 nov, `design/`
+   y los archivos de garage-044/048 (`tests_local_strava*.py`,
+   `test_support/local_strava.py`…) ya están en la rama, así que entran. Esta spec
+   se lee siempre del árbol principal: es donde se mantiene.
 3. **Servidor de la copia en 8768**, contra la misma base demo 55433 (sin
    `migrate` ni seed: no hay migración, §7.2):
 
@@ -961,9 +962,10 @@ principal no se tocan hasta que el usuario apruebe.
 
    - Usa el mismo PostgreSQL 55434. `run` no lee el archivo de estado, pero sólo
      puede correr **una suite a la vez** en 55434.
-   - **Referencia de partida:** se mide en la copia **antes de F0** y se anota.
-     Será menor que 2801 + 45 (garage-048), porque `tests_local_strava*.py` no
-     está en la rama.
+   - **Referencia de partida:** se mide en la copia **antes de F0** y se anota. La
+     última cifra acreditada es 2801 + 45 (garage-048), con
+     `tests_local_strava*.py`, que ya está en la rama. Si la copia da otra, se
+     averigua por qué antes de F0.
    - Desde F1a, además, `cd /Users/maxicombina/src/learning/django/stravagancia-garage-050
      && $GARAGE_TEST_PYTHON -m test_support.contrast garage/static/garage/garage.css`.
 5. **Antes de capturar, reiniciar 8768.** `asset_version()` se calcula una vez
@@ -1050,6 +1052,9 @@ principal no se tocan hasta que el usuario apruebe.
     en todo el CSS;
   - `color-mix` sustituido por `--soft`, siempre con respaldo (§3.1);
   - `--danger-ink`, `--knob` y `--knob-shadow`;
+  - el interruptor `.sw` (`garage.css:217-220`), porque F1a ya sustituye esas
+    líneas: carril apagado en `--field`, encendido en `--primary`, botón apagado en
+    `--knob` con `--knob-shadow` y botón encendido en `--on-primary` (§3.2);
   - las pilas de fuentes con respaldo de sistema, sin archivos;
   - `theme-color` y manifiesto.
 - **Archivos:**
@@ -1072,37 +1077,62 @@ principal no se tocan hasta que el usuario apruebe.
   - 36 pares sin ningún fallo, y la salida del script se adjunta;
   - la suite en verde;
   - el único HTML que cambia son las `meta` de `shell.html`.
-- **Verificación visual:** el juego completo, en claro y oscuro, a los 3 anchos.
-  Hay que comprobar que ningún texto usa el color del estado.
+- **Verificación visual:** el juego completo, en claro y oscuro, en los 6 tamaños
+  (§6.0.2). Hay que comprobar que ningún texto usa el color del estado.
 
-### F1b · Fuentes autoalojadas (requiere el sí del usuario, D4)
+### F1b · Fuentes autoalojadas (permiso ya dado, D4)
 
 - **Alcance:**
-  - `garage/static/garage/fonts/figtree-latin-wght-v1.woff2` y
-    `outfit-latin-wght-v1.woff2`, el subconjunto latino variable de Google
-    Fonts, el mismo que la maqueta;
-  - `OFL-Figtree.txt` y `OFL-Outfit.txt`;
+  - copiar de `~/.cache/stravagancia/fonts-anillos/download/` a
+    `garage/static/garage/fonts/`, sin volver a descargar nada:
+    `figtree-latin-wght400-700.woff2` → `figtree-latin-wght-v1.woff2`,
+    `outfit-latin-wght500-700.woff2` → `outfit-latin-wght-v1.woff2`,
+    `OFL-Figtree.txt` y `OFL-Outfit.txt`;
   - en el CSS, dos `@font-face` con rango de pesos (400–700 y 500–700),
-    `font-display: swap` y `unicode-range` latino;
+    `font-display: swap` y el `unicode-range` literal de `PROCEDENCIA.md`;
   - el comentario de `garage.css:1` pasa a decir «self-hosted fonts».
-  - La versión va en el nombre del archivo (`-v1`) para que la caché HTTP no
-    sirva una fuente vieja con el mismo nombre. En el CSS se usan URL relativas,
-    sin `?v=`.
-- **Archivos:** `garage.css`, `garage/assets.py:11-13` (añadir a `VERSIONED`) y
-  `garage/app_views.py:16-17` (añadir a `STATIC_ASSETS`, para que se precarguen
-  al instalar).
+  - La versión va en el nombre del archivo (`-v1`): `garage.css` es un estático
+    y no puede escribir `?v=` en sus `url()`. Si una fuente cambia, sube a `-v2`.
+- **Precarga sin `?v=`.** Las fuentes **no** van en `STATIC_ASSETS`:
+  `app_views.py:48` precarga `asset_url(path)`, con `?v=`; el CSS pide
+  `url(fonts/…woff2)`, sin él, y `sw.js:36` hace `cache.match(request)` sin
+  `ignoreSearch`. La entrada precargada nunca coincidiría: sin red, justo tras
+  instalar o actualizar (`sw.js:17` borra la caché anterior), se vería la fuente
+  del sistema y los 52 kB se bajarían dos veces. Por eso hay una constante nueva,
+  `STATIC_FONTS`, y `"assets"` pasa a ser `[asset_url(p) for p in STATIC_ASSETS]
+  + [static(p) for p in STATIC_FONTS]`. `sw.js` no cambia.
+- **Archivos:** `garage.css`, `garage/assets.py:11-13` (las fuentes entran en
+  `VERSIONED`, para que cambie la versión) y `garage/app_views.py:16-17`, `:48`.
 - **Pruebas primero:**
-  - cada `url()` de `garage.css` existe en `finders` y está en `VERSIONED` y en
-    `STATIC_ASSETS` (2 fuentes × 3 aserciones);
-  - junto a cada fuente hay un `OFL-*.txt` (2 aserciones);
-  - el cuerpo de `sw.js` incluye las dos URL (2 aserciones);
-  - las fuentes suman como mucho 61 440 bytes (1 aserción; la maqueta mide unos
-    52 kB).
-- **Aceptación.** Con la red cortada después de instalar, la página «Sin
-  conexión» se ve en Outfit y Figtree. Esto **sólo se verifica en Chrome de
-  escritorio**: no se ha probado en un teléfono.
+  - **procedencia:** el sha256 de los 4 archivos copiados coincide con valores
+    escritos en la prueba (4 aserciones). Son los de `PROCEDENCIA.md`, comprobados
+    el 3 nov con `shasum`:
+    - Figtree `8330490a01c60c196eae00b823de8102275aaa5862e7b76a7af21b8745338928`;
+    - Outfit `92684e4acde79ef07758cd09380b7e01e9824d8b061eddeda046f78c166d7b12`;
+    - `OFL-Figtree.txt` `140d37233e7f3ce7313798befa9600893bcceaf41a55fa0fa5ad52f7f657a268`;
+    - `OFL-Outfit.txt` `c676351bf8576b9aba743cd5eaa8c0e7ee0d51f805d720447b4df4ddb6a2e416`;
+  - **la precarga coincide con lo que se pide:** para cada `url()` de `garage.css`,
+    `urljoin(asset_url("garage/garage.css"), url)` es igual, carácter a carácter,
+    a una entrada de `ASSETS` del `sw.js` generado, y esa entrada no lleva `?v=`
+    (2 fuentes × 2 aserciones). Una prueba del tipo «la URL está en `sw.js`»
+    pasaría igual con el fallo de arriba;
+  - **versión:** cada `url()` existe en `finders` y está en `VERSIONED` (2 × 2);
+  - **peso:** las fuentes suman como mucho 61 440 bytes (1; hoy 52 412).
+  - Sigue `tests_mobile_shell.py:153`: el CSS y el JS conservan su `?v=`.
+- **Aceptación.** Con la red cortada **justo después de instalar**, sin haber
+  navegado a otra página, la página «Sin conexión» se ve en Outfit y Figtree. Se
+  comprueba por CDP (`Network.emulateNetworkConditions`). Esto **sólo se verifica
+  en Chrome de escritorio**: no se ha probado en un teléfono.
+- **Cifras tabulares (`--num`).** Medido el 3 nov en Chrome sin interfaz sobre los
+  archivos descargados, sin `fontTools` (no está en el venv y no se instala nada):
+  con `font-variant-numeric: tabular-nums`, las diez cifras miden lo mismo (Outfit
+  0,59 em y Figtree 0,629 em) y sin él varían (Outfit, de 0,37 a 0,66 em). Las dos
+  fuentes traen `tnum`: `--num` puede dejar de ser monoespaciada (§3.1).
 - **Verificación visual:** comparación antes y después de Garaje, Bici y
-  Estadísticas.
+  Estadísticas. Además, los signos que salen en la fuente del sistema (D4):
+  chips con «≥» y «≈» a 320 y 390 px, y «→» en los montajes de la pieza
+  (`item_detail.html:60`). Sólo por captura: no se ha verificado cómo se ve esa
+  mezcla de fuentes en un teléfono.
 
 ### F1c · Tema: cookie, Apariencia y JS (D5, D6)
 
@@ -1122,7 +1152,9 @@ principal no se tocan hasta que el usuario apruebe.
   2. Un POST con `auto` borra la cookie (`max-age=0`) (1).
   3. Un POST con un valor fuera de la lista responde 400 y no toca la cookie (2).
   4. Un `next` externo redirige a `/garage/more/` (1).
-  5. Un GET responde 405; sin sesión, redirige al login (2).
+  5. Un GET redirige (302) a `garage:more` y no toca la cookie, con sesión o sin
+     ella (§4.8: nunca 405) (2 subcasos × 2). Un POST **sin sesión** también fija
+     la cookie, sin pasar por el login (2).
   6. Con un cliente `enforce_csrf_checks`, sin token responde 403 (1).
   7. Con la cookie en `dark` se pinta `data-theme="dark"`, una sola `meta
      theme-color` con `#131118` y `color-scheme` oscuro; lo mismo con `light`
@@ -1141,21 +1173,27 @@ principal no se tocan hasta que el usuario apruebe.
 - **Verificación visual:**
   - Más → Apariencia en sus 3 estados;
   - tema forzado oscuro con el sistema en claro, y al revés;
-  - foco del teclado en los radios.
+  - foco del teclado en los radios;
+  - con JS, por CDP: al pasar a «Automático» quedan **dos** `meta theme-color` con
+    `media`; con un tema forzado, una sola sin `media` (§4.8).
 
   **No verificable en local:** el color de la barra del navegador en Chrome
-  Android y en Safari con la app instalada.
+  Android y en Safari con la app instalada, y que la app instalada en iOS guarde
+  sus cookies aparte de Safari (§4.8).
 
 ### F2a · Anillo con el icono de la pieza (D9)
 
 - **Alcance:** §4.1 y el chip con porcentaje de las filas de regla.
+- **Depende de §8.1, punto 3.** Con esta fase, el icono que deduce
+  `icons.item_icon_key` pasa a verse en cada fila, y el usuario aún no ha
+  confirmado el «cambio visible» de esa deducción (spec 041 §7.7–§8).
 - **Archivos:**
   - `garage/presentation.py` (`Wear.piece_icon`);
   - `garage/services/maintenance_due.py:174`;
   - `_ring.html`;
   - `_wear_row.html`;
-  - `garage.css:107-113`;
-  - `item_detail.html:16`.
+  - `garage.css:107-112` (`.ring-ic`, `:113`, sigue para la fila de salidas).
+  - `item_detail.html` **no se toca**: su `aria-label` no cambia (§4.1).
 - **Pruebas primero:**
   - **lógica pura**, sin base de datos y con `SimpleNamespace`. `piece_icon`
     devuelve:
@@ -1184,10 +1222,17 @@ principal no se tocan hasta que el usuario apruebe.
     «≥» (1).
   - **sin arco** cuando la proporción es 0 y cuando la regla no tiene métricas
     (2).
-  - **`aria-label` del medidor grande** con «≥ N %» y con «≈ N %» (2).
-  - **constancia de consultas** en las páginas de Inicio y Taller: con 8 reglas
-    más sobre piezas con categoría, el número de consultas no cambia
-    (2 pruebas nuevas). Para Bici ya existe `tests_mobile_bike.py:55-66`.
+  - **medidor grande sin duplicar:** en `item_detail.html`, «≥ N %» y «≈ N %» salen
+    en el chip de `:21` y no en el `aria-label` de `:16` (2 casos × 2 aserciones).
+    Es una guarda: pasa hoy y falla si alguien añade `percent_text` al `aria-label`
+    (`percent_text` da «≥» o «≈», no «al menos»; §4.1).
+  - **constancia de consultas** en las páginas de Inicio y Taller (2 pruebas
+    nuevas). Para Bici ya existe `tests_mobile_bike.py:55-66`.
+    - **Las reglas añadidas tienen que requerir atención**, porque sólo esas pintan
+      anillo en Inicio, y Inicio pinta como mucho 6 filas (`home.py:17`, `:133`).
+      Se parte de menos de 6 filas (el fixture `garage` tiene 2), se añaden 8 reglas
+      vencidas sobre piezas con categoría, y la prueba exige **las dos cosas**: que
+      las filas suban a 6 y que las consultas no cambien. En Taller, las 8 filas.
     - Hoy los techos `tests_mobile_home.py:188` (≤ 28) y
       `tests_mobile_workshop.py:363` (≤ 24) no detectan un N+1 pequeño.
     - Orden en que fallan: primero, la prueba del icono; con el icono puesto y
@@ -1195,8 +1240,10 @@ principal no se tocan hasta que el usuario apruebe.
       verde.
 - **Aceptación:**
   - la suite en verde;
-  - ninguna aserción existente cambia: los textos «km como máx.», «90 %» y
-    «Revisar» siguen ahí.
+  - ninguna aserción existente cambia;
+  - **el porcentaje se busca dentro del chip de la fila.** «90 %» en el HTML de la
+    página (`tests_mobile_home.py:192`, `tests_mobile_workshop.py:366`) no demuestra
+    nada: está siempre en las notas fijas de `index.html:45` y `maintenance.html:13`.
 - **Verificación visual:**
   - filas de Garaje, Taller y Bici en claro y oscuro;
   - simulación de daltonismo con CDP (`Emulation.setEmulatedVisionDeficiency`:
@@ -1205,24 +1252,50 @@ principal no se tocan hasta que el usuario apruebe.
   - Si el seed ficticio no tiene algún estado, se anota como «verificado sólo por
     pruebas».
 
-### F2b · Icono de «Revisar» y una sola fuente de estados (D8)
+### F2b · Icono de «Revisar» (D8)
 
 - **Archivos:**
-  - `_icons.html` (+`i-search`);
-  - `presentation.py:13`;
+  - `_icons.html`: +`i-search`, el de la maqueta, sólo con trazo.
+    `tests_categories.py:71` prohíbe `fill=` en todo el sprite detrás de
+    `i-chainring`;
+  - `presentation.py:13` (`alert` pasa a `search`);
   - `index.html:22` (icono y palabra desde `STATES`, con un filtro
     `state_icon`/`state_word` en `garage_ui.py`);
-  - las notas `index.html:45`, `maintenance.html:13`, `maintenance.html:10` y
-    `bike_detail.html:23` toman «Próximo» de `STATES["soon"][0]`.
+  - `statistics.html:43` (`#i-help` pasa a `#i-search`).
+- **No se toca:**
+  - el vocabulario. Las notas con «Próximo» (`index.html:45`, `maintenance.html:13`
+    y `maintenance_alerts.html:3`), las frases en minúscula y `LABELS` se quedan
+    como están (D7). F2b **no promete** que cambiar el vocabulario sea de una línea;
+  - los avisos genéricos `.pending st-review` con `#i-alert` (lista en D8).
 - **Pruebas primero:**
   - cada icono de `STATES` tiene su `<symbol>` en el sprite, con el patrón de
     `tests_categories.py:57-71` (7 aserciones);
-  - el chip de salidas por revisar usa `#i-search` (1);
-  - ninguna plantilla de `garage/templates` contiene el literal «Próximo»
-    (1 aserción con la lista de archivos).
-- **Aceptación:** un cambio futuro de vocabulario (D7) es de una línea. La suite
-  queda en verde.
-- **Verificación visual:** Garaje con salidas por revisar.
+  - el chip de salidas por revisar lleva `#i-search` y la palabra de
+    `STATES["review"]` (2);
+  - la fila «Sin bici · revisar» de Estadísticas lleva `#i-search` (1);
+  - un aviso `.pending st-review` (`strava.html:6`) sigue con `#i-alert` (1).
+  - Sigue `tests_categories.py:71`.
+- **Aceptación:** «Revisar» y «Próximo» ya no comparten icono. La suite queda en
+  verde.
+- **Verificación visual:** Garaje con salidas por revisar y Estadísticas con
+  salidas «Sin bici».
+
+### F2e · Una piel para iOS y Android (D11)
+
+Va **antes** que F2c y F2d (§6.0): quita las líneas Android del interruptor y de
+la barra que esas dos restilizarían. Los números de línea son los de hoy; F1a los
+mueve, así que se localizan por el selector.
+
+- **Archivos:** `garage.css`, quitando las 11 líneas de D11.
+- **Prueba primero:** las reglas con `data-os` de `garage.css` sólo declaran
+  `display`, `height`, `min-height` o `padding-bottom` (1 aserción con la lista de
+  las que declaran otra cosa). Hoy falla por `:64`, `:72`, `:192`, `:221-224` y
+  `:252-255`. Se comprueba la regla de D11 («sólo lo funcional»), no una lista
+  exacta de selectores: una prueba así sólo copiaría el CSS.
+- **Aceptación:** siguen en verde `tests_mobile_shell.py:71-85` y la suite.
+- **Verificación visual, que es la que decide:** capturas de las 12 pantallas con
+  agente de usuario iPhone y Pixel (§6.0.2). Se ven iguales, salvo el FAB y «+», el
+  «atrás» y las instrucciones de instalación.
 
 ### F2c · Superficies: tarjetas, filas, teselas, botones, campos y filtros (sólo CSS)
 
@@ -1231,25 +1304,33 @@ principal no se tocan hasta que el usuario apruebe.
   - `.entry*`, `.glyph`, `.big` y `.btn*`;
   - los campos (50 px, borde `--field` de 1,5 px y radio 14, con `:focus` y
     `:focus-within`);
-  - `.chip-link`, `.menu`, `.messages`, `.install`, `.pending`, `.timeline`,
-    `.stats`, `.trio` y `.gauge`;
-  - `.choice`, `.sw` (botón en `--knob`), `details.zone`, `.photos` y `.tip`;
-  - `@media (forced-colors: active)`: los arcos en `CanvasText` y un borde de
-    2 px en chips, pestaña activa y segmento elegido.
+  - `.chip-link`, con `border: 1px solid var(--card-border)` (§4.2), `.menu`,
+    `.messages`, `.install`, `.pending`, `.timeline`, `.stats`, `.trio` y `.gauge`;
+  - `.choice`, `.sw`, `details.zone`, `.photos` y `.tip`. El `.sw` llega ya sin
+    variante Android (F2e) y con sus colores (F1a); aquí sólo su tamaño y radio;
+  - `.entry.compact .ring` a 48 px (§4.4);
+  - `@media (forced-colors: active)`:
+    - los arcos en `CanvasText` y un borde de 2 px en chips, pestaña activa y
+      segmento elegido;
+    - **el filtro elegido, distinto de los demás:** `.chip-link.on` con borde de
+      3 px y texto subrayado, `.chip-link` con borde de 1 px (§4.2);
+    - **el interruptor,** que sin esto desaparece: `.sw` con
+      `border: 2px solid ButtonText`, `.sw::before` en `ButtonText`, `.sw:checked`
+      en `Highlight` y `.sw:checked::before` en `HighlightText`.
 - **Archivos:** sólo `garage.css`.
 - **Pruebas:** no hay comportamiento nuevo, así que no se escriben pruebas de
   comportamiento. Deben seguir en verde las guardas de F0 y F1a (contraste y sin
-  literales) y `tests_categories.py:322-328`.
-- **Aceptación:** la suite en verde, el script de contraste sin fallos y el CSS
-  sin `data-os` nuevos.
+  literales), la de F2e y `tests_categories.py:322-328`.
+- **Aceptación:** la suite en verde y el script de contraste sin fallos.
 - **Verificación visual:** el juego completo. La densidad se mide en Taller a
   390×844: cuántas filas se ven sin desplazar, antes y después, y se anota.
 
 ### F2d · Barra de pestañas flotante y geometría (sólo CSS)
 
-- **Alcance:** §4.5.
-- **Archivos:** `garage.css`, en las líneas `:36, 49, 53-59, 181, 195,
-  245-255`.
+- **Alcance:** §4.5, incluido el borde `--card-border` de la barra.
+- **Archivos:** `garage.css`, en las líneas de hoy `:36, 49, 53-59, 181, 195,
+  245-251`. Las `:252-255` ya no están (F2e). De `:58-59` sólo se añade
+  `min-height: 0` (§4.5): no cambia nada para iOS ni Android.
 - **Pruebas:** la regla del FAB de `tests_mobile_shell.py:74` debe seguir
   literalmente, y la guarda de navegación única de F0 debe seguir en verde. No
   hay comportamiento nuevo.
@@ -1257,57 +1338,58 @@ principal no se tocan hasta que el usuario apruebe.
   el tabulador Taller, Bici, «Registrar intervención» y Más a 390×844. Debe
   haber **0 elementos con foco tapados** por la barra de pestañas, la barra de
   acciones o la barra superior. La cifra se apunta antes y después.
-- **Verificación visual:** las 12 pantallas a 390 y 768 px, en claro y oscuro,
-  más el FAB en Android.
-
-### F2e · Una piel para iOS y Android (D11)
-
-- **Archivos:** `garage.css`, quitando las 11 líneas de D11.
-- **Prueba primero:** los selectores `data-os` de `garage.css` son exactamente
-  los 6 funcionales de D11 (1 aserción con la lista). Hoy falla porque hay 17
-  líneas.
-- **Aceptación:** siguen en verde `tests_mobile_shell.py:71-85` y la suite.
-- **Verificación visual:** las mismas pantallas con agente de usuario iPhone y
-  Pixel. Se ven iguales, salvo el FAB y «+», el «atrás» y las instrucciones de
-  instalación.
+- **Verificación visual:** las 12 pantallas a 320×640, 390×844, 844×390 y 768×1024,
+  en claro y oscuro, más el FAB en Android. En 320 px, «Estadísticas» a 11 px debe
+  caber en su pestaña; en apaisado, la barra no debe tapar la barra de acciones.
 
 ### F3a · Garaje (D17)
 
 - **Alcance:**
-  - «Requiere atención», «Bicis» y «Material sin montar» en `section.sec.card`;
-  - tarjetas de bici: tesela con `i-bike`, nombre, «km · h · ↑ m» y la
-    insignia de D17;
-  - la fila de salidas por revisar mantiene `.ring-ic`, ahora con pista
-    `--soft`.
+  - «Requiere atención», «Bicis» y «Equipación y material sin montar» en
+    `section.sec.card`. **El título no cambia** (lo lee `tests_mobile_home.py:192`);
+  - tarjetas de bici: tesela con `i-bike`, nombre, la cifra de km en `.big` y la
+    insignia de D17. **La línea secundaria sigue siendo «h · ↑ m»**, sin el sufijo
+    de avisos, con «≥» si es un mínimo y un solo «↑» por bici
+    (`tests_elevation_screens.py:348`, `tests_elevation_review.py:216`);
+  - la fila de salidas por revisar mantiene `.ring-ic` (`index.html:19`), que es
+    su uso legítimo (D15), ahora con pista `--soft`.
 - **Archivos:** `garage/services/home.py:36-42, 122-127, 141-143`
   (`HomeBike.worst`), `index.html:13-78` y `garage.css`.
 - **Pruebas primero:**
   - **servicio** (`worst`):
     - con Vencido y Próximo → `due`;
     - sólo Próximo → `soon`;
-    - Revisar → `review`;
+    - Revisar y Próximo → `review`;
     - sin avisos → `None`;
     - Pospuesto no cuenta.
 
     Son 5 casos.
-  - **página:** «2 avisos» con `#i-octagon` en la tarjeta de la bici, y «Sin
-    avisos» sin clase `st-*` (2);
+  - **página:**
+    - «2 avisos» con `#i-octagon` en la tarjeta de la bici (2);
+    - la gravedad también se oye: `accessible_text` de la insignia contiene «el más
+      grave: Vencido», y `visible_text` no (2);
+    - «Sin avisos» sin clase `st-*` (1);
   - **consultas:** `tests_mobile_home.py:198-211` (snapshot) sigue constante.
-- **Opción F3a-bis** (sólo si el usuario la quiere, D2): portada en las tarjetas
+- **Opción F3a-bis** (sólo si el usuario la pide, D2): portada en las tarjetas
   de bici, con una consulta de fotos para todas las bicis. La prueba exige
   +1 consulta constante.
-- **Verificación visual:** Garaje en los 3 anchos y los 2 temas.
+- **Verificación visual:** Garaje en los 6 tamaños y los 2 temas.
 
 ### F3b · Ficha de bici con foto (D1–D3)
 
 - **Alcance:**
   - la cabecera de §4.6;
   - las secciones en tarjeta;
-  - «Montado ahora» con anillo cuando hay `row.wear`.
+  - «Montado ahora» con anillo cuando hay `row.wear`. Hoy el `a` de esa fila no
+    lleva clase de estado (`bike_detail.html:39`, sólo el chip de `:42`), y sin
+    ella el arco saldría siempre violeta por el respaldo de `var(--c, …)`: pasa a
+    llevar `st-{{ row.wear.state }}` si hay `row.wear`. El chip con icono y palabra
+    de `:42` se queda: es lo que da el estado sin color (§7.1.5).
 - **Archivos:** `garage/views.py:109-110` (`photos = list(...)` y `cover`),
   `bike_detail.html` y `garage.css`.
-- **Pruebas primero.** Usan los fixtures `backend`, `upload` e `inventory` de
-  `tests_photos_domain.py`, como `tests_photo_views.py:29-31`:
+- **Pruebas primero.** Usan los fixtures `backend` e `inventory` y la función
+  auxiliar `upload` de `tests_photos_domain.py` (`:76`, `:84`, `:88`), con el
+  transporte simulado de `tests_photo_views.py:29-31`:
   - **con foto:** la cabecera lleva `img` con
     `src="/garage/photos/<pk>/content/"`, `alt="Foto de <nombre>"` y
     `referrerpolicy="no-referrer"` (3 aserciones);
@@ -1316,23 +1398,43 @@ principal no se tocan hasta que el usuario apruebe.
   - **nunca** aparece la foto de otro usuario (1);
   - **con el almacenamiento caído,** la ficha responde 200 y no filtra la clave
     ni «SECRET» (2);
+  - **insignia de la cabecera:** «N avisos» con la gravedad en `sr-only`, y «Sin
+    avisos» sin clase `st-*` (2);
+  - **«Montado ahora»:** una pieza con regla vencida lleva `svg.ring` con
+    `#i-<clave>` de la pieza, clase `st-due` en la fila y el chip con icono y
+    palabra (3); una sin regla, tesela y chevron, sin anillo (1);
   - **consultas:** `tests_mobile_bike.py:33` (≤ 34) y `:55-66` siguen en verde,
     porque la lista de fotos se evalúa una sola vez.
-- **Aceptación.** A 390×844, con una bici de `demo`, el principio de la primera
-  fila de «Requiere atención» o de «Registrado en Garage» se ve sin desplazar.
-  Se mide con `getBoundingClientRect` por CDP.
+- **Aceptación.** A 390×844, con una bici de `demo`, **la primera fila de «Requiere
+  atención», o su mensaje vacío, se ve entera sin desplazar** y por encima de la
+  barra de acciones fija (`bike_detail.html:79`), que a su vez va encima de la
+  flotante. Se mide con `getBoundingClientRect` por CDP. «Registrado en Garage» no
+  vale como medida: va antes (`bike_detail.html:10-19`) y se cumpliría sola.
 - **Verificación visual:** Bici sin foto (la demo no tiene fotos, garage-010) en
-  los 3 anchos y los 2 temas. **Con foto no se puede verificar en la demo** sin
+  los 6 tamaños y los 2 temas. **Con foto no se puede verificar en la demo** sin
   almacenamiento real; queda cubierto por las pruebas.
 
 ### F3c · Ficha de pieza (D19)
 
-- **Archivos:** `_icons.html` (+4 iconos), `item_detail.html:4-34`,
-  `garage_ui.py` (etiqueta del chip de ciclo de vida) y `garage.css`.
+- **Archivos:**
+  - `_icons.html`: +4 iconos, los de la maqueta, sólo con trazo (ninguno lleva
+    `fill=`; `tests_categories.py:71`);
+  - `garage/services/lifecycle.py`: las palabras del chip, en constantes nuevas.
+    Hoy no hay «Montado» (`:139`, `:144` lo forman con la bici) y `RETIRED_TEXT` es
+    «Retirado el» (`:28`), que necesita fecha. Disponible, Sin estrenar y En uso ya
+    existen (`:25-27`);
+  - `item_detail.html:4-34`;
+  - `garage_ui.py` (etiqueta del chip de ciclo de vida);
+  - `garage.css`.
 - **Pruebas primero:**
-  - el chip de ciclo de vida muestra la palabra y el icono de `mounted`,
-    `available`, `unused` (Sin estrenar), `in_use` y `retired` (5 subcasos ×
-    2 aserciones);
+  - **palabras:** desde `lifecycle.py`, una por estado, sin fecha (5 subcasos);
+  - **chip:** muestra la palabra y el icono de `mounted`, `available`, `unused`
+    (Sin estrenar), `in_use` y `retired` (5 subcasos × 2 aserciones);
+  - **retirada programada:** una pieza que se retirará más adelante sigue con el
+    chip de su estado actual; lo de «se retira el» se queda en la `.lede` (1);
+  - **excepción documentada (D19):** en la lista de Material, «Retirado» sigue siendo
+    el chip gris sin icono. Lo guardan `tests_lifecycle.py:277` y
+    `tests_mobile_lists.py:54`, que no cambian;
   - los 4 iconos nuevos existen en el sprite (4).
   - Siguen valiendo `tests_lifespan.py:189-193` y `tests_mobile_item.py:164-184`.
 - **Verificación visual:** fichas de una pieza con vida útil, una sin reglas y
@@ -1340,22 +1442,43 @@ principal no se tocan hasta que el usuario apruebe.
 
 ### F3d · Taller (D10)
 
+- **Alcance.** Un grupo por tarjeta, en el orden actual. Las filas de Pospuestos y
+  Sin datos (`maintenance.html:19-25` y `:33-39`) cambian su tesela de reloj o de
+  interrogación por el anillo con el icono de la pieza. **Esa tesela era su único
+  icono de estado**, así que además llevan un chip con icono y palabra: `{{ w.icon }}`
+  y `{{ w.word }}`, «Pospuesto» o «Sin datos», como en §4.2. Si no, el estado sólo
+  se distinguiría por el color.
 - **Archivos:** `maintenance.html:6-52` y `garage.css`.
 - **Pruebas primero:**
   - las filas de Pospuestos y de Sin datos llevan el anillo con el icono de la
     pieza (2);
+  - **y su chip:** `#i-clock` y «Pospuesto»; `#i-help` y «Sin datos» (2 × 2);
+  - una regla sin métricas no rompe la fila y no pinta arco (1);
   - sus `href` no cambian: siguen yendo a `maintenance-rule-snooze` y a
     editar la regla o la vida útil (2);
   - el orden de los grupos es el actual (1).
-- **Verificación visual:** Taller en los 3 anchos y los 2 temas.
+- **Verificación visual:** Taller en los 6 tamaños y los 2 temas. Los chips no deben
+  desbordar a 320 px.
 
 ### F3e · Salidas, Estadísticas y Más/Material/Strava
 
 Son tres cambios separados:
 
-- **F3e-1, Salidas** (`usage_rides.html`): la tesela de fecha.
-  - Prueba: el texto accesible de la fila contiene la fecha completa local
-    (patrón de `TimeZoneCookieTests`) (2).
+- **F3e-1, Salidas** (`usage_rides.html:11`; `garage_ui.py:180-188`): la tesela de
+  fecha `.ride-date`, con día y mes, `aria-hidden`. Día y mes salen de `local_date`,
+  con dos estilos nuevos (`"day"` y `"month"`), para que usen la zona del usuario. La
+  línea de texto de `:13` con la fecha completa no cambia. **Sin inicio** (`:13`,
+  «Inicio desconocido») no hay fecha que pintar: la fila conserva `.glyph` con
+  `i-route`.
+  - Pruebas, con la salida «Nocturna», 01:30 UTC, de `TimeZoneCookieTests`
+    (`tests_mobile_shell.py:197`). La de hoy miraría sólo el texto accesible y
+    pasaría aunque la tesela `aria-hidden` mostrara el día en UTC:
+    - el texto de `.ride-date`, leído con `find_all` (`visible_text` descarta lo
+      `aria-hidden`): «13» en Madrid y «12» en Buenos Aires (2 zonas × 1);
+    - `accessible_text` de la fila: la fecha completa local (2 zonas × 1);
+    - una salida sin inicio (`Ride.objects.filter(…).update(started_at=None)`, como
+      `tests_usage_rebuild.py:57`): sin `.ride-date`, con `#i-route` e «Inicio
+      desconocido» (3).
 - **F3e-2, Estadísticas** (`statistics.html`, `statistics_metrics.html`): las
   teselas y el gráfico con tokens.
   - Sin comportamiento nuevo. Siguen `tests_mobile_stats.py:85-109` y
@@ -1363,9 +1486,8 @@ Son tres cambios separados:
     `stats four`.
 - **F3e-3, Más, Añadir, listas y Strava:** las tarjetas, `.grp` y los filtros.
   - Siguen `tests_lifecycle.py:236-263` y `tests_mobile_lists.py:50-70`.
-  - En Strava sigue «Powered by Strava» (`tests_strava_views.py:496` y
-    siguientes).
-- **Verificación visual:** cada pantalla en los 3 anchos y los 2 temas.
+  - Sigue «Powered by Strava» (`tests_strava_views.py:62`, `:117` y `:183-192`).
+- **Verificación visual:** cada pantalla en los 6 tamaños y los 2 temas.
 
 ### F4a · Escritorio: barra lateral (D13)
 
@@ -1405,9 +1527,9 @@ Es una familia por cambio:
 
 ### F4d · Iconos de la app en violeta (opcional, D18)
 
-- **Archivos:** `tools/garage_icons.py:70-75` (pasa a `#5536C8`), los PNG
-  regenerados y `app_views.py:32-33`, si cambia también el `theme_color` de la
-  marca.
+- **Archivos:** `tools/garage_icons.py:70-75` (pasa a `#5536C8`), y los PNG e
+  `icon.svg` regenerados. `app_views.py:32-33` no cambia: `background_color` y
+  `theme_color` siguen iguales a `--bg` (§3.1, prueba de §3.3).
 - **Prueba:** sigue `tests_mobile_shell.py:176-187`. La versión cambia sola.
 - **No verificable en local:** cómo se ve el icono instalado en iOS y Android.
 
@@ -1433,8 +1555,10 @@ Es una familia por cambio:
    Esperado: 0 aserciones existentes rotas por fase. Si una fase rompe alguna,
    se justifica en su revisión.
 2. **PWA sin red:**
-   - Las fuentes sólo están sin red si se precargan (F1b, `STATIC_ASSETS`) y se
-     versionan (`VERSIONED`).
+   - Las fuentes sólo están sin red si se precargan **con la URL exacta que pide
+     el CSS, sin `?v=`** (`STATIC_FONTS`, F1b): `sw.js:36` no ignora la query. Lo
+     prueba la comparación carácter a carácter de F1b. Además, se versionan
+     (`VERSIONED`), para que cambie la caché.
    - La página sin conexión no conoce la cookie: sale en automático y el tema lo
      aplica el JS.
    - El `?v=` queda congelado mientras no se reinicie el proceso (§6.0); esto
@@ -1442,9 +1566,18 @@ Es una familia por cambio:
 3. **Rendimiento:**
    - **Sprite en línea.** Pesa 12 400 bytes y va en cada respuesta HTML. Los 5
      iconos nuevos le suman unos 1,5 kB por página.
-   - **Fuentes.** Suman unos 52 kB que se descargan una vez y se guardan en el
-     service worker. Con `font-display: swap` hay un breve salto de fuente en la
-     primera visita.
+   - **Fuentes.** Suman unos 52 kB que se guardan en el service worker. Con
+     `font-display: swap` hay un breve salto de fuente en la primera visita. Cada
+     cambio de versión de la app las vuelve a pedir al instalar el service worker
+     (`sw.js:17` borra la caché anterior); no se ha medido cuánto evita la caché
+     HTTP en un teléfono.
+   - **Portada de la bici** (D2). `photo-content` responde `no-store` y redirige
+     cada vez a una URL firmada distinta (`photo_views.py:52-64`), y no hay
+     miniaturas: las fotos se guardan hasta 2000 px en WebP (`photos.py:18`, `:125`).
+     Cada visita a la ficha baja la imagen entera para una tesela de ~112 px, y otra
+     vez en «Fotos privadas» si se desplaza hasta ella (`photo_list.html:4`). Hasta
+     garage-010 no hay fotos, así que no cuesta nada. Se acepta por defecto (§8.1,
+     punto 1). **No se ha medido:** no hay fotos reales en la demo.
    - **N+1.** El icono del anillo provoca un N+1 si falta `item__category`
      (§4.1, con pruebas de constancia en F2a).
    - **Más barato.** Quitar `backdrop-filter` de la barra superior y de la de
@@ -1457,7 +1590,8 @@ Es una familia por cambio:
    - el anillo sólo comunica el estado por el color, porque el centro lleva el
      icono de la pieza;
    - por eso **todo anillo va con su chip de estado en la misma fila**, con
-     icono y palabra (lo prueba F2a);
+     icono y palabra. Lo prueban F2a (filas de regla), F3b («Montado ahora») y F3d
+     (Pospuestos y Sin datos, que hoy no tienen chip);
    - rojo y verde se confunden en deuteranopía; se verifica con la emulación de
      CDP y `forced-colors` (F2c).
 6. **«En curso» comparte el violeta de la marca** y puede leerse como «normal»
@@ -1490,7 +1624,10 @@ Es una familia por cambio:
 - Zonas de la bici, gráfico de barras, «Última salida» y gasto con EUR/km.
 - El cambio de vocabulario a «Pronto»/«faltan» (D7) y el de los iconos de la app
   (D18), salvo que el usuario los pida.
-- Despliegue (garage-023), Strava real y OAuth (garage-040).
+- Despliegue (garage-023), OAuth (garage-040) y cualquier cambio en la
+  sincronización de Strava.
+- Las fricciones de los formularios (garage-047). Esta spec sólo les cambia el
+  aspecto.
 
 ---
 
@@ -1498,62 +1635,106 @@ Es una familia por cambio:
 
 ### 8.1 Lo que necesita del usuario
 
-1. Un **sí explícito para descargar las fuentes** Outfit y Figtree (OFL) a
-   `garage/static/garage/fonts/` (D4, fase F1b). Sin él, la app usa las fuentes
-   del sistema.
-2. Que **confirme**:
-   - D1: «a» es la foto de la bici;
-   - D2: la portada es la primera foto;
-   - D5 y D6: el tema se guarda en una cookie y se elige en Más → Apariencia,
-     sin botón en cada barra;
-   - D7: «Próximo» o «Pronto»;
-   - D8: la lupa para «Revisar»;
-   - D9: el chip «palabra · %» y la columna `.big`;
-   - D10: los grupos del Taller y la ausencia de zonas;
-   - D11: una sola piel para iOS y Android;
-   - D14: el gráfico de línea;
-   - D18: los iconos de la app en violeta, ahora o no.
-3. Que **mire las capturas** de cada fase en la demo (usuario `demo`) y dé su
-   opinión. **Sólo él puede probar en su iPhone o Android**:
-   - la barra del navegador;
-   - la app instalada;
-   - Safari con el teclado abierto.
-4. Que diga **si esto va antes o después** de lo pendiente en las pruebas
-   locales: garage-047 (fricciones de la interfaz) y garage-044/048 (descargar
-   el histórico de Strava). Según CLAUDE.md, el orden lo prioriza con él.
-5. Para ver la portada con una foto real: garage-010, con su bucket y su
-   credencial.
+Basta con responder «vale a todo» o decir qué punto cambia. Los puntos marcados
+piden un sí o un no. En los demás, si no dice nada, vale la opción recomendada.
+Hasta que responda no se cambia nada de lo que se ve.
+
+1. **[confirmar con el usuario] La foto.** Entendí que tu «a» era la foto de la
+   bici, arriba en su ficha. *Recomendado:* sí. Sale la primera foto que subiste y,
+   si no hay ninguna, un dibujo sencillo de bici con el enlace «Añadir foto». Cada
+   visita baja la foto entera, porque no hay versión reducida: se acepta, y si pesa
+   se prepara después una versión pequeña. Hasta que haya dónde guardar fotos
+   (garage-010) sólo verás el dibujo.
+2. **Claro u oscuro.** *Recomendado:* se elige en Más → Apariencia (Automático,
+   Claro u Oscuro), sin un botón en cada pantalla como en la maqueta. Se recuerda en
+   cada navegador: en el iPhone, Safari y la app instalada van por separado.
+3. **[confirmar con el usuario] Cada pieza de la lista.** *Recomendado:* un anillo
+   de desgaste con el dibujo de la pieza dentro, una etiqueta como «Vencido · 116 %»
+   y, a la derecha, la cifra, como «+8 h de más». El dibujo lo elige la app por la
+   categoría y el nombre de la pieza. Esa elección cambió en octubre y quedó sin
+   confirmar (spec 041 §7.7): por ejemplo, un «Disco» en «Frenos» pasó del dibujo de
+   freno al de disco. Ahora se verá en todas las filas, así que también se da por
+   buena. Si un dibujo no te gusta, se cambia eligiendo otro icono en la categoría.
+4. **[confirmar con el usuario] Palabras e iconos.** *Recomendado:* seguir diciendo
+   «Próximo» y «quedan», como hoy (la maqueta decía «Pronto» y «faltan»), y que
+   «Revisar» lleve una lupa, porque hoy comparte el triángulo con «Próximo».
+5. **[confirmar con el usuario] Lo de la maqueta que no se lleva.** *Recomendado:*
+   dejar fuera estas tres cosas: las piezas por zonas de la bici (Suspensión,
+   Transmisión…), porque la app no guarda ese dato; el Taller agrupado de otra
+   forma, que sigue con sus cuatro grupos de hoy; y el gráfico de barras, que sigue
+   siendo el de línea de ahora.
+6. **iPhone y Android.** *Recomendado:* el mismo aspecto en los dos. Sólo cambia lo
+   práctico: dónde está el botón de añadir, la flecha de volver y las instrucciones
+   de instalación.
+7. **Icono de la app en el teléfono.** *Recomendado:* dejarlo azul y pasarlo a
+   violeta sólo si lo pides.
+8. **[confirmar con el usuario] Orden y forma de aprobar.** *Recomendado:* hacer
+   esto antes que las fricciones de los formularios (garage-047), que no dependen
+   del aspecto. Se trabaja en una copia aparte, en `http://127.0.0.1:8768/garage/`,
+   y apruebas por bloques mirando capturas: colores, letra y tema; filas; pantallas
+   principales; escritorio y el resto. La demo de siempre (8766) no cambia hasta que
+   apruebes. Probar en tu teléfono (barra del navegador, app instalada, Safari con
+   el teclado abierto) sólo puedes hacerlo tú.
+
+Las decisiones de cada punto: 1, D1–D3; 2, D5–D6; 3, D9; 4, D7–D8; 5, D10 y D14;
+6, D11; 7, D18; 8, D20.
 
 ### 8.2 Lo que puede avanzar la IA sin él
 
-Siempre con agentes Opus, pruebas primero, sin commits y sin tocar Neon:
+Siempre con agentes Opus, pruebas primero, sin commits y sin tocar Neon. Nada de
+esto cambia lo que se ve:
 
-- **F0**, la red de pruebas: no cambia nada visible.
-- **F1a**, los tokens: la paleta es justo la que eligió.
-- **F2a, F2c, F2d y F3d.** Con los valores por defecto de D9 y D10, que son
-  reversibles y no contradicen el dominio.
-- **F2e.** Si se acepta D11 por defecto; es reversible.
-- **Preparar la auditoría de contraste y foco** fuera del repositorio, y las
-  capturas de «antes» con el usuario `demo`.
-- **Crear la tarea en Beads con una subtarea por fase.** Esto lo hace Fable.
+- **F0**, la red de pruebas, en la copia aparte (§6.0.1). Crear esa copia no cambia
+  `garage` ni la demo 8766.
+- **Las auditorías** de contraste y de foco, fuera del repositorio, para tener la
+  cifra de partida (§3.3, F2d).
+- **Las capturas «antes»**, con el usuario `demo` y fuera del repositorio (§6.0.2).
 
-**Lo que espera al usuario:**
-- F1b, las fuentes (D4);
-- F1c, el tema: conviene confirmar D5 y D6 antes, aunque los valores por defecto
-  son seguros;
-- F2b, la lupa (D8);
-- F3a-bis y F4d, que son opcionales;
-- cualquier cambio de vocabulario (D7).
+**Todo lo demás espera a que responda §8.1:** de F1a a F4d, F1a incluida, aunque
+las opciones recomendadas sean reversibles y aunque sea en la copia aparte.
 
 ---
 
-## 9. Revisión adversarial (sin terminar de aplicar)
+## 9. Revisión adversarial (aplicada entera, 3 nov 2026)
 
-Revisor: agente Opus, 1 nov 2026. Falta la tabla R# | gravedad | veredicto
-(corregido / refutado / parcial) | motivo breve. El agente que aplicaba los
-hallazgos los contrastó con el código («casi todos se confirman; algunos sólo en
-parte»), pero no llegó a dejar el veredicto de cada uno: hay que rehacerlo. Ver el
-alcance en la cabecera.
+Revisor: agente Opus, 1 nov 2026. Aplicación: otro agente Opus hasta F1a, cortado
+por un error de la API, y otro desde F1b el 3 nov, intentando refutar cada hallazgo
+contra el código. **Ninguno queda refutado del todo;** 4 quedan en parcial y sus
+partes refutadas se explican en el motivo.
+
+| R# | Gravedad | Veredicto | Motivo |
+|---|---|---|---|
+| R1 | alta | corregido | §8.2 ya sólo tiene F0, auditorías y capturas «antes»; ninguna fase visible |
+| R2 | media | corregido | Copia aparte y servidor 8768 (D20, §6.0.1); la 8766 no cambia hasta aprobar. Actualizado además lo que entra en la copia: `design/` y garage-044/048 ya están en la rama |
+| R3 | media | corregido | Permiso reflejado en D4 y F1b, sin punto en §8.1; prueba de sha256 con los valores escritos. La descripción de Beads la corrige Fable |
+| R4 | media | corregido | Real: `app_views.py:48` con `?v=`, `sw.js:36` sin `ignoreSearch`. `STATIC_FONTS` sin `?v=` y prueba carácter a carácter (F1b, §7.1.2) |
+| R5 | media | corregido | El `<use>` lleva `ring-glyph` (§4.1, D15). El `.ring-ic` de F3a es su uso legítimo (`index.html:19`), no un choque |
+| R6 | media | corregido | `height: 56px` en `.appbar-row`, sin `min-height` en `.appbar`; el pliegue, a 6 px (§4.5, F2d) |
+| R7 | media | corregido | F2b ya no promete «una línea» ni toca las notas (D7); añade `statistics.html:43` y deja los `.pending st-review` como avisos genéricos (D8) |
+| R8 | media | corregido | Respaldo en todo `var(--soft)` y `var(--c)`, con guarda (§3.1, §3.3) |
+| R9 | media | corregido | Carril `--field`, botón encendido `--on-primary`, `--knob-shadow`, pares en §3.2 (F1a) y regla en `forced-colors` (F2c) |
+| R10 | media | corregido | F2e va antes y físicamente primero que F2c y F2d; F2d edita `:245-251`; `.sw` ya sin variante Android en F2c |
+| R11 | media | corregido | Real: `maintenance.html:19-25` y `:33-39` no tienen chip. F3d lo añade, con prueba; §7.1.5 ya no atribuye todo a F2a |
+| R12 | baja | corregido | Palabras en constantes de `lifecycle.py` (D19, F3c, con prueba); la excepción de la lista queda documentada |
+| R13 | baja | corregido | Real: `tests_categories.py:71`. Los 5 símbolos de la maqueta ya van sin `fill=` (comprobado); F2b y F3c lo exigen |
+| R14 | baja | corregido | Coste en D2 y §7.1.3; se acepta por defecto en §8.1, punto 1. El enlace doble «Añadir foto» se acepta (D3) |
+| R15 | baja | corregido | F3e-1 prueba el día de la tesela en dos zonas y el caso sin inicio |
+| R16 | baja | corregido | §4.8 sin sesión y GET a `garage:more`; la prueba 5 de F1c aún decía 405 y login, y se ha cambiado |
+| R17 | baja | corregido | `stroke: currentColor` (§4.1); `.chip-link.on` con borde de 3 px y subrayado (§4.2, F2c) |
+| R18 | baja | parcial | Borde añadido en la barra y los filtros (§3.1, §4.2, §4.5). En `.icon-btn` no hace falta: sigue transparente y sin borde (`garage.css:60`, §4.5) |
+| R19 | baja | corregido | Glifos: cubiertos por D4 y capturas de F1b. `tnum` medido en Chrome sin `fontTools`: las dos fuentes lo tienen (F1b) |
+| R20 | baja | corregido | 6 tamaños con 320, 360 y apaisado, desborde y CDP (§6.0.2); F2d y las fases ya no hablan de «3 anchos» |
+| R21 | baja | corregido | El `aria-label` no cambia (§4.1); F2a no toca `item_detail.html` y guarda que no se duplique |
+| R22 | baja | corregido | Dependencia en D9, F2a y §8.1, punto 3 |
+| R23 | baja | parcial | El fixture `garage` parte de 2 filas (`tests_mobile_home.py:210`), así que 8 reglas sí detectarían el N+1 **si requieren atención**, y la spec no lo exigía. F2a lo exige y comprueba que las filas suban |
+| R24 | baja | corregido | F3a conserva el título, «h · ↑ [≥] m» y un solo «↑». La cita correcta es `tests_mobile_home.py:192` |
+| R25 | baja | corregido | `sr-only` con la gravedad (D17, §4.6); pruebas en F3a y F3b |
+| R26 | baja | corregido | F3b exige la primera fila de «Requiere atención» entera, por encima de la barra de acciones, que tapa antes que la flotante |
+| R27 | baja | parcial | Reales F2a («90 %» siempre presente) y F2e (lista exacta), cambiados. Refutado `test_state_classes`: une la tabla de contraste con lo que se pinta (§3.3) y se queda |
+| R28 | baja | corregido | D12 documenta los tres bloques y por qué el orden importa |
+| R29 | baja | parcial | Corregidos rutas, «Powered by Strava», `upload` como función, D13 y D2. Refutado lo de las credenciales: `demo / garage-demo` está en los dos sitios (`CLAUDE.md`, «Retomar ahora»; `docs/garage-progress-state.json:80`) |
+
+Total: 29 (1 alta, 10 media y 18 baja): 25 corregidos, 4 parciales y 0 refutados.
 
 ### 9.1 Notas de la sesión principal para aplicarlos
 

@@ -41,9 +41,20 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
   secretos sobre lo pendiente: sólo valores sintéticos.
 - **Commits a petición del usuario** («empecemos por 1, luego 2»), locales y **sin
   push** (ver `git log`). Fuera, como el 25 oct: la base de Metabase y `.serena/`.
-- **Siguiente.** Terminar de aplicar R1–R29 a la spec (agente Opus); después el
-  usuario responde §8.1 y decide el orden entre garage-050 y garage-047; F0 puede
-  ir antes. No preguntarle §8.1 hasta entonces: está desfasada.
+- **Después:** la aplicación de R1–R29 se terminó ese mismo día (agente Opus; tabla
+  en spec §9: 25 corregidos, 4 parciales). Ver la sección siguiente.
+
+## 3 nov: el usuario decide «Anillos» antes de prod
+
+- Literal: «hagamos anillos, dale. no quiero salir a prod con cosas a medio hacer.
+  luego habrá mejoras, pero quiero salir lo mejor posible. implementá anillos».
+- Worktree `/Users/maxicombina/src/learning/django/stravagancia-garage-050`, rama
+  `garage-050-anillos` desde `08eeeae`, sin push (spec §6.0.1). Servidor de la copia
+  en 8768. La demo 8766 y el árbol principal no cambian hasta que apruebe.
+- Respuesta del usuario: «merge en main: si / foto: lo tengo que pensar. de momento
+  haz todo anilos, merges, etc». Se entiende: adoptar en `garage` la fusión de `main`
+  (garage-045), **no** fusionar `garage` en `main`, que sería desplegar; §8.1 con las
+  opciones recomendadas; sin parar por bloques; sin decidir el bucket (garage-010).
 
 ## 1 nov ~21:25 UTC: tras el reinicio, todo levantado de nuevo
 

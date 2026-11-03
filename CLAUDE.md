@@ -172,12 +172,18 @@ Detalle en el handoff («1 nov ~19:50 UTC» y «1 nov, tarde»).
 
 **3 nov 2026 (Opus 5.5 con el usuario): garage-050 a medias.** La crítica de la
 spec «Anillos» terminó (R1–R29), pero su aplicación se cortó tras F1a por un error
-de la API: faltan F1b–F4, §7 y §8, incluido R1 (cabecera y §9 de la spec). **No
-preguntar §8.1 al usuario hasta terminarla.** El usuario pidió commit del trabajo
+de la API: faltan F1b–F4, §7 y §8, incluido R1 (cabecera y §9 de la spec). El usuario pidió commit del trabajo
 pendiente, sin push; quedan fuera la base de Metabase y `.serena/`. Suite 2801 + 45
 re-ejecutada ese día. Valores reales de bicis retirados de docs y Beads a
 `~/.cache/stravagancia/session-2026-11-03/referencias-reales.md`: nunca al repo.
 Detalle en docs/garage-handoff.md («3 nov»).
+
+**3 nov, decisión del usuario:** «Anillos» entera **antes** de prod («no quiero
+salir a prod con cosas a medio hacer»), §8.1 con las opciones recomendadas («haz todo
+anilos, merges, etc»); garage-045 adoptada; bucket de fotos sin decidir («lo tengo que
+pensar»). Se implementa en el worktree
+`../stravagancia-garage-050` (rama `garage-050-anillos`, sin push) con servidor 8768;
+la demo 8766 no cambia hasta que el usuario apruebe. Spec §6.0.1.
 
 **Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
 `0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker

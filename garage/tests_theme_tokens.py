@@ -278,6 +278,13 @@ class StylesheetTests(SimpleTestCase):
         self.assertEqual(self.rule(".sw:checked").get("background"), "var(--primary)")
         self.assertEqual(self.rule(".sw:checked::before").get("background"), "var(--on-primary)")
 
+    def test_every_variant_of_the_switch_paints_its_knob_with_the_pair_that_was_checked(self):
+        # Pair 36 is --knob on --field. A variant for one system in another color leaves the 3:1 of §3.2 true only on some phones.
+        knobs = {rule.selector: dict(contrast.declarations(rule.body))["background"] for rule in contrast.rules(self.css)
+                 if not rule.conditions and rule.selector.endswith(".sw::before") and "background" in rule.body}
+        self.assertIn(".sw::before", knobs)
+        self.assertEqual({selector: knob for selector, knob in knobs.items() if knob != "var(--knob)"}, {})
+
     def test_the_chart_table_for_screen_readers_does_not_widen_the_page(self):
         # `.page table` is more specific than `.sr-only`: at 100 % from where it sits, it overflows every page with a chart.
         self.assertEqual(self.rule(".page table").get("width"), "100%")

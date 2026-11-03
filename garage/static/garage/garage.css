@@ -252,7 +252,7 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .sw:checked { background: var(--primary); }
 .sw:checked::before { background: var(--on-primary); transform: translateX(20px); }
 html[data-os="android"] .sw { width: 52px; height: 32px; border: 2px solid var(--ink-2); }
-html[data-os="android"] .sw::before { top: 6px; left: 6px; width: 16px; height: 16px; background: var(--ink-2); box-shadow: none; }
+html[data-os="android"] .sw::before { top: 6px; left: 6px; width: 16px; height: 16px; background: var(--knob); box-shadow: none; }
 html[data-os="android"] .sw:checked { border-color: var(--primary); }
 html[data-os="android"] .sw:checked::before { top: 2px; left: 2px; width: 24px; height: 24px; background: var(--on-primary); transform: translateX(20px); }
 .effects { list-style: none; margin: 0; padding: 0; display: grid; }

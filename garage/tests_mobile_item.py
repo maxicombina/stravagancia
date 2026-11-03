@@ -19,6 +19,7 @@ from .services.monthly import MonthBucket, monthly_usage
 from .services.ownership import InventoryNotFound, InventoryWriteError, create_inventory
 from .services.rides import create_manual_ride
 from .services.usage import rebuild_usage
+from .test_html import find_all, parse, visible_text
 
 UTC = dt_timezone.utc
 MADRID = ZoneInfo("Europe/Madrid")
@@ -171,8 +172,11 @@ class TestComponentScreen:
         # Observed in Garage up to AT: 20 + 10 (Gravel, March) + 30 + 5 (Carretera); July has no distance.
         assert '<b>65</b><span>km</span>' in html.replace("\n", "").replace("      ", "")
         # Wear cards: the most severe first (35 km since 1 Sep of 60 is not urgent; lubrication of 1000 km neither).
-        events = [html.index(text) for text in ("Segunda cadena", "Lubricación</span><span class=\"entry-sub\">1 feb 2026", "Compra y montaje")]
-        assert events == sorted(events)  # newest first, across service types
+        section = find_all(parse(html), "section", aria_labelledby="events-title")[0]
+        events = [(visible_text(find_all(row, cls="entry-name")[0]), visible_text(find_all(row, cls="entry-sub")[0]))
+                  for row in find_all(section, cls="entry")]
+        assert [name for name, _ in events] == ["Cambio de cadena", "Lubricación", "Cambio de cadena"]  # newest first, across service types
+        assert "Segunda cadena" in events[0][1] and events[1][1].startswith("1 feb 2026") and "Compra y montaje" in events[2][1]
         first = len(queries)
         for number in range(4):  # more rules and interventions: same number of queries
             kind = save_maintenance(garage.owner, ServiceType, name=f"Tipo {number}")

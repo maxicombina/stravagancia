@@ -21,6 +21,7 @@ from .services.ownership import InventoryWriteError, create_inventory, retire_in
 from .services.rides import create_manual_ride
 from .services.service_usage import category_comparison
 from .services.usage_profiles import create_profile_history, set_usage_override
+from .test_html import find_all, parse, visible_text
 
 UTC = dt_timezone.utc
 NOW = datetime(2026, 10, 16, 12, tzinfo=UTC)
@@ -225,8 +226,8 @@ class TestService:
 
 def rows(html):
     """{name: secondary line} of the list rows."""
-    return {name: re.sub(r"\s+", " ", sub).strip() for name, sub in
-            re.findall(r'<span class="entry-name">([^<]+)</span>\s*<span class="entry-sub">([^<]*)</span>', html)}
+    entries = [(find_all(row, cls="entry-name"), find_all(row, cls="entry-sub")) for row in find_all(parse(html), cls="entry")]
+    return {visible_text(names[0]): visible_text(subs[0]) for names, subs in entries if names and subs}
 
 
 class TestMaterialList:

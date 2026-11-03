@@ -16,6 +16,7 @@ from .services.lifespan import LIFE_TYPE, default_start, inherit_lifespan, is_li
 from .services.maintenance import save_maintenance
 from .services.maintenance_due import maintenance_due
 from .services.ownership import InventoryNotFound, InventoryWriteError, create_inventory, update_inventory
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 UTC = dt_timezone.utc
@@ -186,11 +187,12 @@ class TestScreens:
         set_lifespan(garage.owner, garage.chain, distance_m=Decimal(3000000), calendar_days=30, start=at(200))
         html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
         assert "Definir vida útil" not in html and "Editar vida útil" in html
-        first_panel = html.index('<span class="gauge-title">')
-        assert html[first_panel:first_panel + 60].startswith('<span class="gauge-title">Vida útil</span>')
+        assert visible_text(find_all(parse(html), cls="gauge-title")[0]) == "Vida útil"  # the first panel
         assert "Vence con lo primero que llegue: 3.000 km o 30 días." in html
         home = client.get(reverse("garage:index")).content.decode()
-        assert re.search(r'Cadena 11v</span>\s*<span class="entry-sub">Vida útil · Carretera', home)
+        chain_rows = find_all(parse(home), "a", cls="entry", href=reverse("garage:item-detail", args=[garage.chain.pk]))  # one per rule
+        assert any(visible_text(find_all(row, cls="entry-name")[0]) == "Cadena 11v"
+                   and visible_text(find_all(row, cls="entry-sub")[0]).startswith("Vida útil · Carretera") for row in chain_rows)
         shop = client.get(reverse("garage:maintenance")).content.decode()
         assert "Vida útil · Cadena 11v" in shop and "Sustitución · Cadena 11v" not in shop
 

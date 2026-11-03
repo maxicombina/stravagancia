@@ -18,6 +18,7 @@ from .services.rides import create_manual_ride
 from .services.strava_client import TIMEOUT, StravaClient
 from .services.workshop import nodata_reason
 from .snooze_forms import SnoozeForm
+from .test_html import find_all, parse, visible_text
 from .tests_elevation_screens import due_of, elevation_of, hills, html_of, kind, road_rule  # noqa: F401 (fixture hills)
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture garage)
 
@@ -183,7 +184,7 @@ class TestRidesWithoutElevation:
         assert shown.headline.name == "elevation_gain_m" and shown.headline.missing_text == "2 sin desnivel"
         client.force_login(hills.owner)
         bike, _ = html_of(client, "bike-detail", hills.road.pk)
-        assert '<span class="note">2 sin desnivel</span>' in bike
+        assert "2 sin desnivel" in [visible_text(note) for note in find_all(parse(bike), cls="note")]
         page, _ = html_of(client, "maintenance-rule-snooze", rule.pk)
         assert "2 salidas sin desnivel: el desnivel es un mínimo. " + HINT in page
         save_maintenance(hills.owner, MaintenanceRule, item=hills.chain, service_type=kind(hills, "Otra"), anchor_at=at(60),

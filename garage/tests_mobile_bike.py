@@ -10,6 +10,7 @@ from .services.installations import create_installation
 from .services.maintenance import save_maintenance
 from .services.ownership import create_inventory
 from .services.rides import create_manual_ride
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture)
 
 WRITES = {"INSERT", "UPDATE", "DELETE"}
@@ -38,7 +39,8 @@ class TestBikeScreen:
                      "Intervenciones en la bici", "Lavado", "5,00 EUR", f'href="{reverse("garage:service-event-create")}?bike={garage.road.pk}"',
                      "Fotos privadas", "Historial de montajes directos en la bici", 'aria-label="Volver a Garaje"', "<b>16</b>"):
             assert text in html, text
-        assert html.count('class="entry compact" href="/garage/rides/') == 5  # last five rides only
+        rides = [row for row in find_all(parse(html), "a", cls="entry compact") if row.attrs["href"].startswith("/garage/rides/")]
+        assert len(rides) == 5  # last five rides only
         for absent in ("SECRET", "Pista", "Calas"):
             assert absent not in html, absent
 
@@ -46,7 +48,7 @@ class TestBikeScreen:
         create_installation(garage.owner, item=garage.shoes, bike=garage.road, parent_item=None, started_at=at(1), ended_at=None, slot=None)
         client.force_login(garage.owner)
         html, _ = page(client, garage.road)
-        assert "Sobre Zapatillas" in html and 'class="entry compact nested"' in html
+        assert any("Sobre Zapatillas" in visible_text(row) for row in find_all(parse(html), "a", cls="entry compact nested"))
         assert "Calas" in html and "Vencido" in html and "Calas · sobre Zapatillas" in html
         assert "Cambio de cadena · Carretera" not in html and "Cambio de cadena</span>" in html
         other, _ = page(client, garage.gravel)

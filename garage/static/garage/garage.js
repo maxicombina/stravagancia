@@ -47,14 +47,26 @@
   if (themeForm) {
     const save = themeForm.querySelector('[data-theme-save]');
     if (save) save.hidden = true;
+    // What «Guardar» would have sent: Safari caps a cookie written by a script to seven days, not one the server sets.
+    const sendTheme = options => fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), ...options });
+    // Only the latest choice counts: an earlier answer arriving last would put its cookie over it. Hence a plain request while
+    // the page lives, because Chrome does not really cancel a keepalive one, and a keepalive one only on leaving.
+    let themePost = null;
     themeForm.addEventListener('change', event => {
       const theme = event.target.value === 'auto' ? '' : event.target.value;
       document.cookie = theme
         ? `garage_theme=${theme}; Max-Age=31536000; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
         : 'garage_theme=; Max-Age=0; Path=/; SameSite=Lax';
       showTheme(theme);
-      // What «Guardar» would have sent: Safari caps a cookie written by a script to seven days, not one the server sets.
-      fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), keepalive: true }).catch(() => {});
+      if (themePost) themePost.abort();
+      const post = themePost = new AbortController();
+      sendTheme({ signal: post.signal }).then(() => { if (themePost === post) themePost = null; }, () => {});
+    });
+    window.addEventListener('pagehide', () => {
+      if (!themePost) return;
+      themePost.abort();
+      themePost = null;
+      sendTheme({ keepalive: true }).catch(() => {});
     });
   }
 

@@ -318,9 +318,29 @@ class ThemeScriptTests(SimpleTestCase):
 
     def test_a_choice_also_goes_through_the_server(self):
         # Safari caps a cookie written by a script to seven days, whatever its Max-Age; one set by the server keeps its year.
-        # And a person who chooses and leaves at once still has it sent: hence keepalive.
+        self.assertIn("fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), ...options })", self.source)
         handler = self.source.partition("themeForm.addEventListener('change'")[2]
-        self.assertIn("fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), keepalive: true })", handler)
+        self.assertIn("sendTheme({ signal: post.signal })", handler)
+
+    def test_a_new_choice_cancels_the_one_still_on_its_way(self):
+        # Two choices in a row can reach the server out of order. Then the first one's Set-Cookie arrives last and wins: with
+        # «Automático» on screen, the cookie says dark and the next page comes out dark. Queuing them would not do: the last
+        # one would be lost if the person left at once.
+        handler = self.source.partition("themeForm.addEventListener('change'")[2]
+        cancel, new, send = (handler.index(step) for step in ("if (themePost) themePost.abort();", "const post = themePost = new AbortController();", "sendTheme("))
+        self.assertLess(cancel, new)
+        self.assertLess(new, send)
+        # Seen in Chrome: aborting a keepalive request rejects its promise but neither closes the connection nor drops its
+        # Set-Cookie. While the page lives, then, it cannot be keepalive, or the abort above is only for show.
+        self.assertNotIn("keepalive", handler.partition("window.addEventListener('pagehide'")[0])
+
+    def test_leaving_at_once_still_sends_the_last_choice_and_only_that_one(self):
+        # Without keepalive, leaving the page cancels what is on its way. So what is still unanswered goes again, once and
+        # with what is marked now; and nothing goes if the answer has already come.
+        leaving = self.source.partition("window.addEventListener('pagehide'")[2].partition("});")[0]
+        self.assertIn("if (!themePost) return;", leaving)
+        self.assertIn("themePost.abort();", leaving)
+        self.assertIn("sendTheme({ keepalive: true })", leaving)
 
     def test_a_tab_follows_the_cookie_when_it_comes_back(self):
         # Another tab may have changed the theme. Left behind, this one would mark an option the cookie no longer says, and

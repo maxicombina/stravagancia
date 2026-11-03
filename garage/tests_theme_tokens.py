@@ -407,6 +407,11 @@ class StylesheetTests(SimpleTestCase):
             with self.subTest(selector=rule.selector):
                 self.assertFalse(dict(contrast.declarations(rule.body)).get("letter-spacing", "0").startswith("-"))
 
+    def test_titles_are_spaced_as_in_the_mockup(self):
+        # What the old font needed: in Outfit some letters touch, as in «Lectura de Pastillas traseras» and «Cobertura observada».
+        self.assertEqual(self.rule(".page h1").get("letter-spacing"), "-.01em")
+        self.assertNotIn("letter-spacing", self.rule(".page h2"))
+
     def test_the_smallest_figures_get_a_little_air(self):
         # Measured at scale 3: at 17 px «00» touches even with no spacing, and with .01em it no longer does.
         for selector in (".trio b", ".stats.four b"):

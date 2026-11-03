@@ -95,9 +95,9 @@ html[data-os="android"] .back, html[data-os="android"] .icon-btn { color: var(--
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: grid; gap: 24px; }
 .page > * { min-width: 0; }
-.page h1 { margin: 0; font-size: 30px; line-height: 1.12; letter-spacing: -.025em; text-wrap: balance; }
+.page h1 { margin: 0; font-size: 30px; line-height: 1.12; letter-spacing: -.01em; text-wrap: balance; }
 html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spacing: 0; }
-.page h2 { margin: 0; font-size: 21px; letter-spacing: -.015em; line-height: 1.2; text-wrap: balance; }
+.page h2 { margin: 0; font-size: 21px; line-height: 1.2; text-wrap: balance; }
 .page h3 { font-size: 17px; margin: 0; }
 .page p { margin: 0; }
 .lede { color: var(--ink-2); font-size: 14.5px; }
@@ -173,7 +173,7 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .stats b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; white-space: nowrap; }
 .stats span { font-size: 11.5px; color: var(--ink-2); }
 .c-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.c-head h2 { font-size: 15px; letter-spacing: 0; }
+.c-head h2 { font-size: 15px; }
 .c-head span { font-size: 12px; color: var(--ink-2); }
 
 /* Charts */
@@ -399,7 +399,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .choice.icons label { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 4px; min-height: 72px; padding: 10px 4px;
   border-radius: 14px; font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
 .choice.icons input:checked + label { box-shadow: inset 0 0 0 1px var(--primary); }
-.panel.starter h2 { margin: 0; font-size: 15px; letter-spacing: 0; }
+.panel.starter h2 { margin: 0; font-size: 15px; }
 .starter form { margin: 0; }
 .starter .btn { width: 100%; }
 

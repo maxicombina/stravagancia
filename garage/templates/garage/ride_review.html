@@ -40,7 +40,8 @@
         <input class="sw" type="checkbox" role="switch" name="gear" value="{{ item.pk }}" id="gear-{{ item.pk }}" data-usual="{{ row.usual }}"{% if row.candidate.selected %} checked{% endif %}></label></li>{% endwith %}
     {% endfor %}</ul></fieldset>
     {% else %}<p class="empty">No hay equipación habitual en esta fecha. Los perfiles de uso (en Más) definen qué llevas con cada bici.</p>{% endif %}
-    <p class="note">{% if state.mounted %}{% if state.mounted == 1 %}1 componente montado{% else %}{{ state.mounted }} componentes montados{% endif %} en la bici también cuenta{{ state.mounted|pluralize:"n" }}. {% endif %}<a class="link solo" href="{% url 'garage:usage-ride-detail' ride.pk %}">Excepciones avanzadas</a></p>
+    {% if state.mounted %}<p class="note">{% if state.mounted == 1 %}1 componente montado{% else %}{{ state.mounted }} componentes montados{% endif %} en la bici también cuenta{{ state.mounted|pluralize:"n" }}.</p>{% endif %}
+    <p class="note"><a class="link solo" href="{% url 'garage:usage-ride-detail' ride.pk %}">Excepciones avanzadas</a></p>
   </section>
 
   <section class="sec" aria-labelledby="effects-title">

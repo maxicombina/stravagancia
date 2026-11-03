@@ -252,6 +252,14 @@ class TestViews:
         links = find_all(parse(client.get(self.url(g)).content.decode()), "a", cls="link solo")
         assert [visible_text(a) for a in links] == ["Excepciones avanzadas"]
 
+    def test_the_link_to_the_advanced_exceptions_stays_apart_from_the_sentence_about_mounted_parts(self, g, client):
+        # It is a tall control: on a wide screen, sharing a line with the sentence would make that one line 44 px high.
+        client.force_login(g.owner)
+        html = client.get(reverse("garage:ride-review", args=[g.other.pk])).content.decode()
+        notes = [visible_text(node) for node in find_all(parse(html), "p", cls="note")]
+        assert "1 componente montado en la bici también cuenta." in notes
+        assert "Excepciones avanzadas" in notes
+
     def test_tags_for_an_undecided_ride(self, g, client):
         client.force_login(g.owner)
         html = client.get(self.url(g)).content.decode()

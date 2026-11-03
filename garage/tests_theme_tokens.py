@@ -335,6 +335,17 @@ class StylesheetTests(SimpleTestCase):
         normal = max(position for position, rule in enumerate(order) if rule.selector == selector and not rule.conditions)
         self.assertGreater(order.index(found[0]), normal)
 
+    def test_the_action_bar_and_the_buttons_keep_their_shape_in_forced_colors(self):
+        # They remove a gradient and a filled background: what scrolls under the bar would show through it, and «Guardar» and
+        # «Cancelar» would be bare text.
+        forced = {name: rule for rule in self.forced_colors_rules() for name in rule.selector.split(", ")}
+        self.assertEqual(dict(contrast.declarations(forced[".actionbar"].body)).get("background"), "Canvas")
+        for name in (".btn", ".button", ".fab"):
+            with self.subTest(selector=name):
+                self.assertEqual(dict(contrast.declarations(forced[name].body)).get("border"), "1px solid")
+        # A delete button already has its border, and it stays: `.btn.danger` outweighs `.btn`.
+        self.assertEqual(self.rule(".btn.danger").get("border"), "1.5px solid var(--danger-ink)")
+
     def test_a_link_keeps_its_icon_off_its_text(self):
         # «Posponer aviso» and, from F3b on, «Añadir foto» (spec §4.6): no space between icon and text in their markup.
         self.assertEqual(self.rule(".link .ic").get("margin-right"), "6px")

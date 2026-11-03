@@ -422,4 +422,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
   }
   /* A box-shadow is all that marks the chosen icon, and these colors remove it. */
   .choice.icons input:checked + label { border-width: 3px; padding: 8.5px 2.5px; }
+  /* Gradients and filled backgrounds go as well: what scrolls under the bar would show through it, and a button would be bare text. */
+  .actionbar { background: Canvas; }
+  .btn, .button, .fab { border: 1px solid; }
 }

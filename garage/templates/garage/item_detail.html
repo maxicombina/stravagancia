@@ -32,7 +32,7 @@
   {% include "garage/_snooze_note.html" %}
 </section>{% endwith %}
 {% endfor %}
-{% if not wears %}<p class="note">Sin otras reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear regla</a></p>{% else %}<p class="note"><a href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear otra regla</a></p>{% endif %}
+{% if not wears %}<p class="note">Sin otras reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear regla</a></p>{% else %}<p class="note"><a class="link solo" href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear otra regla</a></p>{% endif %}
 
 <section class="sec" aria-labelledby="usage-title">
   <div class="sec-h"><h2 id="usage-title">Uso registrado en Garage</h2></div>

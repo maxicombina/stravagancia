@@ -21,6 +21,7 @@ from .services.ride_review import UNCHANGED, review_ride, review_state
 from .services.rides import correct_ride, create_manual_ride
 from .services.usage import rebuild_usage
 from .services.usage_profiles import create_profile_history, set_usage_override
+from .test_html import find_all, parse, visible_text
 
 UTC = dt_timezone.utc
 T0 = datetime(2026, 1, 1, tzinfo=UTC)
@@ -245,6 +246,11 @@ class TestViews:
                      "Sin cambios en los contadores.", 'data-preview="', "Excepciones avanzadas", 'name="next" value="/garage/"'):
             assert text in html, text
         assert "Cadena" not in html.split("Material que llevaste")[1].split("Al guardar")[0]
+
+    def test_the_link_to_the_advanced_exceptions_has_room_for_a_finger(self, g, client):
+        client.force_login(g.owner)
+        links = find_all(parse(client.get(self.url(g)).content.decode()), "a", cls="link solo")
+        assert [visible_text(a) for a in links] == ["Excepciones avanzadas"]
 
     def test_tags_for_an_undecided_ride(self, g, client):
         client.force_login(g.owner)

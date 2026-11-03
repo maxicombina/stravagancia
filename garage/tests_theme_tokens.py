@@ -362,6 +362,19 @@ class StylesheetTests(SimpleTestCase):
             with self.subTest(selector=selector):
                 self.assertNotIn("overflow-wrap", self.rule(selector))
 
+    def test_a_control_alone_on_its_line_has_room_for_a_finger(self):
+        # They measured from 15 to 23 px where the rest of the app gives 44, «Siguiente» among them: the way through a long list.
+        # Neither .btn nor .button goes through here: they have their own 48 px, and this would outweigh them.
+        for selector in (".page .pagination a", ".page .actions > a:not([class])", ".page h3 > a", ".link.solo", ".page .field.check > label",
+                         '.page .field label:has(> :is(input[type="checkbox"], input[type="radio"]))'):
+            with self.subTest(selector=selector):
+                control = self.rule(selector)
+                self.assertEqual(control.get("min-height"), "44px")
+                self.assertIn("flex", control.get("display"))
+                self.assertEqual(control.get("align-items"), "center")
+        self.assertEqual(self.rule(".btn").get("min-height"), "48px")
+        self.assertNotIn("display", self.rule(".link"))  # Some links sit in the middle of a sentence and have to wrap with it.
+
     def test_a_link_keeps_its_icon_off_its_text(self):
         # «Posponer aviso» and, from F3b on, «Añadir foto» (spec §4.6): no space between icon and text in their markup.
         self.assertEqual(self.rule(".link .ic").get("margin-right"), "6px")

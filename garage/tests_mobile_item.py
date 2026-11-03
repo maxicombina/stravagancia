@@ -223,6 +223,12 @@ class TestComponentScreen:
         client.force_login(garage.owner)
         assert client.get(reverse("garage:item-detail", args=[garage.foreign.pk])).status_code == 404
 
+    def test_the_link_to_another_rule_has_room_for_a_finger(self, garage, client):
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
+        links = [a for a in find_all(parse(html), "a", cls="link solo") if visible_text(a) == "Crear otra regla"]
+        assert len(links) == 1
+
     def test_without_rules_offers_one(self, garage, client):
         loose = create_inventory(garage.owner, Item, name="Luz", category=garage.chain.category)
         client.force_login(garage.owner)

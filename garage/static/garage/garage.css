@@ -351,6 +351,10 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .page .field.check > label { grid-column: 2; grid-row: 1; }
 .page .field.check > input { grid-column: 1; grid-row: 1; }
 .page .field.check > .help, .page .field.check > .errorlist { grid-column: 1 / -1; }
+/* A control alone on its line: room for a finger. Only plain links: this would outweigh the 48 px of .btn and .button. */
+.page .pagination a, .page .actions > a:not([class]), .page h3 > a, .link.solo { display: inline-flex; align-items: center; min-height: 44px; }
+.page .field.check > label, .page .field label:has(> :is(input[type="checkbox"], input[type="radio"])) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.page .field label > :is(input[type="checkbox"], input[type="radio"]) { flex: none; }
 .page .field.has-error input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page .field.has-error select, .page .field.has-error textarea { border-color: var(--danger-ink); }
 .page .errorlist { list-style: none; padding: 0; font-size: 14px; font-weight: 600; }
 .page input[type="datetime-local"], .page input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 44px; }

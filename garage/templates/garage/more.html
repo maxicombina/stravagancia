@@ -27,7 +27,7 @@
 </section>
 <section class="sec" aria-labelledby="more-appearance">
   <div class="sec-h"><h2 id="more-appearance">Apariencia</h2></div>
-  {% client_theme as theme %}<form method="post" action="{% url 'garage:appearance' %}" class="form" data-theme-form>{% csrf_token %}
+  {% client_theme as theme %}<form method="post" action="{% url 'garage:appearance' %}" class="form" data-theme-form autocomplete="off">{% csrf_token %}
     <input type="hidden" name="next" value="{% url 'garage:more' %}">
     <fieldset class="seg"><legend class="sr-only">Apariencia</legend>
       <input type="radio" name="theme" id="theme-auto" value="auto"{% if not theme %} checked{% endif %}><label for="theme-auto">Automático</label>

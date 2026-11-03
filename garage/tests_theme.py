@@ -276,6 +276,10 @@ class AppearanceSectionTests(TestCase):
                 radios = find_all(self.form(), "input", type="radio", name="theme")
                 self.assertEqual([radio.attrs["value"] for radio in radios if "checked" in radio.attrs], [marked])
 
+    def test_going_back_does_not_bring_back_the_old_mark(self):
+        # On going back a browser puts the radios of that history entry over what the server painted, unless told not to.
+        self.assertEqual(self.form().attrs.get("autocomplete"), "off")
+
     def test_it_comes_back_to_the_menu_and_saves_with_a_button(self):
         form = self.form()
         self.assertEqual(find_all(form, "input", type="hidden", name="next")[0].attrs["value"], reverse("garage:more"))

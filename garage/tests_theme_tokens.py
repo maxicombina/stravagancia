@@ -335,6 +335,11 @@ class StylesheetTests(SimpleTestCase):
         normal = max(position for position, rule in enumerate(order) if rule.selector == selector and not rule.conditions)
         self.assertGreater(order.index(found[0]), normal)
 
+    def test_a_link_keeps_its_icon_off_its_text(self):
+        # «Posponer aviso» and, from F3b on, «Añadir foto» (spec §4.6): no space between icon and text in their markup.
+        self.assertEqual(self.rule(".link .ic").get("margin-right"), "6px")
+        self.assertNotIn("display", self.rule(".link"))  # Some links sit in the middle of a sentence and have to wrap with it.
+
     def test_a_chart_figure_keeps_clear_of_the_line_it_sits_on(self):
         # The last month's label falls on its own dashed stretch when the month in progress drops far below the one before.
         figure = self.rule(".chart .val")

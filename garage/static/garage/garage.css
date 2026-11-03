@@ -110,6 +110,7 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .sec-h h2, .sec-h h3 { margin: 0; font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); font-weight: 650; }
 .sec-h .count, .pill-count { font-size: 12px; font-weight: 700; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--ink); }
 .link { color: var(--primary); font-weight: 600; text-decoration: none; font-size: 15px; padding: 6px 0; }
+.link .ic { margin-right: 6px; }
 .note { font-size: 12.5px; color: var(--ink-2); }
 .empty { color: var(--ink-2); font-size: 14.5px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 

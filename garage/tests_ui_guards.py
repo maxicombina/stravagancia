@@ -174,6 +174,15 @@ class PageGuardTests(TestCase):
                 hrefs = [link.attrs.get("href", "") for rel in ("stylesheet", "preconnect") for link in links_with(root, rel)]
                 self.assertEqual([href for href in hrefs if urlsplit(href).scheme or urlsplit(href).netloc], [])
 
+    def test_a_search_box_shows_its_whole_name_on_the_narrowest_phone(self):
+        # The placeholder is the only visible name of the field, and one that does not fit is cut with no ellipsis.
+        # At 320 px the field leaves 169 px, and this font takes up to 8,4 px a character: 199 px for 25, 151 for 18, 136 for 17.
+        for name in ("usage-ride-list", "bike-list", "item-list"):
+            with self.subTest(name=name):
+                boxes = find_all(self.page(name), "input", id="q")
+                self.assertEqual(len(boxes), 1)
+                self.assertLessEqual(len(boxes[0].attrs["placeholder"]), 20, boxes[0].attrs["placeholder"])
+
     def test_the_css_names_no_other_origin(self):
         with open(finders.find("garage/garage.css"), encoding="utf-8") as sheet:
             css = sheet.read()

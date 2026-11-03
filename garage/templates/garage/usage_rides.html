@@ -4,7 +4,7 @@
 <h1>Salidas</h1>
 <p class="lede">Revisa con qué bici y con qué material hiciste cada salida. Una salida sin inicio confirmado queda pendiente, sin contador.</p>
 <p class="actions">{% if bike %}<a class="chip-link" href="{% url 'garage:usage-ride-list' %}{% if pending %}?pending=1{% endif %}" aria-label="Quitar el filtro de {{ bike.name }}"><svg class="ic xs"><use href="#i-bike"/></svg>{{ bike.name }}<svg class="ic xs"><use href="#i-x"/></svg></a>{% endif %}{% if pending %}<a class="link" href="{% url 'garage:usage-ride-list' %}">Ver todas</a>{% else %}<a class="link" href="?pending=1">Sólo las que están por revisar</a>{% endif %}</p>
-<form method="get" class="filters" role="search">{% if pending %}<input type="hidden" name="pending" value="1">{% endif %}{% if bike %}<input type="hidden" name="bike" value="{{ bike.pk }}">{% endif %}<label for="q" class="sr-only">Buscar nombre o modalidad</label><input name="q" id="q" maxlength="200" value="{{ q }}" placeholder="Buscar nombre o modalidad"><button>Buscar</button></form>
+<form method="get" class="filters" role="search">{% if pending %}<input type="hidden" name="pending" value="1">{% endif %}{% if bike %}<input type="hidden" name="bike" value="{{ bike.pk }}">{% endif %}<label for="q" class="sr-only">Buscar nombre o modalidad</label><input name="q" id="q" maxlength="200" value="{{ q }}" placeholder="Nombre o modalidad"><button>Buscar</button></form>
 <ul class="rows">
 {% for row in rows %}
   <li><a class="entry compact" href="{% url 'garage:ride-review' row.ride.pk %}?next={{ request.get_full_path|urlencode }}">

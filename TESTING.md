@@ -23,9 +23,11 @@ instalado también sirve si tiene el rol, la base dedicada y permiso `CREATEDB`.
 Desde la raíz del repositorio, con las dependencias de desarrollo instaladas:
 
 ```bash
-uv sync --group dev
-uv run python -m pytest
-uv run python -m pytest --collect-only -q
+# En macOS no tocar .venv (es de Linux desde el 16 oct): entorno aparte.
+UV_PROJECT_ENVIRONMENT=~/.cache/stravagancia/venv-macos uv sync --frozen --group dev
+export GARAGE_TEST_PYTHON=~/.cache/stravagancia/venv-macos/bin/python
+python3 tools/handoff/garage_test_pg.py run -m pytest -q -p no:cacheprovider
+python3 tools/handoff/garage_test_pg.py run -m pytest --collect-only -q
 ```
 
 Usar la invocación `python -m pytest` indicada arriba: el proyecto no está
@@ -851,3 +853,199 @@ Suite completa (re-verificador, 55434): **2690 pruebas y 45 subcasos pasan**
 garage-043, 2618). `check`: sin problemas. `makemigrations --check --dry-run`:
 «No changes detected»; migraciones 0001–0012, ninguna nueva. `inspect`: 0 bases
 residuales. Nada en staging.
+
+## garage-044: ajustes locales con Strava real — 29 octubre 2026
+
+Implementación, revisión adversarial y correcciones (agentes Opus; Fable
+orquesta). Spec `.claude/specs/2026-10-29-garage-ajustes-locales-strava-spec.md`
+(D1–D11; §4: hallazgos de la implementación; §5: revisión; §6: correcciones y
+re-verificación). Sin migración: siguen 0001–0012 y la 0013 queda reservada. No
+cambia nada de `strava_integration/`, `garage/`, `settings.py`,
+`settings_test.py`, `test_support/isolation.py`, `manage.py` ni `conftest.py`.
+
+**Qué es.** `strava_app.settings_local` sirve Garage contra el PostgreSQL local
+de la demo (127.0.0.1:55433, base `stravagancia_test_demo`; otro clúster
+loopback sólo si `TEST_DB_*` lo dice) con las credenciales **reales** de Strava
+que el helper lee de `.env` o que el usuario exporta en su shell (garage-048).
+No es producción ni sirve para
+pruebas: la suite sigue con `settings_test` (`validate_settings_choice` rechaza
+`settings_local`, y estos ajustes se niegan a cargar bajo pytest o con otro
+`DJANGO_SETTINGS_MODULE`). Bootstrap: `test_support/local_strava.py`
+(`install_local()`; importar el módulo no tiene efectos). Helper:
+`tools/handoff/garage_local_strava.py` con `check`, `serve [puerto]` y
+`run <comando de manage.py>`.
+
+**Receta del usuario** (la IA nunca la ejecuta con valores reales). Hacerlo en
+**su Terminal**, nunca con `!` dentro de Claude Code (quedaría en la
+transcripción). `serve` usa 127.0.0.1:**8767** por defecto, así que puede
+convivir con la demo de `settings_test` en 8766 (cookies distintas: entrar en
+uno no cierra la sesión del otro).
+
+**Usuario (1 nov, decidido por el usuario):** el destino es `maxi` (id 2), el
+del importador. La IA había propuesto `maxi-manual` (id 3, la réplica a mano de
+garage-046) y el usuario prefirió `maxi`: tiene los mismos datos (comparación
+tabla por tabla del 1 nov: 0 diferencias; sólo cambian las categorías de serie
+sin usar y que `maxi` ya trae emparejadas sus 2 bicis de Strava). Sólo un usuario
+puede tener el atleta (`StravaAccount.athlete_id` único): el primero que
+sincronice se lo queda, así que `maxi-manual` queda sin Strava, como referencia.
+
+```bash
+export GARAGE_TEST_PYTHON=/Users/maxicombina/.cache/stravagancia/venv-macos/bin/python
+export GARAGE_STRAVA_USER=maxi
+```
+
+**Credenciales (garage-048, 1 nov: «usa .env, sin miedo»):** el helper toma
+`STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` y `STRAVA_REFRESH_TOKEN` de
+`<repo>/.env` cuando no están exportadas (gana la exportada no vacía). Del
+archivo sólo lee esas tres; el resto (`DB_*`, `NEON_PASSWORD`…) se descarta y el
+hijo sigue sin abrir `.env` ni guardar tokens renovados (spec garage-044 §7–§8).
+No hace falta exportar nada más. Si alguna vez se prefieren exportadas, la línea
+va **sola** y con **un espacio delante** (`histignorespace`; un bloque pegado
+de varias líneas sí quedaría en el historial):
+
+```bash
+ export STRAVA_CLIENT_ID=… STRAVA_CLIENT_SECRET=… STRAVA_REFRESH_TOKEN=…
+```
+
+Después:
+
+```bash
+python3 tools/handoff/garage_local_strava.py check        # cada clave: «definida (de .env)», «definida (exportada)» o «FALTA»
+python3 tools/handoff/garage_local_strava.py serve        # http://127.0.0.1:8767/garage/ como maxi
+```
+
+En el navegador (8767, entrando como `maxi`): Más → Strava →
+«Sincronizar ahora». Crea la `StravaAccount` y las salidas de los últimos 7
+días. Las 2 bicis de Strava ya existen y están **vinculadas** desde el
+importador (cada una con su `gear_id` de Strava; la
+sincronización las reutiliza por `(owner, gear_id)`,
+`garage/services/strava_sources.py`): comprobar en la sección «Bicis de
+Strava» que cada una muestra su bici de Garage. Si alguna saliera sin vincular,
+elegirla ahí y pulsar «Guardar vínculo».
+Después, **una sola vez**, «Importar histórico» **cambiando la fecha a
+2012-01-01** (la propuesta por defecto es la salida más antigua ya guardada, de
+hace una semana): lleva a la página del trabajo, y ahí «Continuar importación»
+hasta que diga completado (cada paso pide hasta 4 páginas de 50 actividades de
+cualquier deporte, y puede parar antes por el límite de 25 s; si sale
+`rate_limited`, esperar 15 min). **No volver a pulsar «Importar histórico»**:
+crearía otro trabajo desde la página 1 (no duplica nada, pero no avanza y gasta
+cuota). **No pulsarlo en 8766**: allí el trabajo queda «fallido» por
+`not_configured` (se puede reanudar después en 8767). Al terminar, parar
+`serve` (Ctrl-C) y cerrar esa shell.
+
+La verificación la puede lanzar la IA (sólo lee la base; `garage_local_strava.py
+run` se niega sin credenciales exportadas). Compara en el `exported_at` del
+volcado (2026-10-25T17:12Z), así que las salidas posteriores no cuentan como
+diferencia:
+
+```bash
+python3 tools/handoff/garage_demo_pg.py run manage.py garage_probikegarage_verify \
+  ~/.cache/stravagancia/probikegarage/probikegarage-2026-10-25-compact.json --owner 2 \
+  --mapping ~/.cache/stravagancia/probikegarage/mapping-demo-maxi-2026-10-29.json \
+  --settings=strava_app.settings_test
+```
+
+(Con `GARAGE_TEST_PYTHON` exportado: sin él, `garage_demo_pg.py` busca el
+Python de `.venv`, que es de Linux, y falla.)
+
+**Qué protege.**
+
+- **Base de datos.** Sólo `isolation.database_config()` (host loopback numérico,
+  nombre `stravagancia_test*`), después de quitar del entorno `DATABASE_URL`,
+  `DB_*`, `PG*`, `SECRET_KEY` y `STRAVA_ACCESS_TOKEN`; `psycopg2.connect` exige
+  host, puerto, base y rol exactos (libpq no pasa por los sockets de Python).
+  Neon es inalcanzable por construcción.
+- **Strava.** `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` y `STRAVA_REFRESH_TOKEN`
+  sólo del entorno del hijo (el helper las pone ahí, exportadas o de `.env`); si falta alguna o está vacía, `ImproperlyConfigured` que
+  nombra sólo las que faltan. El access token siempre se renueva.
+  `GARAGE_STRAVA_USER` vacío ⇒ aviso del logger `garage` al arrancar y Garage
+  muestra Strava «no configurado».
+- **`.env`.** `PYTHON_DOTENV_DISABLED=1`, `load_dotenv`/`dotenv_values`
+  neutralizados antes de importar el legado, gancho de auditoría que impide abrir
+  (leer o escribir) cualquier archivo `.env`, y
+  `strava_integration.utils._ENV_FILE` apuntando a
+  `<tmp>/garage-local-no-env/.env`, que no existe (si existiera, los ajustes no
+  arrancan), así que `refresh_access_token()` no persiste los tokens renovados.
+- **Red, por método y ruta.** Antes de enviar nada (también en cada
+  redirección), `Session.send` sólo admite `GET https://www.strava.com/api/v3/…`
+  y `POST https://www.strava.com/oauth/token`: un `PUT`/`DELETE`, otra ruta,
+  `http://` u otro host se rechazan (`check_request`). Los sockets sólo llegan al
+  PostgreSQL configurado y a `www.strava.com:443` (`ALLOWED_HTTP_HOSTS`; las IP
+  que devuelve la resolución de ese nombre se añaden a la lista, sólo con el
+  puerto 443). Nominatim, Overpass, Neon, `api.probikegarage.com`, el bucket de
+  fotos, un proxy y `www.api-v3.strava.com` (aún no existe; se añadirá a la
+  constante cuando Strava cambie de dominio) fallan antes de abrir la conexión
+  con `NetworkDenied`, que es un `OSError` y un `requests.ConnectionError`:
+  Garage lo muestra como error de red, no como un 500.
+- **Sin modo DEBUG.** `DEBUG = False` siempre (la página técnica de un 500
+  mostraría las variables locales de la renovación del token); un 500 deja su
+  traza en la terminal (`django.request`, nivel ERROR). Cookies propias
+  (`garage_local_sessionid`, `garage_local_csrftoken`).
+- **Helper.** Sólo pasa al hijo `PATH/HOME/USER/LOGNAME/TMPDIR/LANG`,
+  `LC_ALL=C`, `DJANGO_SETTINGS_MODULE=strava_app.settings_local`, `TEST_DB_*`
+  del clúster 55433 y `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`,
+  `STRAVA_REFRESH_TOKEN`, `GARAGE_STRAVA_USER`, `GARAGE_SYNC_TOKEN` y
+  `STRAVA_WEBHOOK_SUBSCRIPTION_ID`. Exige el estado de la demo
+  (`/private/tmp/garage_demo_pg_state.json`, puerto 55433), pone
+  `--settings=strava_app.settings_local` justo detrás del subcomando (un `--`
+  del usuario no lo deja suelto) y rechaza con salida 2 `test`, `pytest`, `-m`,
+  `-c`, `shell`, `dbshell`, `diffsettings` (imprimiría `GARAGE_SYNC_TOKEN`),
+  `runserver` (usar `serve`, siempre en 127.0.0.1) y cualquier otro
+  `--settings`. `check` lista las variables como «definida»/«FALTA»: nunca
+  imprime un valor.
+
+**Límites.** Los tokens renovados no se guardan en ningún sitio (como en
+Render, donde sólo existe `STRAVA_REFRESH_TOKEN`): si Strava rotara el refresh
+token, el usuario tendría que exportar el nuevo; hasta hoy no ha pasado en
+producción. Como `isolation`, protege de escapes accidentales, no es un sandbox
+para código hostil (`gethostbyname`/`gethostbyaddr`, sólo resolución DNS sin
+conexión, no pasan por el guardián).
+
+- `tests_local_strava.py` (28 funciones, 53 casos; todo con valores sintéticos y
+  procesos hijos con entorno explícito): entorno de producción ignorado y
+  variables Strava exportadas leídas por el legado; clúster demo por defecto y
+  rechazo de base no local; ajustes idénticos a `settings_test` (salvo los
+  propios), `DEBUG` siempre desactivado, logger `django.request`, cookies propias
+  y páginas sólo para hosts loopback; aviso con `GARAGE_STRAVA_USER` vacío;
+  variable ausente, vacía o en blanco nombrada sin valores; `.env` intocable y
+  renovación de token simulada sin escribir archivos; marcador existente
+  rechazado; peticiones rechazadas por método, ruta, esquema u host antes de
+  enviarse, sockets bloqueados antes de resolver o conectar (urllib lo convierte
+  en `URLError`, requests en `ConnectionError` vía proxy) y abiertos sólo a la IP
+  resuelta de `www.strava.com:443` y al PostgreSQL; un disparo del guardián es
+  para el cliente de Garage `StravaError("network")`; funciones puras
+  (`check_address`, `check_request`, `guarded_getaddrinfo`,
+  `guarded_pg_connect`) probadas en el proceso de pytest sin instalar nada, y
+  los parámetros reales de conexión de Django aceptados; `manage.py check` con
+  estos ajustes (0) y rechazado con `PYTEST_VERSION`; rechazos por pytest y por
+  otro `DJANGO_SETTINGS_MODULE`; helper con un Python falso que vuelca las claves
+  del entorno y los argumentos (claves exactas con `DJANGO_SETTINGS_MODULE`,
+  `--settings` tras el subcomando también con `--`, puerto 8767, rechazos,
+  variables que faltan, estado de la demo ausente o de otro clúster); y la suite
+  rechaza `settings_local`.
+- `tests_local_strava_review.py` (revisor, 7 funciones, 9 casos `test_r044_n`):
+  pasan todas tras las correcciones; `test_r044_4` se adaptó mínimamente
+  (captura `NetworkDenied` en vez de `RuntimeError`; spec §6).
+- Mutaciones temporales (restauradas con SHA-256 idéntico): quitar la
+  redirección de `_ENV_FILE`, la ampliación de la lista por resolución, la
+  validación de `DJANGO_SETTINGS_MODULE`, la limpieza del entorno de producción,
+  el filtro de claves del helper o sus rechazos (implementación); el filtro de
+  `Session.send`, la base `OSError` de `NetworkDenied`, el logger
+  `django.request`, la cookie propia, `DJANGO_SETTINGS_MODULE` en el helper,
+  `--settings` tras el subcomando y `diffsettings` en los rechazos (correcciones)
+  hace fallar las pruebas correspondientes.
+- Comprobación manual con valores **sintéticos** contra la demo 55433 (sólo
+  `check`, sin servidor, migraciones ni sincronización):
+  `STRAVA_CLIENT_ID=x STRAVA_CLIENT_SECRET=y STRAVA_REFRESH_TOKEN=z
+  GARAGE_STRAVA_USER=demo python3 tools/handoff/garage_local_strava.py check` ⇒
+  las cuatro variables «definida» y «System check identified no issues (0
+  silenced).», salida 0; sin `STRAVA_CLIENT_SECRET` ⇒ «FALTA» y salida 2;
+  `run diffsettings` ⇒ rechazo y salida 2.
+
+`tests_local_strava_review.py` + `tests_local_strava.py` +
+`tests_test_environment.py`: **113 pasan** (9 + 53 + 51, 8,04 s). Suite
+completa (re-verificación tras las correcciones, 55434): **2752 pruebas y 45
+subcasos pasan** (189,08 s; la implementación, 2738 en 191,37 s; antes de
+garage-044, 2690). `check`: sin problemas. `makemigrations --check --dry-run`:
+«No changes detected»; migraciones 0001–0012, ninguna nueva. `inspect`: 0 bases
+residuales. Nada en staging. Informe `docs/validation/garage-044.json`.

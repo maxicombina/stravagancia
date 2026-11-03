@@ -1,0 +1,82 @@
+{
+ "task": "garage-044",
+ "title": "Ajustes locales para probar Strava real contra PostgreSQL local (strava_app.settings_local y su helper)",
+ "status": "implemented_reviewed_fixed",
+ "updated_at": "2026-10-29T20:32:32+00:00",
+ "updated_by": "Claude Fable 5.1 orquestando; implementación, correcciones y re-verificación por agente Opus 5.5; revisión adversarial por otro agente Opus 5.5",
+ "spec": ".claude/specs/2026-10-29-garage-ajustes-locales-strava-spec.md (decisiones D1–D11, pruebas §2, entrega §3, hallazgos de la implementación §4, revisión adversarial §5, correcciones y re-verificación §6)",
+ "migration": "ninguna (0001–0012 sin cambios; la 0013 sigue reservada)",
+ "files": [
+  "strava_app/settings_local.py (nuevo)",
+  "test_support/local_strava.py (nuevo: install_local(), NetworkDenied y funciones puras check_address, check_request, guarded_getaddrinfo, guarded_pg_connect, missing_strava_variables)",
+  "tools/handoff/garage_local_strava.py (nuevo: check | serve [puerto, 8767 por defecto] | run <comando de manage.py>)",
+  "tests_local_strava.py (nuevo, 28 funciones, 53 casos)",
+  "tests_local_strava_review.py (del revisor, 7 funciones, 9 casos test_r044_n; test_r044_4 adaptado mínimamente)",
+  "TESTING.md (sección garage-044)",
+  "docs/garage-data-sources.md (Strava en local)",
+  "tools/handoff/README.md (línea del helper nuevo)"
+ ],
+ "unchanged_by_design": "strava_integration/*, garage/*, strava_app/settings.py, strava_app/settings_test.py, test_support/isolation.py, manage.py, conftest.py (D1, D10)",
+ "tests": {
+  "full_suite": {
+   "passed": 2752,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 189.08
+  },
+  "garage_044_files": "tests_local_strava_review.py + tests_local_strava.py + tests_test_environment.py: 113 pasan (9 + 53 + 51, 8,04 s)",
+  "runs": "implementación: 2737 + 45 (188,57 s) y 2738 + 45 (191,37 s); revisor: 8 fallan y 49 pasan en sus sondas; re-verificación tras las correcciones: 2752 + 45 (189,08 s)",
+  "manage_check": "System check identified no issues (0 silenced).",
+  "makemigrations_check": "No changes detected",
+  "residual_test_databases": 0,
+  "postgresql": "PostgreSQL 18 (Homebrew), clúster local aislado 127.0.0.1:55434, base stravagancia_test_018 (settings_test)"
+ },
+ "mutation_checks": {
+  "method": "quitar cada protección por separado, ejecutar sus pruebas con -k y restaurar con /bin/cp -f, borrando los .pyc del módulo; SHA-256 idéntico tras cada restauración",
+  "result": "13/13 detectadas. Implementación (6): redirección de _ENV_FILE, ampliación de la lista por resolución, validación de DJANGO_SETTINGS_MODULE, limpieza del entorno de producción, filtro de claves del helper y sus rechazos. Correcciones (7): envoltorio de Session.send, base OSError/RequestException de NetworkDenied, logger django.request, cookie de sesión propia, DJANGO_SETTINGS_MODULE en el helper, --settings tras el subcomando y diffsettings en DENIED"
+ },
+ "manual_check": {
+  "command": "STRAVA_CLIENT_ID=x STRAVA_CLIENT_SECRET=y STRAVA_REFRESH_TOKEN=z GARAGE_STRAVA_USER=demo python3 tools/handoff/garage_local_strava.py check",
+  "cluster": "demo 127.0.0.1:55433 (sólo check: sin servidor, migraciones ni sincronización; valores sintéticos)",
+  "result": "las cuatro variables «definida» y «System check identified no issues (0 silenced).», salida 0; «run diffsettings» ⇒ rechazo y salida 2"
+ },
+ "review": {
+  "findings": 11,
+  "important": 2,
+  "minor": 3,
+  "nit": 5,
+  "gap": 1,
+  "fixed_code": [
+   "R1 importante: DJANGO_SETTINGS_MODULE en el entorno del hijo y --settings justo detrás del subcomando (un «--» ya no lleva a strava_app.settings)",
+   "R2 importante: DEBUG = False siempre (fuera GARAGE_LOCAL_DEBUG); los guardianes de red lanzan NetworkDenied (requests.ConnectionError, por tanto OSError) ⇒ Garage muestra «network», no un 500",
+   "R3 menor: logger django.request (ERROR) a la consola",
+   "R4 menor: Session.send filtrado por método y ruta (GET /api/v3/…, POST /oauth/token) con check_request",
+   "R6 nit: diffsettings rechazado por el helper",
+   "R7 nit: SESSION_COOKIE_NAME y CSRF_COOKIE_NAME propios",
+   "R8 nit: serve en 8767 por defecto",
+   "R10 nit: sin comprobación de pytest duplicada, DATABASES de install_local(), MISSING calculado una vez"
+  ],
+  "fixed_text": [
+   "R5 menor: receta con el export de credenciales precedido de un espacio (histignorespace) y en su Terminal, nunca con «!» en Claude Code",
+   "R9 nit: recuentos de funciones corregidos (26 de la implementación; 28 tras las correcciones)"
+  ],
+  "accepted_unchanged": ["R11 hueco: cubierto por test_r044_7, que sigue pasando"],
+  "reviewer_tests_adapted": "test_r044_4: captura NetworkDenied en lugar de RuntimeError (decisión R2); el resto de la prueba y las otras seis, sin cambios"
+ },
+ "deviations": [
+  "SECRET_KEY también se quita del entorno (la prueba §2.1 lo pide).",
+  "El guardián de psycopg2.connect sólo admite la base exacta (ni postgres ni test_<nombre>).",
+  "_ENV_FILE = <tempfile.gettempdir()>/garage-local-no-env/.env: no existe (si existe, no arranca) y el gancho de auditoría la bloquearía.",
+  "Helper más estricto que D8: rechaza también -c, testserver, runserver (usar serve), diffsettings y cualquier --settings distinto (abreviaturas incluidas); acepta un manage.py inicial; serve/run comprueban las variables; el estado debe ser del puerto 55433; GARAGE_DEMO_STATE sólo para probarlo.",
+  "Aviso de GARAGE_STRAVA_USER vacío en inglés y al importar los ajustes (manejador de último recurso, sin hora).",
+  "Receta D9 con mapping-demo-maxi-2026-10-29.json (el del 25 oct ya no vale tras recrear el clúster).",
+  "Tras la revisión (§6): D5 lanza NetworkDenied en vez de RuntimeError y filtra método y ruta; D6 sin GARAGE_LOCAL_DEBUG, con django.request y cookies propias; D8 en 8767 y con DJANGO_SETTINGS_MODULE en el hijo."
+ ],
+ "open_notes": [
+  "Nunca ejecutado contra Strava real ni con credenciales reales: le toca al usuario con la receta de TESTING.md («garage-044»).",
+  "Tokens renovados sin guardar (D4): si Strava rotara el refresh token, el usuario exporta el nuevo.",
+  "serve usa 8767 por defecto y puede convivir con la demo de settings_test en 8766 (cookies distintas)."
+ ],
+ "pending_user_check": "confirmar D1–D11 (con los cambios de §6) y los rechazos del helper; en su Terminal, exportar sus credenciales con un espacio delante, check, serve, «Sincronizar ahora», «Importar histórico» desde 2012-01-01 y garage_probikegarage_verify con el mapa del 29 oct"
+}

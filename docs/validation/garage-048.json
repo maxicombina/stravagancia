@@ -1,0 +1,107 @@
+{
+ "task": "garage-048",
+ "title": "El helper garage_local_strava.py toma STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET y STRAVA_REFRESH_TOKEN de .env si no están exportadas («usa .env, sin miedo»)",
+ "status": "implemented_reviewed_fixed",
+ "updated_at": "2026-11-01T07:59:13+00:00",
+ "updated_by": "Claude Fable 5.1 orquestando; implementación, revisión adversarial (dos revisores independientes) y correcciones por agentes Opus 5.5",
+ "spec": ".claude/specs/2026-10-29-garage-ajustes-locales-strava-spec.md §7 (D4'.1–D4'.7; contexto D3, D4, D8, §4.1.4 y §6)",
+ "migration": "ninguna (0001–0012 sin cambios; la 0013 sigue reservada)",
+ "files": [
+  "tools/handoff/garage_local_strava.py (ENV_FILE = <repo>/.env o GARAGE_LOCAL_ENV_FILE; env_file_values(): sólo lee un archivo normal —un directorio, una FIFO o un dispositivo cuentan como «no se pudo leer»— y un valor con NUL es línea mal formada; strava_values(); report() con «definida (exportada)» / «definida (de .env)» / «FALTA» y una línea si .env no existe o no se puede leer; el .env se lee sólo tras validar la acción y el estado de la demo)",
+  "test_support/local_strava.py (sólo texto: mensaje de ImproperlyConfigured sin «never from .env» y una frase del docstring; comportamiento igual)",
+  "strava_app/settings_local.py (sólo una frase del docstring)",
+  "tests_local_strava.py (36 funciones, 101 casos: +8 funciones y +48 casos respecto a garage-044; fixture helper con GARAGE_LOCAL_ENV_FILE inexistente en tmp_path, guardián require_synthetic_env_file, guardián en tiempo de ejecución install_helper_launch_guard() —gancho de auditoría sobre subprocess.Popen, os.system, os.exec*, os.posix_spawn y os.spawn— y digests SHA-256 de las variables Strava del hijo)",
+  "tests_local_strava_review.py (8 funciones, 10 casos: fixture review_helper con GARAGE_LOCAL_ENV_FILE y el mismo guardián; instala install_helper_launch_guard() al importarse)"
+ ],
+ "unchanged_by_design": "comportamiento del hijo (install_local(): gancho de auditoría de .env, dotenv neutralizado, _ENV_FILE inexistente, red, base de datos, DEBUG = False), ALLOWED y DENIED del helper, strava_integration/*, garage/*, migraciones, settings.py, settings_test.py, isolation.py, manage.py, conftest.py",
+ "tests": {
+  "full_suite": {
+   "passed": 2801,
+   "subtests_passed": 45,
+   "failures": 0,
+   "errors": 0,
+   "seconds": 195.66
+  },
+  "before_implementation": "con el helper sin cambiar (no lee .env, así que era seguro): tests_local_strava.py + tests_local_strava_review.py ⇒ 40 fallan y 63 pasan (5,39 s): fallan las 40 nuevas de comportamiento (31 de formato, 4 de archivo ausente/ilegible, precedencia, sólo tres claves, mensajes, y las dos de «nunca el .env real» de cada fixture); pasan las 62 existentes y el escaneo estático. El caso de fin de línea CR suelto, añadido en la pasada adversarial, falló antes de su corrección (1 falla, 31 pasan)",
+  "garage_048_files": "tests_local_strava_review.py + tests_local_strava.py + tests_test_environment.py: 162 pasan (10 + 101 + 51, 12,10 s); tests_local_strava_review.py sola: 10 pasan",
+  "runs": "suite completa tras las correcciones de la revisión: 2801 + 45 (195,66 s); tras la implementación: 2794 + 45 (197,47 s); antes: 2752 + 45 (garage-044)",
+  "manage_check": "System check identified no issues (0 silenced). (de la ejecución tras la implementación; la revisión no tocó modelos ni ajustes)",
+  "makemigrations_check": "No changes detected (de la ejecución tras la implementación; sin cambios de modelos después)",
+  "residual_test_databases": 0,
+  "postgresql": "PostgreSQL 18 (Homebrew), clúster local aislado 127.0.0.1:55434, base stravagancia_test_018 (settings_test)",
+  "before_review_fixes": "con las pruebas nuevas y el código sin corregir: 5 fallan y 106 pasan (68,48 s): test_a_direct_launch_of_the_helper_must_pin_a_synthetic_env_file (DID NOT RAISE), test_every_test_module_that_runs_the_helper_sets_its_env_file (el módulo de revisión no instalaba el guardián), dos casos NUL de test_env_file_format (Traceback … ValueError: embedded null byte) y test_env_file_missing_or_unreadable_counts_as_empty[fifo] (TimeoutExpired a los 60 s). Los 3 casos nuevos de comillas pasan ya (fijan comportamiento correcto; se comprobaron con mutaciones)"
+ },
+ "mutation_checks": {
+  "method": "aplicar cada mutación por separado al helper (o al fixture), ejecutar sus pruebas con -k y restaurar con /bin/cp -f, borrando los .pyc del helper; SHA-256 idéntico tras cada restauración. Ninguna mutación apunta el helper al .env real (M1 usa una ruta fija inexistente; M12 sólo deja sin guardián llamadas con una acción desconocida, que el helper rechaza antes de leer ningún .env)",
+  "result": "12/12 detectadas: M1 ignorar GARAGE_LOCAL_ENV_FILE (34 fallan), M2 .env por encima de la exportada, M3 exportada vacía gana, M4 todo el archivo al hijo, M5 sin comentarios en línea, M6 comillas sin pareja aceptadas, M7 BOM sin quitar, M8 OSError sin capturar, M9 GARAGE_LOCAL_ENV_FILE al hijo, M10 entre comillas en blanco cuenta, M11 CR suelto, M12 fixture sin guardián",
+  "review_fixes": {
+   "method": "igual que arriba (mutación aplicada en el sitio, ejecución con -k y restauración con /bin/cp -f; SHA-256 idéntico tras cada una). Ninguna mutación apunta el helper al .env real: las del guardián sólo lanzan la acción desconocida «not-an-action», que el helper rechaza antes de leer ningún .env",
+   "result": "6/6 detectadas: M13 .strip() al valor entre comillas (1 falla), M14 quitar « #…» antes de analizar las comillas (2 fallan), M15 sin la comprobación del NUL (2 fallan), G1 guardián sin instalar (DID NOT RAISE), G2 lista de denegados «no dentro del repo» en vez de «dentro del directorio temporal» (DID NOT RAISE con <tmp>/../strava.env), G3 ignorar el env del lanzamiento (falla el caso permitido)",
+   "not_run": "la variante /dev/zero (lectura sin fin) no se prueba: una regresión agotaría la memoria; la cubre la misma regla de archivo normal que la FIFO"
+  }
+ },
+ "manual_check": {
+  "command": "env -i PATH=/usr/bin:/bin HOME=<scratch> GARAGE_TEST_PYTHON=<python falso> GARAGE_DEMO_STATE=<estado sintético 55433> GARAGE_LOCAL_ENV_FILE=<archivo sintético o inexistente> GARAGE_STRAVA_USER=demo /usr/bin/python3 tools/handoff/garage_local_strava.py check",
+  "python": "Python 3.9.6 del sistema (/usr/bin/python3) y py_compile",
+  "result": "archivo sintético con export, comillas, comentario en línea, CRLF y claves DB_*/NEON_PASSWORD ⇒ las tres «definida (de .env)», el hijo recibe sólo las claves permitidas, salida 0; archivo inexistente ⇒ tres «FALTA», una línea «.env: no existe …», salida 2; «run shell» ⇒ rechazo y salida 2. Sin .env real, sin servidor, sin Strava"
+ },
+ "deviations": [
+  "D4'.4: además de CRLF, un CR suelto también separa líneas (como python-dotenv); BOM UTF-8 inicial tolerado; bytes no UTF-8 se sustituyen en vez de invalidar el archivo. Sin expansión ${VAR}, sin escapes dentro de comillas dobles y sin valores de varias líneas (python-dotenv sí los tiene); comillas sin pareja o con texto detrás que no sea comentario ⇒ línea mal formada (se ignora y vale la anterior de esa clave, si la hay).",
+  "D4'.4: el valor sin comillas se recorta y « #…» (espacio o tabulador antes de #) es comentario; «KEY= #c» cuenta como vacía. Entre comillas se conserva tal cual; sólo espacios entre comillas cuenta como vacía.",
+  "D4'.5: un directorio, un archivo sin permiso de lectura o un enlace roto cuentan como ausente/ilegible; check imprime una sola línea con la ruta («no existe» o «no se pudo leer»), sin traza ni texto de la excepción. Esa línea también sale con serve/run cuando falta alguna variable.",
+  "D4'.6: el aviso final pasa a «Faltan variables obligatorias: añádelas a <ruta de .env> o expórtalas en tu shell, y repite.»; el ImproperlyConfigured del hijo dice que se ejecute el helper con las variables exportadas o en .env (estos ajustes nunca lo leen).",
+  "El .env se lee sólo después de validar la acción, los argumentos y el estado de la demo: una orden rechazada nunca lo abre.",
+  "D4'.7: además de fijar GARAGE_LOCAL_ENV_FILE inexistente por defecto, ambas fixtures se niegan a lanzar el helper si la variable falta o apunta fuera de tmp_path; una prueba por fixture lo comprueba sin riesgo (acción desconocida y sin estado de demo) y otra, estática, exige GARAGE_LOCAL_ENV_FILE en todo módulo de pruebas que mencione garage_local_strava."
+ ],
+ "open_notes": [
+  "La ruta por defecto <repo>/.env no se ha ejecutado en ninguna prueba ni a mano (prohibido leer el .env real): sólo revisada leyendo el código.",
+  "R048-3 (secretos), pendiente de decisión: los ganchos de .env (hijo e isolation) distinguen mayúsculas; en APFS .ENV abre el .env. Propuesta en adversarial_review.",
+  "Nunca ejecutado contra Strava real ni con credenciales reales.",
+  "Documentación por actualizar (la hace la sesión principal): TESTING.md «garage-044» (receta con export y «sólo del entorno»), tools/handoff/README.md (dice «nunca las lee de .env»), docs/garage-data-sources.md («nunca de .env») y la spec (§8 con estos hallazgos)."
+ ],
+ "pending_user_check": "con sus credenciales en .env: python3 tools/handoff/garage_local_strava.py check debe mostrar las tres «definida (de .env)»; después serve y la sincronización (TESTING.md, «garage-044»)",
+ "adversarial_review": {
+  "reviewers": "dos revisores independientes (lentes «secretos» y «casos-límite»), 6 hallazgos (dos repetidos: NUL)",
+  "findings": [
+   {
+    "id": "R048-1 (secretos)",
+    "verdict": "corregido",
+    "summary": "una FIFO sin escritor como GARAGE_LOCAL_ENV_FILE colgaba check sin salida",
+    "reproduced": "a mano con /usr/bin/python3 3.9: «STILL RUNNING after 4s», salida vacía; en pytest: TimeoutExpired 60 s",
+    "fix": "env_file_values(): si no es un archivo normal (Path.is_file()), «no se pudo leer» en una línea",
+    "test": "test_env_file_missing_or_unreadable_counts_as_empty[fifo]"
+   },
+   {
+    "id": "R048-2 (secretos) = R048-1 (casos-límite)",
+    "verdict": "corregido",
+    "summary": "un NUL en un valor de .env no exportado acababa en traza (ValueError: embedded null byte), salida 1",
+    "reproduced": "a mano: exit=1, traza, 0 apariciones del valor; con la variable exportada no pasa nada",
+    "fix": "un valor con NUL es línea mal formada (se ignora y vale la anterior de esa clave, si la hay)",
+    "test": "test_env_file_format: dos casos NUL (sin comillas tras uno bueno ⇒ vale el bueno; entre comillas ⇒ FALTA)"
+   },
+   {
+    "id": "R048-3 (secretos)",
+    "verdict": "confirmado, no corregido aquí (previo a garage-048)",
+    "summary": "el gancho de .env del hijo (y el de isolation en pytest) compara el nombre exacto: en APFS .ENV/.Env abren el .env",
+    "reproduced": "a mano con install_local() y un .env sintético en el scratch: «.env refused», «.ENV OPENED», «.Env OPENED»",
+    "reason": "viene de garage-044 (mismo patrón en test_support/isolation.py, que D1 no deja tocar); en esta tarea local_strava.py no cambia de comportamiento. Ninguna ruta actual abre una variante (dotenv neutralizado, utils._ENV_FILE inexistente): exige código deliberado",
+    "proposal": "comparar Path(...).name.casefold() == '.env' en protect_files de local_strava.py y de isolation.py (decisión del usuario por D1); opcionalmente os.path.realpath antes de comparar"
+   },
+   {
+    "id": "R048-2 (casos-límite)",
+    "verdict": "corregido (cobertura)",
+    "summary": "ninguna prueba fijaba que entre comillas se conservan « #» y los espacios",
+    "reproduced": "las mutaciones del revisor (strip entre comillas; cortar « #» antes de las comillas) pasaban la batería; python-dotenv da 'tok #4831' y '  tok-4831  '",
+    "test": "test_env_file_format: '\"tok #4831\"', \"'tok #4831' # comentario\" y '\"  tok-4831  \"' (detectan M13 y M14)"
+   },
+   {
+    "id": "R048-3 (casos-límite)",
+    "verdict": "corregido",
+    "summary": "la garantía de D4'.7 era por fixture y por texto: un lanzamiento directo del helper sin GARAGE_LOCAL_ENV_FILE no se detectaba",
+    "reproduced": "test_a_direct_launch_of_the_helper_must_pin_a_synthetic_env_file antes del arreglo: DID NOT RAISE",
+    "fix": "install_helper_launch_guard() en tests_local_strava.py (gancho de auditoría del proceso de pytest: un lanzamiento que nombre garage_local_strava.py exige GARAGE_LOCAL_ENV_FILE absoluta y, resuelta, dentro del directorio temporal; si no, RuntimeError antes de arrancar); tests_local_strava_review.py lo instala al importarse y el escaneo estático exige la llamada",
+    "test": "test_a_direct_launch_of_the_helper_must_pin_a_synthetic_env_file (sin variable, env heredado, vacía, <repo>/.env, relativa, fuera del temporal, enlace hacia el repo, shell=True, os.system; y el caso permitido) y test_every_test_module_that_runs_the_helper_sets_its_env_file"
+   }
+  ]
+ }
+}

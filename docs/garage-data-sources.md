@@ -143,7 +143,7 @@ de Strava, que se reutilizan):
 | ProBikeGarage | Garage |
 | --- | --- |
 | `bikes` | `Bike` (nombre; marca y modelo de `strava_bike`) y su `StravaGear` (`strava_bike.id`) vinculado; retirada real ⇒ `retire_inventory` al final |
-| `components` | `Item` con la categoría de su tipo (tabla fija `TYPE_CATEGORIES`: nombres del juego inicial de garage-041 cuando existe, y Frenos, Rodamientos, Roldanas, Insertos tubeless, Guía de cadena, Cuadro y Otros); `other` por palabra del nombre (cala, roldana, nube o insert), si no «Otros»; un tipo desconocido va a «Otros» con aviso. Notas tal cual; nombres duplicados se conservan; sin marca, modelo, precio ni compra |
+| `components` | `Item` con la categoría de su tipo (tabla fija `TYPE_CATEGORIES`: nombres del juego inicial de garage-041 cuando existe, y Frenos, Rodamientos, Roldanas, Insertos tubeless, Guía de cadena, Cuadro y Otros); `other` por palabra del nombre (cala, roldana, nube o insert), si no «Otros»; un tipo desconocido va a «Otros» con aviso. Notas sin los espacios ni saltos de línea de los extremos (como los formularios de Garage; el texto interior se conserva); nombres duplicados se conservan; sin marca, modelo, precio ni compra |
 | `installations` | `Installation` sin posición (`slot` nulo): primero en bici, después los anidados por profundidad. `added_at` nulo («desde siempre») ⇒ lo más antiguo entre los demás montajes de su bici y su primera salida, con nota. Retirados después de sus montajes, en orden de fecha |
 | `service_intervals` con `repeat=true` | `MaintenanceRule` del tipo con el título del intervalo; `distance`, `moving-time`, `elapsed-time` (días enteros), `rides`, `elevation-gain`; ancla en el primer montaje (nula si nunca se montó) |
 | `service_intervals` con `repeat=false` («Max life») | La vida útil de la pieza («Sustitución», garage-033); varios se combinan en una sola, lo primero que llegue |
@@ -182,6 +182,25 @@ detiene). Una regla de una pieza que nunca se montó, sin referencia en Garage
 («Sin datos») y con todo el intervalo por delante en ProBikeGarage, no es una
 diferencia. Sin mapa empareja por nombre y categoría, y separa duplicados por
 retirada y primer montaje.
+
+## Strava en local — garage-044 (29 oct 2026)
+
+Sin migración ni cambios en Garage o en el legado. Para bajar el histórico real
+de Strava a la demo local (PostgreSQL 127.0.0.1:55433, el inventario importado
+de ProBikeGarage) existen unos ajustes propios, `strava_app.settings_local`
+(bootstrap en `test_support/local_strava.py`), que se arrancan sólo con
+`tools/handoff/garage_local_strava.py` (`check`, `serve`, `run`; receta en
+TESTING.md, «garage-044»). Es el mismo modo token de garage-030: el access token
+sale de `strava_integration.utils.refresh_access_token()` con
+`STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` y `STRAVA_REFRESH_TOKEN`, exportadas
+por el usuario o, desde garage-048, leídas de `.env` por el helper (sólo esas
+tres; el proceso de Django no abre `.env` y los tokens renovados no se guardan) y la cuenta es la de `GARAGE_STRAVA_USER`. La
+base sólo puede ser un PostgreSQL loopback `stravagancia_test*` (nunca Neon) y
+la red sólo llega a ese PostgreSQL y a `www.strava.com:443`, y sólo con lecturas
+de la API (`GET /api/v3/…`) y la renovación del token (`POST /oauth/token`):
+ninguna escritura en Strava. No es producción
+ni la sustituye: las salidas importadas quedan en la base local de la demo, con
+la misma procedencia `strava` y las mismas reglas de esta página.
 
 ## Decisión aplicable a las siguientes entregas
 

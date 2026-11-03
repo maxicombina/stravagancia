@@ -375,6 +375,15 @@ class StylesheetTests(SimpleTestCase):
         self.assertEqual(self.rule(".btn.danger").get("color"), "var(--danger-ink)")
         self.assertEqual(self.rule(".link-btn.danger").get("color"), "var(--danger-ink)")
 
+    def test_a_field_with_an_error_says_so_on_every_kind_of_control(self):
+        # The rule that gives a text box its border carries three :not(). Without them, the error's color lost to it, and only
+        # select and textarea came out red: the same error looked different depending on the field.
+        box = '.page input:not([type="checkbox"]):not([type="radio"]):not(.sw)'
+        self.assertIn("border", self.rule(box))
+        for selector in (box.replace(".page ", ".page .field.has-error "), ".page .field.has-error select", ".page .field.has-error textarea"):
+            with self.subTest(selector=selector):
+                self.assertEqual(self.rule(selector).get("border-color"), "var(--danger-ink)")
+
     def test_elevated_things_use_the_shadow_made_for_them(self):
         # --shadow is now a whole shadow list: inside another box-shadow it would be invalid.
         self.assertEqual(self.rule(".fab").get("box-shadow"), "var(--shadow-float)")

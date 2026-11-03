@@ -293,6 +293,32 @@ class StylesheetTests(SimpleTestCase):
         self.assertIn(".sw::before", knobs)
         self.assertEqual({selector: knob for selector, knob in knobs.items() if knob != "var(--knob)"}, {})
 
+    def forced_colors_rules(self):
+        return [rule for rule in contrast.rules(self.css) if rule.conditions == ("@media (forced-colors: active)",)]
+
+    def test_forced_colors_turn_every_color_token_into_a_system_color_inside_an_svg(self):
+        # The browser forces HTML, but neither an SVG's fill and stroke nor an icon's own color. With a theme chosen against the
+        # system's palette those kept the theme's color on the wrong canvas: 1,12:1 on a gauge's figure.
+        rules = [rule for rule in self.forced_colors_rules() if rule.selector == "svg"]
+        self.assertEqual(len(rules), 1, "No rule for the tokens in forced colors")
+        forced = dict(contrast.declarations(rules[0].body))
+        themed = {name for block in contrast.token_blocks(self.css).values() for name, value in block.items()
+                  if re.fullmatch(r"#[0-9a-fA-F]{3,8}|transparent", value)}
+        self.assertGreaterEqual(len(themed), 25)
+        self.assertEqual((themed | {"--c", "--soft"}) - set(forced), set())
+        self.assertLessEqual(set(forced.values()), {"Canvas", "CanvasText"})
+        for token in ("--ink", "--ink-2", "--primary", "--c", "--due", "--focus"):
+            self.assertEqual(forced[token], "CanvasText", token)
+        for token in ("--surface", "--soft"):  # What paints a chart's halo and a ring's track: no paint at all on that canvas.
+            self.assertEqual(forced[token], "Canvas", token)
+
+    def test_forced_colors_leave_html_to_the_browser(self):
+        # It paints a Canvas plate behind HTML text: on :root, --on-primary in Canvas left a filled button's text invisible on it.
+        for rule in self.forced_colors_rules():
+            with self.subTest(selector=rule.selector):
+                self.assertNotIn(":root", rule.selector)
+                self.assertNotIn("html", rule.selector)
+
     def test_the_chart_table_for_screen_readers_does_not_widen_the_page(self):
         # `.page table` is more specific than `.sr-only`: at 100 % from where it sits, it overflows every page with a chart.
         self.assertEqual(self.rule(".page table").get("width"), "100%")

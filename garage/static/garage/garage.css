@@ -407,3 +407,15 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .stats.four > div:first-child { padding-left: 0; }
 .stats.four b { font-size: 17px; }
 .stats + .stats { border-top: 0; }
+
+/* Forced colors repaint HTML, but neither an SVG's fill and stroke nor an icon's own color and focus ring: with a theme chosen against
+   the system's palette, those would keep the theme's color on the wrong canvas. So, inside an SVG, the tokens become system colors.
+   Not on :root: the browser paints a Canvas plate behind HTML text, and a filled button's text in --on-primary would vanish on it. */
+@media (forced-colors: active) {
+  svg {
+    --bg: Canvas; --surface: Canvas; --surface-2: Canvas; --primary-soft: Canvas; --on-primary: Canvas; --knob: Canvas; --soft: Canvas;
+    --due-soft: Canvas; --due-150-soft: Canvas; --due-200-soft: Canvas; --soon-soft: Canvas; --ok-soft: Canvas; --nodata-soft: Canvas;
+    --ink: CanvasText; --ink-2: CanvasText; --line: CanvasText; --field: CanvasText; --primary: CanvasText; --focus: CanvasText; --danger-ink: CanvasText; --card-border: CanvasText;
+    --c: CanvasText; --due: CanvasText; --due-150: CanvasText; --due-200: CanvasText; --soon: CanvasText; --ok: CanvasText; --nodata: CanvasText;
+  }
+}

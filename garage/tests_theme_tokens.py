@@ -1,0 +1,333 @@
+"""garage-050 F1a: the «Anillos» tokens meet AA, and they are what the stylesheet paints with (spec §3)."""
+import contextlib
+import io
+import json
+import os
+import tempfile
+
+from django.contrib.staticfiles import finders
+from django.test import SimpleTestCase
+from django.urls import reverse
+
+from test_support import contrast
+
+from .test_html import find_all, parse
+
+
+def stylesheet():
+    with open(finders.find("garage/garage.css"), encoding="utf-8") as sheet:
+        return sheet.read()
+
+
+MINIMAL = """
+/* A brace in a comment } must not end the block. */
+:root { --bg: #ffffff; --ink: #000000; --c-free: 1px; color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #000000; --ink: #ffffff; color-scheme: dark; }
+}
+"""
+
+
+class FormulaTests(SimpleTestCase):
+    """Known results from the WCAG definition and from the spec's own recalculation."""
+
+    def test_the_two_ends_of_the_scale(self):
+        self.assertAlmostEqual(contrast.ratio("#000000", "#ffffff"), 21)
+        self.assertAlmostEqual(contrast.ratio("#5536C8", "#5536C8"), 1)
+
+    def test_which_one_is_the_foreground_does_not_matter(self):
+        self.assertEqual(contrast.ratio("#1C1A21", "#F5F3EF"), contrast.ratio("#F5F3EF", "#1C1A21"))
+
+    def test_the_short_form_and_the_case_mean_the_same_color(self):
+        self.assertEqual(contrast.ratio("#fff", "#000"), contrast.ratio("#FFFFFF", "#000000"))
+
+    def test_figures_recalculated_in_the_spec(self):
+        for one, other, expected in (("#1C1A21", "#F5F3EF", 15.54), ("#FFFFFF", "#5536C8", 7.64), ("#D2312F", "#FFFFFF", 4.98),
+                                     ("#B42318", "#F5F3EF", 5.93), ("#FF7B72", "#1D1A23", 6.80), ("#fab219", "#ffffff", 1.83)):
+            with self.subTest(one=one, other=other):
+                self.assertEqual(round(contrast.ratio(one, other), 2), expected)
+
+    def test_what_is_not_a_color_is_an_error_and_not_a_figure(self):
+        for value in ("transparent", "var(--x)", "#12", "#12345", "#ggg", "", None):
+            with self.subTest(value=value), self.assertRaises(contrast.TokenError):
+                contrast.ratio(value, "#ffffff")
+
+
+class ReadingTests(SimpleTestCase):
+    """The tool itself, on stylesheets written to catch it out: a checker that cannot fail proves nothing."""
+
+    def test_it_reads_each_theme_block(self):
+        blocks = contrast.token_blocks(MINIMAL)
+        self.assertEqual(blocks["light"]["--bg"], "#ffffff")
+        self.assertEqual(blocks["dark"]["--bg"], "#000000")
+        self.assertNotIn("forced", blocks)
+
+    def test_it_reads_the_forced_block_once_it_exists(self):
+        blocks = contrast.token_blocks(MINIMAL + ':root[data-theme="dark"] { --bg: #000000; }')
+        self.assertEqual(blocks["forced"], {"--bg": "#000000"})
+
+    def test_a_dark_theme_keeps_what_it_does_not_override(self):
+        tokens = contrast.theme_tokens(contrast.token_blocks(MINIMAL), "dark")
+        self.assertEqual(tokens["--bg"], "#000000")
+        self.assertEqual(tokens["--c-free"], "1px")
+
+    def test_a_stylesheet_without_a_block_is_an_error_and_not_a_pass(self):
+        for css in ("", ":root { --bg: #fff; }", '@media (prefers-color-scheme: dark) { :root { --bg: #000; } }',
+                    ":root { } @media (prefers-color-scheme: dark) { :root { } }"):
+            with self.subTest(css=css), self.assertRaises(contrast.TokenError):
+                contrast.check(css)
+
+    def test_unbalanced_braces_are_an_error(self):
+        with self.assertRaises(contrast.TokenError):
+            contrast.rules(":root { --bg: #fff;")
+
+    def test_a_pair_below_its_minimum_fails_and_every_pair_counts_twice(self):
+        pairs = (("--ink", "--bg", 4.5, "ok"), ("--grey", "--bg", 4.5, "low"))
+        css = MINIMAL + ":root { --grey: #777777; }"
+        results = {(item.foreground, item.theme): item.passed for item in contrast.check(css, pairs)}
+        self.assertEqual(len(results), 4)
+        self.assertTrue(results["--ink", "light"])
+        self.assertFalse(results["--grey", "light"])  # 4,48:1
+        self.assertTrue(results["--grey", "dark"])
+
+    def test_a_missing_token_fails_its_pair_instead_of_being_skipped(self):
+        results = contrast.check(MINIMAL, (("--nowhere", "--bg", 3, "absent"), ("--ink", "--nowhere", 3, "absent")))
+        self.assertEqual(len(results), 4)
+        self.assertEqual([item.passed for item in results], [False] * 4)
+        self.assertEqual([item.ratio for item in results], [None] * 4)
+
+    def test_a_ratio_is_not_rounded_up_into_passing(self):
+        # D16: --due on --bg, 4,49:1 in the light theme, is why error text has its own token.
+        css = """:root { --due: #D2312F; --bg: #F5F3EF; }
+                 @media (prefers-color-scheme: dark) { :root { --bg: #000000; } }"""
+        light = contrast.check(css, (("--due", "--bg", 4.5, "error text"),))[0]
+        self.assertEqual(round(light.ratio, 2), 4.49)
+        self.assertFalse(light.passed)
+
+    def test_every_literal_form_is_found_outside_the_blocks(self):
+        for value in ("#abc", "#ABCDEF", "#abcdef80", "rgb(0, 0, 0)", "rgba(0, 0, 0, .5)", "RGB(0,0,0)", "hsl(0 0% 0%)",
+                      "hsla(0, 0%, 0%, 1)", "oklch(50% .1 200)", "white", "Black",
+                      "0 1px 2px #000", "linear-gradient(to bottom, transparent, #fff 32%)"):
+            with self.subTest(value=value):
+                self.assertTrue(contrast.literal_colors(f"{MINIMAL} .x {{ color: {value}; }}"))
+
+    def test_a_literal_inside_an_at_rule_is_found_and_named(self):
+        found = contrast.literal_colors(MINIMAL + "@media (min-width: 900px) { .x { background: #123456; } }")
+        self.assertEqual(found, [".x { background: #123456 }"])
+
+    def test_tokens_and_keywords_are_not_literals(self):
+        css = MINIMAL + """/* #abcdef in a comment */
+            .a#fab { white-space: nowrap; color: var(--ink); fill: currentColor; border-color: transparent; }
+            .b { background: color-mix(in oklab, var(--ink) 10%, var(--bg)); box-shadow: var(--shadow); }"""
+        self.assertEqual(contrast.literal_colors(css), [])
+
+    def test_the_theme_blocks_are_the_only_place_for_literals(self):
+        self.assertEqual(contrast.literal_colors(MINIMAL + ':root[data-theme="dark"] { --bg: #000000; }'), [])
+
+    def test_a_state_var_without_fallback_is_found(self):
+        for value in ("var(--c)", "var(--soft)", "var( --c )", "var(--c,)", "color-mix(in oklab, var(--c) 20%, var(--bg))"):
+            with self.subTest(value=value):
+                self.assertTrue(contrast.state_vars_without_fallback(f".x {{ stroke: {value}; }}"))
+
+    def test_a_state_var_with_fallback_and_its_lookalikes_are_fine(self):
+        for value in ("var(--c, var(--primary))", "var(--soft, var(--surface-2))", "var(--card-border)", "var(--soft-x)"):
+            with self.subTest(value=value):
+                self.assertEqual(contrast.state_vars_without_fallback(f".x {{ stroke: {value}; }}"), [])
+
+    def test_text_in_a_state_color_is_found(self):
+        for value in ("var(--c)", "var(--c, var(--ink-2))", "var(--due)", "var(--due-150)", "var(--soon)", "var(--ok)", "var(--nodata)"):
+            with self.subTest(value=value):
+                self.assertEqual(contrast.state_colored_text(f".x {{ color: {value}; }}"), [".x"])
+
+    def test_icons_and_everything_else_may_use_a_state_color(self):
+        css = """.chip .ic, .ring-ic { color: var(--c, var(--ink-2)); }
+                 .x { background: var(--c, var(--primary)); stroke: var(--due); color: var(--danger-ink); }
+                 .y { color: var(--card-border); }"""
+        self.assertEqual(contrast.state_colored_text(css), [])
+
+    def test_a_token_used_and_never_declared_is_found(self):
+        css = ":root { --a: 1px; } .x { --b: 2px; margin: var(--a) var(--b) var(--ghost) var(--tile, var(--a)); }"
+        self.assertEqual(contrast.undefined_tokens(css), ["--ghost", "--tile"])
+
+    def test_declared_finds_a_selector_alone_or_in_a_list_and_nothing_else(self):
+        css = """.a, .b:not(.x, .y) { --c: 1; } .a { --soft: 2; } .a.b { --c: 3; }
+                 @media print { .a { --c: 4; } }"""
+        self.assertEqual(contrast.declared(css, ".a"), {"--c": "1", "--soft": "2"})
+        self.assertEqual(contrast.declared(css, ".b:not(.x, .y)"), {"--c": "1"})
+        self.assertEqual(contrast.declared(css, ".x"), {})
+
+
+class CommandTests(SimpleTestCase):
+    def run_on(self, css):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "sheet.css")
+            with open(path, "w", encoding="utf-8") as sheet:
+                sheet.write(css)
+            output, errors = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+                status = contrast.main([path])
+        return status, output.getvalue(), errors.getvalue()
+
+    def test_the_real_stylesheet_passes_and_prints_every_pair(self):
+        status, output, _ = self.run_on(stylesheet())
+        self.assertEqual(status, 0, output)
+        self.assertIn("44 pares, 88 comprobaciones, 0 fallos", output)
+        self.assertEqual(sum(" / " in line for line in output.splitlines()), 44)
+
+    def test_failures_set_the_exit_status_and_are_marked(self):
+        status, output, _ = self.run_on(MINIMAL)
+        self.assertEqual(status, 1)
+        self.assertIn("FALLA", output)
+        self.assertIn("falta", output)
+
+    def test_a_stylesheet_it_cannot_read_is_a_different_status(self):
+        status, output, errors = self.run_on("")
+        self.assertEqual(status, 2)
+        self.assertEqual(output, "")
+        self.assertIn("no light block", errors)
+
+    def test_it_asks_for_exactly_one_path(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(contrast.main([]), 2)
+            self.assertEqual(contrast.main(["a", "b"]), 2)
+
+
+class StylesheetTests(SimpleTestCase):
+    def setUp(self):
+        self.css = stylesheet()
+
+    def rule(self, selector):
+        found = contrast.declared(self.css, selector)
+        self.assertTrue(found, f"No rule for {selector}")
+        return found
+
+    def test_pairs_meet_wcag(self):
+        checks = contrast.check(self.css)
+        self.assertEqual(len(checks), 88)
+        for item in checks:
+            with self.subTest(pair=f"{item.number}: {item.foreground} / {item.background}", theme=item.theme):
+                self.assertTrue(item.passed, f"{item.ratio} < {item.minimum} ({item.use})")
+
+    def test_no_literal_colors_outside_tokens(self):
+        self.assertEqual(contrast.literal_colors(self.css), [])
+
+    def test_state_classes(self):
+        # What ties the table of pairs to the pages: with another token here, the 88 checks would say nothing.
+        for selector, color, soft in ((".st-due", "--due", "--due-soft"),
+                                      (".st-due.over-150", "--due-150", "--due-150-soft"),
+                                      (".st-due.over-200", "--due-200", "--due-200-soft"),
+                                      (".st-soon", "--soon", "--soon-soft"),
+                                      (".st-review", "--soon", "--soon-soft"),
+                                      (".st-progress", "--primary", "--primary-soft"),
+                                      (".st-current", "--ok", "--ok-soft"),
+                                      (".st-ok", "--ok", "--ok-soft"),
+                                      (".st-nodata", "--nodata", "--nodata-soft"),
+                                      (".st-snoozed", "--nodata", "--nodata-soft")):
+            with self.subTest(selector=selector):
+                state = self.rule(selector)
+                self.assertEqual(state.get("--c"), f"var({color})")
+                self.assertEqual(state.get("--soft"), f"var({soft})")
+
+    def test_state_vars_have_fallback(self):
+        self.assertEqual(contrast.state_vars_without_fallback(self.css), [])
+
+    def test_every_token_used_is_declared(self):
+        # Also what catches an old name left behind (--tile, --ink2, --accent, --bar, --ci, --due-i...).
+        self.assertEqual(contrast.undefined_tokens(self.css), [])
+
+    def test_no_text_uses_a_state_color(self):
+        self.assertEqual(contrast.state_colored_text(self.css), [])
+
+    def test_the_browser_mixes_no_colors(self):
+        # A mixed color is out of the table of pairs and out of reach of the audit in the browser (§3.3).
+        self.assertNotIn("color-mix", self.css)
+
+    def test_the_dark_block_leaves_room_for_a_forced_light_theme(self):
+        self.assertEqual(contrast.dark_block_selector(self.css), ':root:not([data-theme="light"])')
+
+    def test_the_switch_paints_with_the_pairs_that_were_checked(self):
+        # Spec §3.2: pairs 13, 15, 25 and 36, the four contrasts of the switch.
+        self.assertEqual(self.rule(".sw").get("background"), "var(--field)")
+        self.assertEqual(self.rule(".sw::before").get("background"), "var(--knob)")
+        self.assertEqual(self.rule(".sw::before").get("box-shadow"), "var(--knob-shadow)")
+        self.assertEqual(self.rule(".sw:checked").get("background"), "var(--primary)")
+        self.assertEqual(self.rule(".sw:checked::before").get("background"), "var(--on-primary)")
+
+    def test_error_text_and_delete_buttons_have_their_own_token(self):
+        # D16: --due as text gives 4,49:1 on --bg.
+        self.assertEqual(self.rule(".page .errorlist").get("color"), "var(--danger-ink)")
+        self.assertEqual(self.rule(".btn.danger").get("color"), "var(--danger-ink)")
+        self.assertEqual(self.rule(".link-btn.danger").get("color"), "var(--danger-ink)")
+
+    def test_elevated_things_use_the_shadow_made_for_them(self):
+        # --shadow is now a whole shadow list: inside another box-shadow it would be invalid.
+        self.assertEqual(self.rule(".fab").get("box-shadow"), "var(--shadow-float)")
+        for rule in contrast.rules(self.css):
+            for name, value in contrast.declarations(rule.body):
+                if "var(--shadow)" in value:
+                    with self.subTest(selector=rule.selector):
+                        self.assertEqual(value, "var(--shadow)")
+
+    def test_font_stacks_fall_back_on_the_system(self):
+        tokens = contrast.token_blocks(self.css)["light"]
+        for token, family in (("--font-display", '"Outfit"'), ("--font-body", '"Figtree"')):
+            with self.subTest(token=token):
+                self.assertTrue(tokens[token].startswith(family))
+                self.assertIn("system-ui", tokens[token])
+                self.assertTrue(tokens[token].endswith("sans-serif"))
+        self.assertEqual(tokens["--num"], "var(--font-display)")
+
+    def test_text_and_titles_use_their_font(self):
+        self.assertIn("var(--font-body)", self.rule("body").get("font"))
+        self.assertEqual(self.rule("h1").get("font-family"), "var(--font-display)")
+        self.assertEqual(self.rule("h3").get("font-family"), "var(--font-display)")
+
+    def test_figures_stay_aligned_now_that_their_font_is_not_monospaced(self):
+        figures = [rule for rule in contrast.rules(self.css) if "var(--num)" in rule.body]
+        self.assertGreaterEqual(len(figures), 8)
+        for rule in figures:
+            with self.subTest(selector=rule.selector):
+                names = [name for name, _ in contrast.declarations(rule.body)]
+                self.assertIn("font-variant-numeric", names)
+                self.assertEqual(dict(contrast.declarations(rule.body))["font-variant-numeric"], "tabular-nums")
+                if "font" in names:  # The shorthand resets it: it has to come after.
+                    self.assertGreater(names.index("font-variant-numeric"), names.index("font"))
+
+    def test_shape_tokens_for_the_next_phases_exist(self):
+        tokens = contrast.token_blocks(self.css)["light"]
+        for token, value in (("--r-sm", "10px"), ("--r-md", "16px"), ("--r-lg", "22px"), ("--r-xl", "28px"), ("--r-pill", "999px"),
+                             ("--s1", "4px"), ("--s2", "8px"), ("--s3", "12px"), ("--s4", "16px"), ("--s5", "20px"), ("--s6", "24px"),
+                             ("--s7", "32px"), ("--s8", "40px"), ("--nav-h", "72px"), ("--nav-gap", "10px"),
+                             ("--nav-space", "calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px))")):
+            with self.subTest(token=token):
+                self.assertEqual(tokens.get(token), value)
+
+
+class ThemeColorTests(SimpleTestCase):
+    """The browser's and the installed app's chrome match the screen they surround."""
+
+    def setUp(self):
+        blocks = contrast.token_blocks(stylesheet())
+        self.light_bg = contrast.theme_tokens(blocks, "light")["--bg"].lower()
+        self.dark_bg = contrast.theme_tokens(blocks, "dark")["--bg"].lower()
+
+    def theme_color(self, html, media):
+        metas = find_all(parse(html), "meta", name="theme-color", media=media)
+        self.assertEqual(len(metas), 1)
+        return metas[0].attrs["content"].lower()
+
+    def test_theme_color_matches_bg(self):
+        html = self.client.get(reverse("garage:offline")).content.decode()
+        self.assertEqual(self.theme_color(html, "(prefers-color-scheme: light)"), self.light_bg)
+        self.assertEqual(self.theme_color(html, "(prefers-color-scheme: dark)"), self.dark_bg)
+        manifest = json.loads(self.client.get(reverse("garage:manifest")).content)
+        self.assertEqual(manifest["background_color"].lower(), self.light_bg)
+        self.assertEqual(manifest["theme_color"].lower(), self.light_bg)
+
+    def test_the_old_palette_is_gone_from_what_the_browser_reads(self):
+        html = self.client.get(reverse("garage:offline")).content.decode().lower()
+        manifest = self.client.get(reverse("garage:manifest")).content.decode().lower()
+        for old in ("#f1f2f5", "#0a0c11"):
+            with self.subTest(old=old):
+                self.assertNotIn(old, html)
+                self.assertNotIn(old, manifest)

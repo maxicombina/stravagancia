@@ -29,8 +29,8 @@ def manifest(request):
         "start_url": reverse("garage:index"),
         "scope": "/",
         "display": "standalone",
-        "background_color": "#f1f2f5",
-        "theme_color": "#f1f2f5",
+        "background_color": "#F5F3EF",
+        "theme_color": "#F5F3EF",
         "icons": [
             {"src": static("garage/icons/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},
             {"src": static("garage/icons/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "any"},

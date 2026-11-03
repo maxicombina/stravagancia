@@ -157,6 +157,16 @@ class InstallableAppTests(TestCase):
         self.assertNotIn("private-name-xyz", body)
         self.assertNotIn("csrf", body.lower())
 
+    def test_each_version_of_the_worker_asks_for_its_own_offline_page(self):
+        # The page may stay an hour in the browser's cache and names the ?v= of its assets. Under the same URL, a
+        # worker installed within that hour would store the previous page, whose assets its activation deletes.
+        body = self.client.get(reverse("garage:service-worker")).content.decode()
+        offline = json.loads(re.search(r"^const OFFLINE = (.*);$", body, re.MULTILINE).group(1))
+        self.assertEqual(offline, f"{reverse('garage:offline')}?v={asset_version()}")
+        response = self.client.get(offline)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(f"/static/garage/garage.css?v={asset_version()}", response.content.decode())
+
     def test_offline_page_is_public_and_carries_no_session_data(self):
         self.client.force_login(self.user)
         html = self.client.get(reverse("garage:offline")).content.decode()

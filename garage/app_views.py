@@ -49,7 +49,9 @@ def manifest(request):
 @cache_control(no_cache=True)
 def service_worker(request):
     # Server-generated paths only, serialized as JS literals (the file is JavaScript, not HTML).
-    context = {"version": asset_version(), "offline_url": json.dumps(reverse("garage:offline")),
+    # The offline page stays an hour in the browser's cache: with the version in its URL, a new worker never stores
+    # the previous one, whose ?v= assets the activation deletes. The worker's fallback lookup ignores the query.
+    context = {"version": asset_version(), "offline_url": json.dumps(f"{reverse('garage:offline')}?v={asset_version()}"),
                "static_prefix": json.dumps(static("garage/")),
                "assets": json.dumps([asset_url(path) for path in STATIC_ASSETS] + [static(path) for path in STATIC_FONTS])}
     return render(request, "garage/sw.js", context, content_type="text/javascript; charset=utf-8")

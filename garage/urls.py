@@ -8,6 +8,7 @@ urlpatterns = [
     path('sw.js', app_views.service_worker, name='service-worker'),
     path('offline/', app_views.offline, name='offline'),
     path('more/', app_views.more, name='more'),
+    path('appearance/', app_views.appearance, name='appearance'),
     path('add/', app_views.add, name='add'),
     path('rides/<uuid:pk>/review/', review_views.ride_review, name='ride-review'),
     path('rides/<uuid:pk>/review/preview/', review_views.ride_review_preview, name='ride-review-preview'),

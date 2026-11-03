@@ -20,6 +20,8 @@ TABS = (
     ("stats", ("statistics",)),
     ("more", ("more", "category-", "usage-profile", "export")),
 )
+THEME_COOKIE = "garage_theme"
+FORCED_THEMES = ("light", "dark")
 WEEKDAYS = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
 MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
@@ -49,6 +51,16 @@ def client_os(context):
     request = context.get("request")
     agent = request.META.get("HTTP_USER_AGENT", "") if request is not None else ""
     return "android" if "Android" in agent else "ios"
+
+
+@register.simple_tag(takes_context=True)
+def client_theme(context):
+    """The theme this browser chose, `light` or `dark`; "" follows the system. A page the same for everyone asks for `auto_theme`."""
+    request = context.get("request")
+    if request is None or context.get("auto_theme"):
+        return ""
+    theme = request.COOKIES.get(THEME_COOKIE)
+    return theme if theme in FORCED_THEMES else ""
 
 
 # ImportRun.State keeps its English choice labels (changing them would need a migration).

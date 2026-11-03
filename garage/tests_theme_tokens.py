@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import tempfile
 
 from django.contrib.staticfiles import finders
@@ -245,6 +246,30 @@ class StylesheetTests(SimpleTestCase):
     def test_the_dark_block_leaves_room_for_a_forced_light_theme(self):
         self.assertEqual(contrast.dark_block_selector(self.css), ':root:not([data-theme="light"])')
 
+    def test_dark_blocks_are_identical(self):
+        # Spec §3.3: two copies of the dark theme, one for the system's choice and one for the person's.
+        blocks = contrast.token_blocks(self.css)
+        self.assertEqual(blocks["forced"], blocks["dark"])
+        colors = [value for value in blocks["forced"].values() if re.fullmatch(r"#[0-9a-fA-F]{3,8}", value)]
+        self.assertGreaterEqual(len(colors), 25)
+        self.assertEqual(blocks["forced"]["color-scheme"], "dark")
+
+    def test_a_difference_between_the_dark_blocks_would_show(self):
+        # The control of the test above: it reads the two blocks apart.
+        forced, _, rest = self.css.partition(contrast.FORCED_SELECTOR)
+        changed = forced + contrast.FORCED_SELECTOR + rest.replace("--bg: #131118", "--bg: #131119", 1)
+        blocks = contrast.token_blocks(changed)
+        self.assertEqual((blocks["dark"]["--bg"], blocks["forced"]["--bg"]), ("#131118", "#131119"))
+
+    def test_the_segmented_choice_paints_with_the_pairs_that_were_checked(self):
+        # Spec §4.8 and pairs 3, 15 and 16; the radio is out of sight, so its label carries the focus.
+        self.assertEqual(self.rule(".seg").get("background"), "var(--surface-2)")
+        self.assertEqual(self.rule(".seg label").get("color"), "var(--ink)")
+        self.assertEqual(self.rule(".seg input:checked + label").get("background"), "var(--primary)")
+        self.assertEqual(self.rule(".seg input:checked + label").get("color"), "var(--on-primary)")
+        self.assertEqual(self.rule(".seg input:checked + label").get("font-weight"), "700")
+        self.assertEqual(self.rule(".seg input:focus-visible + label").get("outline"), "3px solid var(--focus)")
+
     def test_the_switch_paints_with_the_pairs_that_were_checked(self):
         # Spec §3.2: pairs 13, 15, 25 and 36, the four contrasts of the switch.
         self.assertEqual(self.rule(".sw").get("background"), "var(--field)")
@@ -323,6 +348,13 @@ class ThemeColorTests(SimpleTestCase):
         manifest = json.loads(self.client.get(reverse("garage:manifest")).content)
         self.assertEqual(manifest["background_color"].lower(), self.light_bg)
         self.assertEqual(manifest["theme_color"].lower(), self.light_bg)
+
+    def test_a_forced_theme_changes_the_bar_to_the_same_colors_from_the_script(self):
+        # garage.js writes these metas without reloading (spec §4.8).
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            source = script.read().lower()
+        self.assertIn(f"light: '{self.light_bg}'", source)
+        self.assertIn(f"dark: '{self.dark_bg}'", source)
 
     def test_the_old_palette_is_gone_from_what_the_browser_reads(self):
         html = self.client.get(reverse("garage:offline")).content.decode().lower()

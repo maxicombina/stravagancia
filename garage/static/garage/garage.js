@@ -17,6 +17,42 @@
     }
   } catch (e) { /* default zone on the server */ }
 
+  // Theme: the server paints it from the cookie. Here it changes without reloading, and it reaches
+  // what the server cannot paint: the offline page, the same for everyone, and a page back from history.
+  const THEME_BARS = { light: '#F5F3EF', dark: '#131118' };
+  const themeForm = document.querySelector('form[data-theme-form]');
+  const savedTheme = () => (document.cookie.match(/(?:^|; )garage_theme=(light|dark)(?:;|$)/) || [])[1] || '';
+  const addThemeBar = (color, media) => {
+    const meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    meta.content = color;
+    if (media) meta.media = media;
+    document.head.append(meta);
+  };
+  const showTheme = theme => {
+    if (theme) root.dataset.theme = theme; else delete root.dataset.theme;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => meta.remove());
+    if (theme) addThemeBar(THEME_BARS[theme]);
+    else Object.entries(THEME_BARS).forEach(([name, color]) => addThemeBar(color, `(prefers-color-scheme: ${name})`));
+    const scheme = document.querySelector('meta[name="color-scheme"]');
+    if (scheme) scheme.content = theme || 'light dark';
+    if (themeForm) themeForm.elements.theme.value = theme || 'auto';
+  };
+  const followSavedTheme = () => { if (savedTheme() !== (root.dataset.theme || '')) showTheme(savedTheme()); };
+  followSavedTheme();
+  window.addEventListener('pageshow', event => { if (event.persisted) followSavedTheme(); });
+  if (themeForm) {
+    const save = themeForm.querySelector('[data-theme-save]');
+    if (save) save.hidden = true;
+    themeForm.addEventListener('change', event => {
+      const theme = event.target.value === 'auto' ? '' : event.target.value;
+      document.cookie = theme
+        ? `garage_theme=${theme}; Max-Age=31536000; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
+        : 'garage_theme=; Max-Age=0; Path=/; SameSite=Lax';
+      showTheme(theme);
+    });
+  }
+
   // Service worker: offline page and cached static assets, never personal pages.
   const sw = root.dataset.sw;
   if (sw && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {

@@ -3,20 +3,23 @@ offline page are public and carry no user data; menus require a session."""
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_GET
 
 from .assets import asset_url, asset_version
+from .templatetags.garage_ui import FORCED_THEMES, THEME_COOKIE
 
 STATIC_ASSETS = ("garage/garage.css", "garage/garage.js", "garage/icons/icon.svg", "garage/icons/favicon-32.png",
                  "garage/icons/apple-touch-icon.png", "garage/icons/icon-192.png")
 # garage.css asks for these without ?v= and the worker matches the whole URL, so they are precached as they are asked for.
 STATIC_FONTS = ("garage/fonts/figtree-latin-wght-v1.woff2", "garage/fonts/outfit-latin-wght-v1.woff2")
+THEME_MAX_AGE = 31536000  # One year, like garage_tz in garage.js.
 
 
 @require_GET
@@ -56,7 +59,8 @@ def service_worker(request):
 @cache_control(max_age=3600)
 @vary_on_headers("User-Agent")
 def offline(request):
-    return render(request, "garage/offline.html", {"title": "Sin conexión"})
+    # The worker stores it without credentials and it is cacheable: it cannot vary by cookie, garage.js applies the theme.
+    return render(request, "garage/offline.html", {"title": "Sin conexión", "auto_theme": True})
 
 
 @never_cache
@@ -64,6 +68,26 @@ def offline(request):
 @require_GET
 def more(request):
     return render(request, "garage/more.html", {"title": "Más", "tab": "more"})
+
+
+@never_cache
+def appearance(request):
+    """The theme is this browser's, not the account's: no session needed, and a POST whose session expired still counts."""
+    if request.method != "POST":
+        return redirect("garage:more")
+    theme = request.POST.get("theme")
+    if theme != "auto" and theme not in FORCED_THEMES:
+        return HttpResponseBadRequest("Tema no válido.")
+    target = request.POST.get("next", "")
+    if not (target.startswith("/") and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()},
+                                                                       require_https=request.is_secure())):
+        target = reverse("garage:more")
+    response = HttpResponseRedirect(target)
+    if theme == "auto":
+        response.delete_cookie(THEME_COOKIE, path="/", samesite="Lax")
+    else:
+        response.set_cookie(THEME_COOKIE, theme, max_age=THEME_MAX_AGE, path="/", samesite="Lax", secure=request.is_secure())
+    return response
 
 
 @never_cache

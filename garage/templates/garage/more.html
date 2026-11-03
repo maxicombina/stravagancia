@@ -1,4 +1,5 @@
 {% extends "garage/base.html" %}
+{% load garage_ui %}
 {% block garage_content %}
 <h1>Más</h1>
 <section class="sec" aria-labelledby="more-inventory">
@@ -23,6 +24,19 @@
     <li><a href="#instalar"><span class="glyph"><svg class="ic"><use href="#i-share"/></svg></span><span>Instalar Garage en el teléfono</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
     <li><form method="post" action="{% url 'logout' %}">{% csrf_token %}<input type="hidden" name="next" value="/accounts/login/?next=/garage/"><button type="submit" class="menu-btn"><span class="glyph"><svg class="ic"><use href="#i-logout"/></svg></span><span>Cerrar sesión</span><span></span></button></form></li>
   </ul>
+</section>
+<section class="sec" aria-labelledby="more-appearance">
+  <div class="sec-h"><h2 id="more-appearance">Apariencia</h2></div>
+  {% client_theme as theme %}<form method="post" action="{% url 'garage:appearance' %}" class="form" data-theme-form>{% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'garage:more' %}">
+    <fieldset class="seg"><legend class="sr-only">Apariencia</legend>
+      <input type="radio" name="theme" id="theme-auto" value="auto"{% if not theme %} checked{% endif %}><label for="theme-auto">Automático</label>
+      <input type="radio" name="theme" id="theme-light" value="light"{% if theme == "light" %} checked{% endif %}><label for="theme-light">Claro</label>
+      <input type="radio" name="theme" id="theme-dark" value="dark"{% if theme == "dark" %} checked{% endif %}><label for="theme-dark">Oscuro</label>
+    </fieldset>
+    <button type="submit" class="btn" data-theme-save>Guardar</button>
+  </form>
+  <p class="note">Automático sigue el ajuste del sistema. La elección se recuerda en este navegador (en el iPhone, la app instalada y Safari la guardan por separado).</p>
 </section>
 <section class="sec" id="instalar" aria-labelledby="more-install">
   <div class="sec-h"><h2 id="more-install">Instalar</h2></div>

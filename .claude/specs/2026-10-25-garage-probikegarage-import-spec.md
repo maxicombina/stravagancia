@@ -763,3 +763,55 @@ borraron; no hace falta regresión nueva, porque no hubo defecto de código.
 
 Informe: `docs/validation/garage-043.json`. La importación real no se ha
 aplicado.
+
+## 13. Confirmación tras bajar Strava (1 nov 2026; workflow `wf_9087522f-5b3`, 7 agentes Opus, sólo lectura)
+
+Pregunta del usuario: «¿tenemos lo mismo que ProBikeGarage? ¿las mismas
+salidas? ¿las mismas piezas: retiradas, actuales, desgastes, km?». Comparado de
+forma independiente (sin el código del importador ni `garage_probikegarage_verify`)
+para `maxi` (owner 2) frente al volcado y frente a PBG **en vivo** (1 nov 12:18Z;
+hashes por familia idénticos al volcado). Resultados (cifras en el scratch de la
+sesión, fuera del repo):
+
+- **Salidas:** 350 = 350, una a una (inicio al segundo, distancia y desnivel
+  iguales al decimal de Strava; PBG redondea a metros: |Δ| ≤ 0,5 m), tiempos,
+  deporte, bici (210/133/7 sin bici) y **piezas por salida 3771/3771 pares**.
+  Potencia y trabajo nulos en Garage por la fase 3 de garage-030 (estimados por
+  Strava); etiquetas, cadencia, velocidad máxima, temperatura y zona local no se
+  guardan (fuera de alcance).
+- **Piezas e historial:** bicis, 50 componentes (31 activos, 19 retirados, fecha
+  de retirada al minuto), 62 montajes y el montaje actual, 59 reglas, 8 lecturas y
+  184 eventos (de 177 intervenciones) iguales, salvo lo documentado (D6, D8, D10,
+  R043-1/2/6/11/12). Sin adjuntos ni fotos en PBG (52 consultas vacías) y sin bicis
+  retiradas.
+- **Pantallas de Garage** (287 páginas renderizadas como owner 2 con el cliente de
+  pruebas, transacción de sólo lectura, 0 escrituras): bicis 12/12, fichas
+  (nombre, estado, retirada, montaje 126/126; uso 250/250; historial 100/100;
+  montajes 50/50), salidas 1.751/1.751 comprobaciones, reglas 161/168 (las 7
+  restantes, documentadas: R043-1 ×3, R043-2 ×2, R043-6, R043-11).
+
+**Hallazgos nuevos sin decisión escrita** (anotados en garage-047 para decidir con
+el usuario; ninguno cambia un dato):
+
+1. **Recorte de notas** (nuevo R043-13): `Reader.text()` hace `strip()` también en
+   las notas: 40 textos (14 piezas, 9 reglas, 17 eventos) pierden sólo espacios o
+   saltos finales; igual que los formularios de Garage. Documentación corregida
+   (garage-data-sources.md decía «Notas tal cual»).
+2. **`strava_bike.frame_type`** (3 y 1) se descarta: Garage no tiene dónde
+   guardarlo.
+3. **Estado heredado** (lo ve el usuario hoy): PBG marca los neumáticos Maxxis
+   Rekon y Schwalbe Wicked Will con aviso porque su líquido anidado «Agregar 30ml»
+   está vencido (el padre toma el peor estado de sus hijas); Garage pone el aviso
+   en el líquido («sobre» el neumático) y el neumático «En curso». La bici cuenta 4
+   avisos en las dos.
+4. **«Pronto»:** PBG marca el Sram X01 (vida útil al 89,1 %) como próximo; Garage
+   avisa desde el 90 %.
+5. **Piezas retiradas:** Garage muestra «Revisar»/«Vencido» en sus fichas (las
+   reglas siguen contando, R043-1); PBG las deja neutras.
+6. **Uso inicial en pantalla:** en las 4 piezas con lectura inicial la cifra grande
+   de Garage es el uso registrado (cifras reales fuera del repo) y PBG
+   muestra la vida, que es mayor; Garage da la vida en km en una nota y no
+   muestra la de horas.
+7. Menores: 3 salidas de rodillo de 2012 en America/Chicago salen con el día de
+   Madrid (un día después que en Strava); la coma de «Clarks TRASERA, ex
+   DELANTERA» parece separar dos piezas en la lista de material de una salida.

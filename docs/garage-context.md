@@ -87,8 +87,11 @@ cerradas por no aplicabilidad, sin adaptador ni cola Strava implementados.
 
 **Revisión del 12 de octubre (garage-029):** con Garage para uso personal, el
 usuario eligió sincronizar desde Strava como ProBikeGarage (adaptador propio,
-`gear_id` para la bici, retirable). Queda **aplazado** en garage-030; hasta
-activarlo rige la decisión anterior. Ver garage-data-sources.md.
+`gear_id` para la bici, retirable). Se activó en garage-030: fases 1–4
+implementadas el 18 oct (modo token con `GARAGE_STRAVA_USER`, desnivel y
+potencia, `sync-all` con Worker de Cloudflare). Nadie la ha probado aún contra
+Strava real; para eso están los ajustes locales de garage-044 (29 oct). Ver
+garage-data-sources.md.
 
 No vaciar, migrar, reetiquetar ni modificar las tablas del legado Stravagancia
 como parte de esta decisión. Separar modelos no demuestra una excepción
@@ -332,5 +335,10 @@ No hay restaurador automático. Revisar detalles en garage-export.md.
 - tools/garage_progress.py, tests_progress.py: tablero local.
 - tools/handoff/: helpers de PostgreSQL preservados para retomar sin /tmp.
 
-Las modificaciones y archivos sin seguimiento son el trabajo entregado. No hay
-commits sobre main en esta rama. Conservar todo y verificar antes de editar.
+El trabajo de Garage está en la rama `garage`: `5e422c8` (25 oct) más cuatro
+commits de documentación hasta `576ec9c`; push autorizado hasta `e09bfb0`
+(`c6d9ba2` y `576ec9c` sólo locales). Sin seguimiento quedan los archivos de
+garage-044 y los cambios de documentación del 29 oct. La fusión de `main`
+(`dd607f6`, `45a7cf6`) está preparada en `garage-integrate-main` (`c3eb532`,
+garage-045), pendiente de que el usuario la adopte o la borre. Commits y push,
+sólo cuando lo pida. Conservar todo y verificar antes de editar.

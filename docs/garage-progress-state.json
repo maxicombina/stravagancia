@@ -1,27 +1,75 @@
 {
-  "updated_at": "2026-10-26T07:00:00+00:00",
-  "focus": "26 oct (cierre de sesión): garage-043 implementada, revisada y re-verificada (suite 2690 + 45, docs/validation/garage-043.json; sin migración); importación real aplicada por el usuario en la demo 55433 como maxi (id 2; staff; contraseña en el fichero local fuera del repo): 2 bicis, 50 objetos, 62 montajes, 59 reglas, 184 intervenciones, 8 lecturas, 2 StravaGear, 0 salidas. Rama garage (renombrada desde codex/garage-plan) con push autorizado a origin en e09bfb0. Bloqueo nuevo: garage-044, ajustes locales con Strava real (settings_test elimina STRAVA_* y prohíbe HTTP; settings apunta a Neon). Queda: revisión del usuario en la demo, garage-044, histórico de Strava, garage_probikegarage_verify, confirmar D1–D12. Ningún agente en curso.",
-  "agents": [
-    {
-      "name": "Claude Fable 5.1 (sesión principal)",
-      "role": "orquestación, documentación, Beads y verificación",
-      "status": "sesión cerrada el 26 oct 07:00 UTC; nada en curso",
-      "task": "garage-043 / garage-044 (pendiente del usuario)"
-    }
-  ],
-  "validation": {
-    "tests": 2690,
-    "passed": 2690,
-    "failed": 0,
-    "skipped": 0,
-    "subtests": 45,
-    "postgres": "18.6 · local desechable (55434)",
-    "checked_at": "2026-10-25T18:35:03+00:00",
-    "report": "docs/validation/garage-043.json"
+ "updated_at": "2026-11-03T15:52:32+00:00",
+ "focus": "garage-050: la spec «Anillos» está revisada sólo hasta F1a (la aplicación de R1–R29 se cortó el 1 nov por un error de la API). Siguiente: terminarla con un agente Opus; después el usuario responde §8.1 y decide el orden con garage-047. Demo 8766 y tablero 8765 en marcha.",
+ "agents": [
+  {
+   "name": "Claude Opus 5.5 (sesión principal)",
+   "role": "orquestación, documentación, Beads y verificación",
+   "status": "en curso con el usuario (3 nov)",
+   "task": "garage-050"
   },
-  "not_applicable": [
-    "garage-013",
-    "garage-021"
-  ],
-  "demo_users_file": "~/.cache/stravagancia/garage-demo-users.json (fuera del repo, 0600): contraseña del usuario local maxi de la demo 55433 (demo / garage-demo para el usuario ficticio)"
+  {
+   "name": "Agente Opus: crítica adversarial de la spec «Anillos»",
+   "role": "revisión de sólo lectura contra el código y la maqueta",
+   "status": "terminado 1 nov ~21:45 UTC: 29 hallazgos (R1–R29, spec §9)",
+   "task": "garage-050"
+  },
+  {
+   "name": "Agente Opus: aplicar la revisión a la spec «Anillos»",
+   "role": "editar sólo la spec, hallazgo por hallazgo",
+   "status": "falló 2 nov 04:27 UTC por un error de la API; llegó hasta F1a",
+   "task": "garage-050"
+  },
+  {
+   "name": "Workflow garage-anillos-spec (6 agentes Opus previstos)",
+   "role": "3 inventarios + redacción hechos; crítica y revisión sin hacer",
+   "status": "detenido 1 nov ~19:45 UTC; la crítica se rehace con un agente suelto",
+   "task": "garage-050"
+  },
+  {
+   "name": "Workflow garage-design-directions (10 agentes Opus)",
+   "role": "3 diseñadores, 3 revisores adversariales, 3 correctores, 1 redactor del README comparativo",
+   "status": "terminado 1 nov ~14:40 UTC",
+   "task": "garage-049"
+  },
+  {
+   "name": "Workflow confirmación ProBikeGarage (7 agentes Opus)",
+   "role": "sólo lectura: salidas, piezas, historial, reglas, PBG en vivo, páginas renderizadas",
+   "status": "terminado 1 nov",
+   "task": "garage-043 / garage-044"
+  },
+  {
+   "name": "Workflow garage-048-helper-env (4 agentes Opus)",
+   "role": "implementar (TDD), dos revisores adversariales (secretos, casos límite), corregir",
+   "status": "terminado 1 nov ~09:00 UTC",
+   "task": "garage-048"
+  },
+  {
+   "name": "Workflow garage-pbg-manual-plan (5 agentes Opus)",
+   "role": "investigación de solo lectura: flujo Strava, cobertura de la UI, PBG en vivo, persistencia + crítico",
+   "status": "terminado 1 nov ~00:20 CET",
+   "task": "garage-046"
+  },
+  {
+   "name": "Workflow garage-pbg-manual-replica (6 agentes Opus)",
+   "role": "preparar (copia, ensayo de restauración, usuario, hoja), 4 fases de alta por Chrome en serie, verificación",
+   "status": "terminado 1 nov ~02:20 CET: 419 envíos, 0 diferencias frente a maxi",
+   "task": "garage-046"
+  }
+ ],
+ "validation": {
+  "tests": 2801,
+  "passed": 2801,
+  "failed": 0,
+  "skipped": 0,
+  "subtests": 45,
+  "postgres": "18.6 · local desechable (55434)",
+  "checked_at": "2026-11-03T15:52:32+00:00",
+  "report": "docs/validation/garage-048.json"
+ },
+ "not_applicable": [
+  "garage-013",
+  "garage-021"
+ ],
+ "demo_users_file": "~/.cache/stravagancia/garage-demo-users.json (fuera del repo, 0600): contraseñas de los usuarios locales maxi (id 2) y maxi-manual (id 3) de la demo 55433 (demo / garage-demo para el usuario ficticio)"
 }

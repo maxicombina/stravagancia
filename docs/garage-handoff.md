@@ -1,6 +1,9 @@
 # Estado de Garage para Claude u otra IA
 
-Actualización: 26 de octubre de 2026 (07:00 UTC), Claude. Empezar por CLAUDE.md y
+Actualización: 3 de noviembre de 2026 (ver la primera sección). Antes: 1 de noviembre
+(sesión 31 oct 22:30 – 1 nov 01:30 UTC aprox.),
+Claude Opus 5.5 como sesión principal (el usuario cambió el modelo con /model) con
+agentes Opus. Antes: 29 de octubre (19:30–22:00 UTC), Fable 5.1 con agentes Opus. Empezar por CLAUDE.md y
 garage-context.md; no rediseñar el proyecto ni ignorar cambios locales. Rama
 `garage` (renombrada desde `codex/garage-plan` el 25 oct porque el usuario no
 quería «codex» en el nombre). Commits sobre `main`: `5e422c8` (todo el trabajo
@@ -13,6 +16,397 @@ queda sin push salvo que el usuario lo pida. Fuera de los commits, a propósito:
 Metabase, ya ignorada pero rastreada) y `.serena/` (caché de herramienta). Los
 dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
 (sección «Siguiente paso», punto 7).
+
+## 3 nov (Opus 5.5 con el usuario): estado real de garage-050 y commits
+
+- **Corrección de lo anterior.** Este archivo decía que la crítica de la spec
+  «Anillos» seguía en curso, y la cabecera de la spec, que estaba revisada.
+  Ninguna de las dos cosas era exacta: la crítica terminó el 1 nov (R1–R29), pero
+  el agente que la aplicaba se cortó por un error de la API después de F1a. Falta
+  F1b en adelante, §7 y §8, incluido R1, y no existía la §9. La cabecera y la §9
+  de la spec ya lo dicen, con los hallazgos literales. Transcripciones: sesión
+  `e4119f18`, agentes `a055b8be7be1fde6a` (revisor) y `a14f295409d257c14`
+  (aplicador).
+- **Procesos.** PostgreSQL 55433 y 55434 siguen de la recreación del 1 nov. Demo
+  8766 (`GARAGE_STRAVA_USER=demo`) y tablero 8765 relanzados como tareas de esta
+  sesión (mueren con ella). Comprobado en la base: `demo` 79 salidas / 13 objetos,
+  `maxi` 350 / 50, `maxi-manual` 0 / 50.
+- **Suite re-ejecutada el 3 nov** sobre el árbol completo: 2801 + 45 en 193 s;
+  `check` y `makemigrations --check` limpios
+  (`/private/tmp/garage-suite-2026-11-03.log`). Sin cambios de código desde el 1 nov.
+- **Datos reales retirados.** Nombres de bici, `gear_id` de Strava y km reales
+  salieron de `TESTING.md`, este archivo, la spec de la 043 y Beads (044, 047)
+  antes del commit. Originales, fuera del repo:
+  `~/.cache/stravagancia/session-2026-11-03/referencias-reales.md`. Búsqueda de
+  secretos sobre lo pendiente: sólo valores sintéticos.
+- **Commits a petición del usuario** («empecemos por 1, luego 2»), locales y **sin
+  push** (ver `git log`). Fuera, como el 25 oct: la base de Metabase y `.serena/`.
+- **Siguiente.** Terminar de aplicar R1–R29 a la spec (agente Opus); después el
+  usuario responde §8.1 y decide el orden entre garage-050 y garage-047; F0 puede
+  ir antes. No preguntarle §8.1 hasta entonces: está desfasada.
+
+## 1 nov ~21:25 UTC: tras el reinicio, todo levantado de nuevo
+
+- Clústeres recreados con los helpers: pruebas 55434
+  (`/private/tmp/garage018-validation-hvbuxnjc`) y demo 55433
+  (`/private/tmp/garage018-demo-0tjfjhtw`). Demo restaurada desde
+  `garage-demo-2026-11-01-pre-reboot.dump` (sha256 comprobado; `pg_restore`
+  y después `migrate`: «No migrations to apply»): 41 tablas; `demo` 79 salidas
+  / 13 objetos, `maxi` 350 / 50, `maxi-manual` 0 / 50, igual que antes de apagar.
+- Demo 8766 (`GARAGE_STRAVA_USER=demo`, log `/private/tmp/garage-demo-8766.log`)
+  y tablero 8765 (`/private/tmp/garage-board-8765.log`) en marcha como tareas en
+  segundo plano de la sesión de Claude (mueren con ella).
+- garage-050: crítica adversarial de la spec relanzada (agente Opus); después,
+  revisión §9.
+
+## 1 nov ~19:50 UTC: guardado antes de reiniciar el equipo (pedido del usuario)
+
+- **Al reiniciar se pierden** los clústeres de `/private/tmp` (demo 55433, pruebas
+  55434), la demo 8766 y el tablero 8765. **Copia de la demo justo antes:**
+  `~/.cache/stravagancia/demo-backups/garage-demo-2026-11-01-pre-reboot.dump`
+  (41 TABLE DATA; `demo` 79 salidas, `maxi` 350, `maxi-manual` 0; sha256 en
+  `.sha256` al lado). Restaurar con la receta de abajo («Sesión del 29 oct»):
+  clúster nuevo → `pg_restore` → `migrate`, en ese orden.
+- **Copiado fuera de /tmp** a `~/.cache/stravagancia/session-2026-11-01/` (chmod 700;
+  contiene datos personales, nunca al repo): `design-work/` (scripts de contraste,
+  auditorías y capturas de las tres maquetas; sin perfiles de Chrome; los README de
+  `design/` citan su ruta antigua en /private/tmp), `scratchpad/` (comparaciones y
+  verificaciones del 1 nov), `anillos-spec-inventarios.md` y
+  `anillos-spec-borrador.md`.
+- **garage-050 («Anillos» en la app):** spec en
+  `.claude/specs/2026-11-01-garage-estilo-anillos-spec.md`, **borrador** (§1–§8;
+  workflow detenido antes de la crítica adversarial). Siguiente: crítica + revisión
+  (§9) con agentes Opus, luego el usuario mira los supuestos D#, luego fase 1.
+  Fuentes ya descargadas con permiso del usuario en
+  `~/.cache/stravagancia/fonts-anillos/` (PROCEDENCIA.md con sha256).
+- **Retomar la conversación:** el usuario trabaja dentro de herdr (gestor de
+  terminales para agentes; integración `claude` v10, restauración nativa activada):
+  al volver a lanzar `herdr` reabre el panel y ejecuta `claude --resume
+  e4119f18-d0d5-41a4-ab0f-a9e0f58a41f8`. Si no, `claude --resume` en el repo.
+
+## 1 nov (tarde, con el usuario): histórico de Strava, confirmación contra PBG y diseño
+
+- **Sincronización real hecha por el usuario** (`serve` en su Terminal, claves de
+  `.env` vía el helper): `maxi` (id 2) con su atleta, estado ok. «Importar
+  histórico» desde 2010-01-01 (dos trabajos, ambos completados): **350 salidas**,
+  sin duplicados, ~205 de otros deportes descartadas. `garage_probikegarage_verify
+  --owner 2` con `mapping-demo-maxi-2026-10-29.json`: 350/350 y bicis iguales;
+  sólo 3 diferencias esperadas en piezas retiradas (R043-6, D10, R043-11).
+  Informe en `~/.cache/stravagancia/probikegarage/verify-maxi-after-strava-2026-11-01.txt`;
+  copias de la base `garage-demo-2026-11-01-pre-strava.dump` y `-post-strava.dump`
+  en `~/.cache/stravagancia/demo-backups/`. El servidor 8767 lo paró el usuario.
+- **Confirmación «tenemos lo mismo que ProBikeGarage»** (workflow
+  `wf_9087522f-5b3`, 7 agentes Opus, sólo lectura): salidas 350/350 campo a campo,
+  3771/3771 pares salida×pieza, piezas/historial/montajes/reglas iguales salvo
+  decisiones documentadas; 287 páginas de Garage renderizadas como `maxi`.
+  Resultado y 7 hallazgos nuevos en la spec de garage-043 §13; las diferencias de
+  presentación, en garage-047.
+- **Tipo de cuadro:** una de las dos bicis figuraba en Strava como «Road Bike»; con
+  permiso del usuario la IA la cambió en strava.com a «Mountain Bike» (sólo ese
+  campo). La API confirma las dos bicis como «Mtb». Garage no guarda el tipo.
+- **garage-049, dirección visual** (pedido del usuario, en paralelo): workflow
+  `wf_75ac61aa-411` (3 diseñadores, 3 revisores, 3 correctores, 1 README; Opus).
+  `design/option-1` «Anillos» (parecida a PBG, continuista), `option-2`
+  «Bitácora», `option-3` «Telemetría»; `design/README.md` compara y **recomienda
+  la 3** por fases. Contraste AA 0 fallos en las tres; garaje ficticio, sin datos
+  personales. Sólo maquetas: la app no cambia. **Falta que el usuario elija.**
+- **Siguiente con el usuario:** su elección de diseño; garage-042 (probar chips de
+  Material: Montados 26, Disponibles 5, En uso 0, Retirados 19, Todos 50, en
+  `maxi`); priorizar garage-047; garage-045; iconos (041 §7.7); casefold de `.env`.
+
+## 1 nov (mañana, con el usuario paso a paso): Strava a `maxi` y garage-048
+
+- **Usuario para Strava: `maxi` (id 2)**, elegido por el usuario tras comprobar
+  que `maxi` y `maxi-manual` tienen los mismos datos (detalle abajo, en la
+  sesión del 31 oct – 1 nov). Receta de TESTING.md con `GARAGE_STRAVA_USER=maxi`.
+- **garage-048** («usa .env, sin miedo»): el helper lee de `.env` sólo
+  `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` y `STRAVA_REFRESH_TOKEN`; el resto
+  del archivo se descarta y el hijo sigue sin abrir `.env` ni guardar tokens.
+  Spec garage-044 §7 (decisiones) y §8 (resultado, hallazgos). Workflow
+  `wf_0b9b17bf-945` (implementar con TDD, revisores de secretos y de casos
+  límite, correcciones). Re-verificado por la sesión principal: suite 2801 + 45,
+  `check` y `makemigrations --check` limpios. Sin probar: la ruta real
+  `<repo>/.env` (la comprueba el usuario con `check`) y Strava real.
+- **Histórico:** con el botón «Importar histórico» (≤5 llamadas y ≤200
+  actividades por pulsación; ante un 429 para y «Continuar» reanuda). El usuario
+  preguntó por reutilizar `load_missing_activities` del legado: descartado
+  (tablas del legado y detalle por actividad); cuota compartida con Stravagancia
+  en Render. Notas en garage-044.
+- **Pendiente de decisión del usuario:** el gancho que impide abrir `.env`
+  distingue mayúsculas y APFS no (`.ENV` lo abriría); anterior a 048; propuesta
+  `casefold()` en `local_strava.py` e `isolation.py`.
+
+## Sesión del 31 oct – 1 nov: garage-046, réplica a mano de ProBikeGarage por la UI
+
+**Petición del usuario.** «Nada de importación, sino que vayas recorriendo en el
+browser lo que tengo y lo pases tú a mano»; «empezar por todo»; «los km que
+salgan de Strava, cuando hayamos hecho una sync»; y al final «todo lo que puedas,
+hacé, no me preguntes; dejá anotado y lo hablamos luego». También confirmó que
+Garage y Stravagancia son **dos apps diferentes** (ya decidido en garage-029/030:
+Garage baja sus propias salidas; nunca reutilizar `Activity` del legado; sólo
+comparten la credencial de la aplicación de Strava).
+
+**Resultado (verificado).** Nuevo usuario de la demo **`maxi-manual` (id 3,
+contraseña igual al nombre, usuario normal)** con **todo** lo de ProBikeGarage
+dado de alta por los formularios de 8766 desde el Chrome del usuario: 46
+categorías (42 del juego inicial + Frenos, Insertos tubeless, Rodamientos,
+Roldanas; los objetos usan 17), 30 tipos, 2 bicis, 50 objetos (19 retirados con
+su fecha), 62 montajes (23 anidados, 26 abiertos), 59 reglas (38 repetibles + 21
+vidas útiles «Sustitución», 2 sin ancla), 8 lecturas de uso inicial (4 piezas) y
+184 intervenciones: 419 envíos, 0 errores de validación. El primer envío de cada
+tipo de formulario se hizo a la vista (rellenar, abrir la zona, UTC, Guardar); el
+resto con `fetch` POST desde la misma pestaña con sesión (mismas vistas y
+validaciones). **Comparado campo a campo con `maxi` (id 2, la salida revisada del
+importador): 0 diferencias**; notas sin CR ni espacios sobrantes.
+`garage_probikegarage_verify` con `--owner 3` y el mapa nuevo sale idéntico byte
+a byte al de `--owner 2`: todo empareja; sólo difieren los usos (0 de 350
+salidas), como se espera sin Strava. Contraste visual de 5 componentes (3
+activos, 2 retirados, uno con anidados) en PBG frente a Garage: coinciden.
+ProBikeGarage en vivo es idéntico al volcado del 25 oct (hashes de 8 familias;
+PBG no sincroniza Strava desde el 18 oct); en PBG sólo se leyó.
+
+**Decisiones tomadas por la IA sin consultar (revisar con el usuario; detalle en
+`bd show garage-046`).** (1) Usuario nuevo en vez de vaciar `maxi` (ni la UI ni
+el admin pueden: FK PROTECT, sin borrado de bicis/objetos/montajes/lecturas).
+(2) Por `StravaAccount.athlete_id` único, el primero que sincronice se queda el
+atleta: con `maxi-manual`, `maxi` ya no podrá. (3) Valores del plan puro
+`build_plan()` del importador (no se ejecutó el importador). (4) Fechas en UTC con
+`time_zone=UTC` en cada envío. (5) Copias antes y después de cada fase. El
+crítico propuso como alternativa sincronizar directamente `maxi`; no se siguió
+por la petición expresa del usuario.
+
+**Archivos (fuera del repo; datos personales):**
+`~/.cache/stravagancia/probikegarage/manual-replica/worksheet.json` (hoja, 419
+envíos) y `state.json` (id de PBG → UUID de `maxi-manual`);
+mapa `~/.cache/stravagancia/probikegarage/mapping-demo-maxi-manual-2026-11-01.json`;
+copias en `~/.cache/stravagancia/demo-backups/` (`…-baseline`, `…-0026-pre-replica`,
+`…-0047-inventario`, `…-0057-montajes`, `…-0106-reglas`, `…-0115-intervenciones`;
+41 TABLE DATA cada una). **Restauración ensayada** en un clúster desechable
+(55435, borrado): 41 tablas, 1262 filas, 0 diferencias. La receta de
+restauración tras un reinicio: `garage_demo_pg.py start` (clúster vacío) →
+`pg_restore` de la última copia → `migrate` (en ese orden; si se migra antes,
+`pg_restore` falla).
+
+**1 nov, más tarde (con el usuario): Strava va a `maxi`, no a `maxi-manual`.**
+El usuario preguntó si los dos tenían los mismos datos y, tras la respuesta,
+eligió `maxi` (id 2). Comprobado ese día, sólo lectura: exportación de las tablas
+de los dos dueños y comparación tabla por tabla, **0 diferencias**; recuentos
+iguales (30 tipos, 2 bicis, 50 objetos, 62 montajes, 59 reglas, 8 lecturas, 184
+intervenciones); `garage_probikegarage_verify` de `--owner 2` y `--owner 3`
+idénticos (333 líneas). Sólo cambian las categorías (`maxi` 17, las usadas;
+`maxi-manual` 46 con las de serie, usa las mismas 17) y que `maxi` tiene sus 2
+`StravaGear` ya vinculadas; la sincronización las
+reutiliza por `(owner, gear_id)` (`garage/services/strava_sources.py`). Ninguna
+`StravaAccount` existía. `maxi-manual` queda sin Strava, como referencia (no se
+borra sin que el usuario lo pida). Esto sustituye la decisión (2) de arriba.
+
+**Lo que queda al usuario (en este orden).** Confirmar la spec de garage-044
+(D1–D11, sobre todo D4 y D5); en su Terminal, la receta de TESTING.md
+«garage-044» **con `GARAGE_STRAVA_USER=maxi`**: «Sincronizar ahora», comprobar
+en Más → Strava → «Bicis de Strava» que las 2 bicis salen vinculadas,
+«Importar histórico» una vez **cambiando la fecha a 2012-01-01** y «Continuar»
+hasta completado. Después la IA lanza la verificación (sólo lectura, con
+`garage_demo_pg.py run … --owner 2` y `mapping-demo-maxi-2026-10-29.json`) y lista las
+salidas de Strava que PBG no tenía (VirtualRide/GravelRide/EBike, posteriores al
+25 oct o editadas), que el usuario decide aceptar o excluir. Referencia de PBG por bici: fuera del repo, en
+`~/.cache/stravagancia/session-2026-11-03/referencias-reales.md`; diferencias esperadas en la verificación:
+las 8 explicadas en la spec del importador (§10 y D10).
+
+**Feedback de UI encontrado al cargar:** recogido en **garage-047** (sin
+priorizar; no tocar nada hasta hablarlo con el usuario).
+
+**Efecto en el Chrome del usuario:** su pestaña de 8766 queda con la sesión de
+`maxi-manual` (8766 comparte cookies: la de `maxi` se cerró). Procesos al cerrar:
+demo 8766 (PID 46807, `GARAGE_STRAVA_USER=demo`), tablero 8765 y PostgreSQL
+55433/55434 siguen en marcha desde el 29 oct; nada en 8767. Repo: sin cambios de
+código; sólo documentación y Beads; sin commits ni push.
+
+## Sesión del 29 oct (Fable orquestando, agentes Opus): clústeres recreados, garage-044 y garage-045
+
+El usuario pidió aprovechar un par de horas sin él («haz lo que puedas de lo que
+haya pendiente, usa subagentes, a las 23:00 corta»). Hecho:
+
+- **Los clústeres de /private/tmp habían desaparecido** (reinicio del Mac
+  después del 26 oct). Recreados: pruebas 55434 (`garage_test_pg.py start`,
+  estado `/private/tmp/garage018_pg_state.json`, datos
+  `/private/tmp/garage018-validation-nm4spa8e`) y demo 55433
+  (`garage_demo_pg.py start` + `migrate` + `tools/garage_demo_seed.py`; estado
+  `/private/tmp/garage_demo_pg_state.json`, datos `/private/tmp/garage018-demo-hz3itws9`).
+  Demo 8766 (`GARAGE_STRAVA_USER=demo`) y tablero 8765 relanzados en segundo
+  plano (`/private/tmp/garage-demo-8766.log`, `/private/tmp/garage-board-8765.log`).
+- **`maxi` recreado en la demo** (id 2, staff y superusuario, contraseña «maxi»
+  como pidió el 25 oct; anotado en `~/.cache/stravagancia/garage-demo-users.json`)
+  y **la importación de ProBikeGarage repetida por Fable** (esta vez el
+  clasificador de permisos no la bloqueó): 0 errores, los mismos 6 avisos del
+  25 oct, 17 categorías, 2 bicis vinculadas a Strava, 50 objetos (19
+  retirados), 62 montajes, 30 tipos, 38 reglas + 21 vidas útiles, 184
+  intervenciones, 8 lecturas, 0 salidas. **Mapa nuevo**
+  `~/.cache/stravagancia/probikegarage/mapping-demo-maxi-2026-10-29.json` (el
+  del 25 oct ya no sirve: los UUID cambiaron con el clúster). Entrada de `maxi`
+  verificada por HTTP (`/accounts/login/` → 302 y `/garage/` con sesión).
+  `garage_probikegarage_verify` con el mapa nuevo funciona y muestra, como se
+  esperaba sin salidas, sólo diferencias de uso (−210/−133 salidas por bici y
+  sus km/h/m, y lo mismo por componente); la salida quedó fuera del repo.
+- **garage-044** (ajustes locales con Strava real): spec diseñada por Fable en
+  `.claude/specs/2026-10-29-garage-ajustes-locales-strava-spec.md` (D1–D11,
+  pruebas §2, entrega §3; **el usuario no la ha confirmado aún**: todo es
+  aditivo y reversible) e implementada por un agente Opus (resultado más abajo,
+  «Resultado de los agentes»).
+- **garage-045** (nuevo bead): integrar `dd607f6` y `45a7cf6` de `main` en
+  `garage`. Un agente Opus preparó la fusión en un worktree aparte con la rama
+  `garage-integrate-main` (merge commit **sólo** en esa rama; `garage` y su
+  árbol de trabajo intactos; sin push). El usuario decide adoptarla o borrarla
+  (comandos más abajo).
+
+### Resultado de los agentes (29 oct)
+
+**garage-045, fusión de `main` (agente Opus, 20:40–20:55 CET; verificada por
+Fable con `git log`/`git worktree list`):** rama `garage-integrate-main`,
+merge commit `c3eb532` (padres `576ec9c` = `garage` y `45a7cf6` = `main`),
+worktree en `<scratchpad de la sesión>/wt-integrate-main`
+(`/private/tmp/claude-501/-Users-maxicombina-src-learning-django-stravagancia/ef971d05-45f5-465c-aa33-345363cac96c/scratchpad/wt-integrate-main`;
+`git worktree list` lo muestra). `garage` y su árbol de trabajo intactos; sin
+push; sin `Co-Authored-By` (regla del usuario). Hallazgos:
+
+- Conflicto real sólo en `strava_integration/tests.py`: se conservaron las
+  pruebas de ambos lados; a las de `main` se les añadió `owner_id` (en `garage`
+  el legado sólo procesa eventos de su atleta). `views.py` se fusionó solo (el
+  handoff anterior lo daba por conflicto): orden JSON-objeto →
+  `subscription_matches` → `accept_event` de Garage (pista guardada, hilo tras
+  el commit) → filtro `Athlete.strava_id` → `create` lanza el hilo
+  `create-<id>` y responde; `update` síncrono sin renombrar; `delete` igual.
+  `settings.py`: barrera de pytest, `_force_ipv4_outbound`
+  (`GEOCODING_FORCE_IPV4`/`RENDER`) tras `load_dotenv`, bloque de Garage
+  intacto. `conftest.py`: `install()` arriba, reinicio de geocodificación y
+  fixture `app_caplog` de `main`.
+- Arreglos que exigió la fusión (13 + 1 pruebas fallaban al principio): la
+  tabla de verdad IPv4 de `main` importaba `strava_app.settings` (rechazado
+  bajo pytest) → ahora compila la función con `ast`; la prueba de subproceso
+  de `main` habría leído el `.env` real → `PYTHON_DOTENV_DISABLED=1` + audit
+  hook; `test_webhook_ignores_events_of_other_athletes` añade
+  `thread_cls.assert_not_called()`;
+  `garage/tests_strava_sync.py::test_legacy_and_garage_both_receive_the_owner_athlete`
+  adaptado al flujo `create-<id>` (único archivo de `garage/` tocado).
+- Suite en el worktree (PostgreSQL 55435 propio, ya parado y borrado):
+  **2733 + 45 subcasos** en 188,75 s (2690 de `garage` + 43 de `main`);
+  `check` y `makemigrations --check` limpios.
+- **Adoptar** (desde `garage`, checkout principal): `git merge --ff-only
+  garage-integrate-main`; después `git worktree remove <ruta>` y `git branch
+  -d garage-integrate-main`. Los archivos sin seguimiento de garage-044 no
+  tocan los 7 archivos de la fusión. Si antes se hace otro commit en `garage`,
+  usar `git merge garage-integrate-main`. **Descartar**: `git worktree remove
+  --force <ruta> && git branch -D garage-integrate-main`. Riesgo: las pruebas
+  de 044 no se ejecutaron contra la fusión; tras adoptarla, pasar la suite
+  completa en el checkout principal. Registros en
+  `<scratchpad>/full-suite.log` (fallos iniciales) y `full-suite-2.log` (verde).
+- **Revisión de la fusión por Workflow (ultracode, 21:12–21:22 CET; 7 agentes
+  Opus: 3 revisores —webhook, pruebas, ajustes/geocodificación— y 2
+  verificadores escépticos por hallazgo): 0 defectos introducidos por la
+  fusión.** `views.py` = `main` + hunks de `garage`; `settings.py` = `main` +
+  bloque de Garage; `renaming.py`/`tests_renaming.py` idénticos a `main`;
+  `tests.py` 42 pruebas = 37 de `main` + 5 propias de `garage`
+  (`test_webhook_create_dispatches_rename_thread` pasó a llamarse en `main`
+  `test_webhook_create_answers_before_fetching`, que cubre lo mismo y más).
+  Dos hallazgos **anteriores a la fusión** (legado; no corregidos, anotados en
+  garage-045): un POST al webhook con cuerpo no UTF-8 da 500 en vez de 400
+  (`json.loads` lanza `UnicodeDecodeError`, no `JSONDecodeError`; arreglo:
+  `except ValueError`), y las pruebas negativas de `update`/`delete` del
+  legado no distinguen «filtrado por atleta» de «rama ejecutada» (falta una
+  prueba positiva de `update` de un Ride propio). Veredicto: adoptable.
+
+**garage-044 (agente Opus implementador, 20:40–21:00 CET; revisor adversarial
+Opus, 21:05–21:22):** implementada **sin migración** y sin tocar
+`strava_integration/`, `garage/`, `settings.py`, `settings_test.py`,
+`isolation.py`, `manage.py` ni `conftest.py`. Archivos nuevos:
+`strava_app/settings_local.py`, `test_support/local_strava.py`
+(`install_local()` + funciones puras), `tools/handoff/garage_local_strava.py`
+(`check` / `serve [puerto]` / `run <comando de manage.py>`),
+`tests_local_strava.py`; docs: TESTING.md («garage-044», con la receta del
+usuario), docs/garage-data-sources.md, tools/handoff/README.md,
+docs/validation/garage-044.json. Primera verificación: suite **2738 + 45**
+(191,37 s). Desviaciones del implementador en la spec §4. **Revisión
+adversarial (spec §5, `tests_local_strava_review.py`, 7 pruebas
+`test_r044_n`): 11 hallazgos**, dos importantes: (R1) un `--` en `run` dejaba
+el `--settings` suelto y `manage.py` habría cargado producción (Neon);
+(R2) con `GARAGE_LOCAL_DEBUG=1` la página 500 mostraba `client_secret` y
+`refresh_token` si el guardián de red saltaba dentro de
+`refresh_access_token()`. Menores: sin `django.request` en `LOGGING` un 500 no
+deja traza; el guardián no filtraba el método HTTP (un `PUT` a Strava
+pasaría); la receta dejaba el `export` en `~/.zsh_history`. Nits:
+`diffsettings` imprime `GARAGE_SYNC_TOKEN`; cookies de sesión compartidas con
+la demo; `serve` en 8766 choca con la demo; recuento de funciones;
+duplicaciones. Fable decidió aplicar R1–R10 (DJANGO_SETTINGS_MODULE en el
+hijo + `--settings` tras el subcomando; sin `GARAGE_LOCAL_DEBUG`; guardianes
+con `OSError` → `ConnectionError` → «network»; `django.request` ERROR; sólo
+`GET /api/v3/…` y `POST /oauth/token`; cookies propias; `serve` en 8767;
+`diffsettings` rechazado; `export` con espacio delante y nunca con `!` en
+Claude Code). **Correcciones aplicadas y re-verificadas (implementador Opus,
+21:25–21:35 CET; spec §6)**: R1–R10 hechas, R11 ya cubierto; `NetworkDenied`
+deriva de `requests.exceptions.ConnectionError` (y por tanto de `OSError`)
+para que también el rechazo de `Session.send` acabe como «network» en Garage;
+única prueba del revisor adaptada, `test_r044_4` (`except NetworkDenied`);
+7 mutaciones comprobadas. Re-verificación: 113 pruebas de los tres archivos
+(9 + 53 + 51), `check` y `makemigrations --check` limpios, **suite completa
+2752 + 45 subcasos (189,08 s)**, 0 bases residuales, `check` sintético contra
+la demo OK y `run diffsettings` rechazado (Fable repitió las pruebas rápidas,
+`inspect` y los dos `check`: iguales). `docs/validation/garage-044.json`
+(status `implemented_reviewed_fixed`, bloque `review`). Segunda ronda de
+revisión por workflow (lentes «fuga/escape» y «receta de punta a punta con
+valores sintéticos») lanzada a las 21:38; su resultado, más abajo si llegó
+antes del corte. **Pendiente del usuario: confirmar D1–D11 con los cambios de
+§6 (D5, D6, D8, D9 cambiaron) y ejecutar la receta en su Terminal** (nunca la
+IA): ` export` de las credenciales **solo y con espacio delante** (un bloque
+pegado se guardaría en el historial), `check`, `serve` (8767), «Sincronizar
+ahora», «Importar histórico» desde 2012-01-01 **una sola vez** y después
+«Continuar importación» hasta completado, `garage_probikegarage_verify` con el
+mapa del 29 oct y, al acabar, `unset` de las tres variables.
+- **Segunda ronda de revisión por Workflow (21:38–22:04 CET; 8 agentes Opus:
+  lentes «fuga/escape» y «receta de punta a punta con valores sintéticos», un
+  verificador por hallazgo): 0 defectos en el código corregido.** La receta
+  funciona con valores sintéticos: `check`, `serve 8767`, login, Garaje, Más →
+  Strava (sin llamar a Strava), listas, estáticos, PWA; cookies
+  `garage_local_sessionid`/`garage_local_csrftoken`; convive con la demo 8766;
+  `run garage_probikegarage_verify --help` y `run migrate --plan` funcionan;
+  `test`/`shell`/`diffsettings`/`migrate -- x` rechazados. Dos hallazgos
+  confirmados, de documentación, ya corregidos (TESTING.md, spec D9, README):
+  pegar el bloque de la receta relleno guardaría las credenciales en
+  `~/.zsh_history` (zsh sólo mira el primer carácter del comando entero: la
+  línea va sola) y «2 pulsaciones» de «Importar histórico» era engañoso
+  (la segunda crea otro trabajo desde la página 1; se sigue con «Continuar
+  importación»). Notas sin cambio: `check` no comprueba que el clúster 55433
+  responda (falla alto y claro en `serve`); las variables exportadas siguen en
+  la shell después (`unset` al acabar; visibles con `ps -E` para el mismo
+  usuario).
+
+### Al cerrar la sesión del 29 oct (~22:15 CET)
+
+- **Quedan en marcha a propósito** (el usuario pidió cortar el trabajo a las
+  23:00, no apagar lo local): demo 8766 (`settings_test`, `GARAGE_STRAVA_USER=demo`,
+  log `/private/tmp/garage-demo-8766.log`), tablero 8765
+  (`/private/tmp/garage-board-8765.log`), PostgreSQL 55433 (demo, con `maxi`
+  importado) y 55434 (pruebas). Para parar sin perder la demo: `kill` de los
+  dos `runserver`/`garage_progress.py` y `pg_ctl -D <root>/data -m fast stop`
+  con los roots de los ficheros de estado (nunca la acción `stop` del helper de
+  la demo). Un reinicio del Mac borra `/private/tmp`: receta de recuperación en
+  «Última entrega: garage-043», último punto.
+- Worktree `wt-integrate-main` (scratchpad de la sesión) y rama
+  `garage-integrate-main` (`c3eb532`) a la espera del usuario (adoptar o
+  borrar; comandos arriba). Si el scratchpad desaparece, `git worktree prune`;
+  la rama sigue.
+- Sin commits en `garage` ni push. Cambios sin seguimiento: los archivos de
+  garage-044 (`strava_app/settings_local.py`, `test_support/local_strava.py`,
+  `tools/handoff/garage_local_strava.py`, `tests_local_strava.py`,
+  `tests_local_strava_review.py`, spec y `docs/validation/garage-044.json`);
+  modificados: CLAUDE.md, TESTING.md, GARAGE_TASKS.md, docs (handoff,
+  contexto, data-sources, progress-state), `tools/handoff/README.md`,
+  `.beads/issues.jsonl` (garage-044 in_progress con notas, garage-045 nuevo).
+- **Siguiente acción concreta**: el usuario (1) decide garage-045 (`git merge
+  --ff-only garage-integrate-main` desde `garage` y, después, suite completa
+  en el checkout principal con las pruebas de 044), (2) confirma la spec de
+  garage-044 (D1–D11 con §6) y (3) ejecuta la receta de TESTING.md
+  («garage-044») en su Terminal: histórico de Strava de `maxi` y
+  `garage_probikegarage_verify`. Nada de esto lo hace la IA. Después,
+  feedback de UI en la demo y, al final, el despliegue (garage-023).
 
 ## Aviso importante: migraciones de Garage aplicadas en producción (Neon)
 
@@ -188,8 +582,11 @@ Especificación con el mapeo y las decisiones D1–D12:
   su root y puerto); después `garage_demo_pg.py run manage.py runserver
   127.0.0.1:8766 --noreload --insecure --settings=strava_app.settings_test` con
   `GARAGE_STRAVA_USER=demo` y `tools/garage_progress.py` para el tablero. Si
-  los datos se perdieron, `garage_demo_pg.py start` crea un clúster nuevo con el
-  seed ficticio y hay que repetir la importación de `maxi` (comando de arriba).
+  los datos se perdieron (pasó el 29 oct): `garage_demo_pg.py start` (clúster
+  vacío), `run manage.py migrate --settings=strava_app.settings_test`,
+  `run tools/garage_demo_seed.py`, recrear `maxi` (id 2, staff y superusuario)
+  y repetir la importación con un `--mapping` **nuevo** (el importador rechaza
+  un mapa existente); el vigente es `mapping-demo-maxi-2026-10-29.json`.
   OrbStack/Docker también parado (`orbctl stop`; sólo corrían contenedores
   `mcp/grafana` de Claude).
 
@@ -712,12 +1109,13 @@ Límites declarados:
 4. **garage-022** depende de 010; **garage-023**: logger `garage`, `STORAGES`,
    docker-compose sin migrate contra Neon.
 5. **garage-043** (25 oct): importador de ProBikeGarage implementado, revisado,
-   re-verificado y **aplicado al volcado real** por el usuario en la demo 55433
-   (usuario `maxi`; sección «Última entrega» arriba). Queda: que el usuario
-   entre en la demo y revise el inventario; **garage-044** (ajustes locales
-   con Strava real: sin ellos el histórico no puede descargarse, ver el aviso
-   en «Última entrega»); después el histórico desde 2012-01-01,
-   `garage_probikegarage_verify` y confirmar D1–D12.
+   re-verificado y aplicado al volcado real (el 25 oct por el usuario; base
+   perdida con un reinicio y **repetida el 29 oct** por Fable con el mapa
+   `mapping-demo-maxi-2026-10-29.json`; sección «Sesión del 29 oct»). Queda:
+   que el usuario revise el inventario como `maxi`; confirmar la spec de
+   **garage-044** (implementada y revisada el 29 oct) y seguir su receta
+   (TESTING.md «garage-044»): histórico desde 2012-01-01,
+   `garage_probikegarage_verify` con el mapa del 29 oct y confirmar D1–D12.
    **garage-042** implementada y verificada (19 oct); falta que el usuario la
    pruebe en la demo y decida la nota menor de las acciones con retirada
    programada. **garage-030**: fases 1–4 hechas en modo token (la 4, sin migración).
@@ -739,10 +1137,13 @@ Límites declarados:
    `getaddrinfo`) y `45a7cf6` (el webhook `create` responde antes de pedir el
    detalle: fetch → store → rename en el hilo `create-<id>`; `settings.py` fuerza
    IPv4 saliente en Render salvo `GEOCODING_FORCE_IPV4=0`). Desplegados en Render
-   con autodeploy. `garage` **no los tiene**: al integrarlos,
-   `strava_integration/views.py` chocará con los cambios de garage-030
-   (`accept_event`/`subscription_matches`); conservar ambos. Suite de `main`:
-   138 tests con PostgreSQL local (sin `.env`).
+   con autodeploy. **garage-045 (29 oct)**: fusión preparada en la rama
+   `garage-integrate-main` (merge `c3eb532`, worktree aparte, sin push;
+   `garage` sigue en `576ec9c`). `views.py`, `settings.py` y `conftest.py` se
+   fusionaron solos; el único conflicto real fue `strava_integration/tests.py`.
+   Suite en el worktree 2733 + 45; revisión por workflow: 0 defectos de la
+   fusión. El usuario la adopta (`git merge --ff-only garage-integrate-main`
+   desde `garage`) o la borra (ver «Sesión del 29 oct»).
 
 ## Estado de tareas y evidencia
 
@@ -756,11 +1157,14 @@ Informes: docs/validation/garage-0{17,18,19,20}.json y docs/garage-validation.js
 con el reinicio del 13–16 oct (actualización de macOS); los JSON del repo
 conservan los resultados.
 
-## PostgreSQL de pruebas y demo (recreados el 16 oct)
+## PostgreSQL de pruebas y demo (recreados el 29 oct)
 
 Pruebas: 127.0.0.1:55434, base stravagancia_test_018, rol stravagancia_test
 (sin superusuario, contraseña sintética stravagancia_test). Estado en
-/private/tmp/garage018_pg_state.json, datos en /private/tmp/garage018-validation-zhirv99e.
+/private/tmp/garage018_pg_state.json, datos en /private/tmp/garage018-validation-nm4spa8e.
+Demo: estado /private/tmp/garage_demo_pg_state.json, datos
+/private/tmp/garage018-demo-hz3itws9 (contiene la importación real de `maxi`:
+no usar la acción `stop` del helper, que borra los datos).
 
 ```bash
 export GARAGE_TEST_PYTHON=/Users/maxicombina/.cache/stravagancia/venv-macos/bin/python

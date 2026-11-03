@@ -26,7 +26,8 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
   el usuario los pida: el 25 oct 2026 pidió «commit de todo» (`5e422c8`, todo
   el trabajo de Garage; quedaron fuera la base binaria de Metabase modificada y
   `.serena/`) y autorizó un push de `garage` a `origin` (repo público; sin PR;
-  `main` intacto). Ningún push ni commit posterior sin que lo pida.
+  `main` intacto). El 3 nov pidió otro commit del trabajo pendiente (sin push).
+  Ningún push ni commit posterior sin que lo pida.
 - Hay muchísimo código nuevo sin seguimiento Git. No ejecutar git clean/reset,
   checkout de archivos, stash ni borrar cambios para preparar el trabajo.
 - Continuar implementación necesaria, pruebas y revisión adversarial, en orden
@@ -37,6 +38,12 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
   Revisores independientes no editan los archivos compartidos.
 - Neon/producción: **sólo lectura** si hace falta contexto. Ninguna migración,
   prueba, carga ni corrección allí. No leer/modificar .env para preparar pruebas.
+  **Única excepción (1 nov 2026, el usuario: «usa .env, sin miedo»):** el helper
+  `tools/handoff/garage_local_strava.py` lee de `.env` sólo `STRAVA_CLIENT_ID`,
+  `STRAVA_CLIENT_SECRET` y `STRAVA_REFRESH_TOKEN` para el servidor local de
+  Strava (garage-048, spec garage-044 §7). El servidor hijo sigue sin abrir
+  `.env`; nada más del archivo (las `DB_*` y `NEON_PASSWORD` son de Neon) sale de
+  ahí; la IA nunca muestra sus valores y ninguna prueba lee el `.env` real.
 - No iniciar Docker Compose completo: su servicio Django apunta a Neon y ejecuta
   migraciones en producción. **Ya ocurrió el 12 oct 2026**: `garage.0001`–`0008`
   están aplicadas en Neon. No editar ni reordenar esas migraciones; las nuevas,
@@ -47,10 +54,14 @@ validan código posterior. Los informes actuales están en docs/garage-validatio
   aplicaciones móviles ni cobros como ampliación rutinaria.
 - Bucket/credenciales de fotos y despliegue siguen pendientes de una propuesta
   y autorización concretas. No crear credenciales ni hacer público un bucket.
-- Strava como fuente de Garage: decidido (garage-029, 12 oct 2026) pero **aplazado**
-  en garage-030. Hasta que el usuario la active: no implementarla, no crear sus
-  migraciones ni ejecutar sincronizaciones Strava para Garage. Nunca reutilizar las
-  tablas Activity del legado como histórico propio (opción descartada).
+- Strava como fuente de Garage: decidida (garage-029, 12 oct 2026) y **activada
+  por el usuario el 18 oct en «modo token»** (garage-030, fases 1–4 hechas; 0010
+  y 0012 sólo locales). Nadie la ha probado contra Strava real: la sincronización
+  real la ejecuta el usuario con sus credenciales, exportadas en su shell o,
+  desde garage-048, leídas de `.env` por el helper (receta de garage-044 en
+  TESTING.md), nunca la IA. OAuth por usuario (garage-040) sin
+  empezar. Nunca reutilizar las tablas Activity del legado como histórico propio
+  (opción descartada).
 - No copiar la muestra FIT personal al repositorio, fixtures, documentos o demo.
 
 ## Retomar ahora
@@ -93,6 +104,81 @@ apunta a Neon; hace falta un módulo de ajustes local con PostgreSQL 55433 y las
 variables Strava del usuario), y `garage_probikegarage_verify` (detalle en
 docs/garage-handoff.md).
 
+**29 oct 2026 (Fable + agentes Opus, sesión sin el usuario, 20:30–23:00 CET).**
+Los clústeres de `/private/tmp` habían desaparecido con un reinicio: recreados
+55434 (pruebas) y 55433 (demo con seed), demo 8766 y tablero 8765 relanzados,
+`maxi` (id 2, contraseña «maxi») recreado y **la importación de ProBikeGarage
+repetida** (0 errores, 6 avisos; mapa nuevo
+`~/.cache/stravagancia/probikegarage/mapping-demo-maxi-2026-10-29.json`).
+**garage-044**: spec `.claude/specs/2026-10-29-garage-ajustes-locales-strava-spec.md`
+(D1–D11, **pendiente de que el usuario la confirme**; D5/D6/D8/D9 cambiaron en
+§6), implementación por Opus, revisión adversarial (§5, 11 hallazgos) y
+correcciones re-verificadas (§6): `strava_app/settings_local.py`,
+`test_support/local_strava.py`, `tools/handoff/garage_local_strava.py`
+(`check` / `serve [8767]` / `run`), `tests_local_strava.py` y
+`tests_local_strava_review.py`. Suite **2752 + 45**
+(docs/validation/garage-044.json). Receta en TESTING.md («garage-044»): la
+ejecuta el usuario en su Terminal con sus credenciales, nunca la IA.
+**garage-045** (nuevo): fusión de `main` (`dd607f6`, `45a7cf6`) preparada por
+Opus en la rama `garage-integrate-main` (worktree aparte; `garage` intacta;
+sin push): el usuario la adopta con `git merge --ff-only garage-integrate-main`
+desde `garage` o la borra. Al cerrar quedaron **en marcha** la demo 8766, el
+tablero 8765 y los PostgreSQL 55433/55434 (un reinicio los borra; receta en el
+handoff). Detalle y resultados en docs/garage-handoff.md («Sesión del 29 oct»
+y «Al cerrar la sesión del 29 oct»).
+
+**31 oct – 1 nov 2026 (Opus 5.5 como sesión principal tras /model; agentes
+Opus): garage-046, réplica a mano de ProBikeGarage.** El usuario pidió «nada de
+importación»: pasar sus datos a mano por la interfaz desde su Chrome, «todo», con
+los km sacados de Strava tras sincronizar, y «hacé todo lo que puedas, no me
+preguntes; dejá anotado». Hecho y verificado: usuario de la demo **`maxi-manual`
+(id 3, contraseña igual al nombre)** con todo dado de alta por los formularios de
+8766 (419 envíos, 0 errores) e **idéntico campo a campo a `maxi`** (id 2, que
+queda como referencia del importador); `garage_probikegarage_verify --owner 3`
+con `mapping-demo-maxi-manual-2026-11-01.json` empareja todo (sólo faltan los
+usos, sin salidas). Copias de la base en `~/.cache/stravagancia/demo-backups/`
+(restauración ensayada). Decisiones tomadas sin consultar y lo que queda: `bd
+show garage-046`; fricciones de UI vistas al cargar: **garage-047** (sin
+priorizar). **Garage y Stravagancia son apps distintas** (confirmado por el
+usuario). Sólo un usuario puede tener el atleta de Strava
+(`StravaAccount.athlete_id` único). **1 nov, el usuario eligió `maxi` (id 2)
+para Strava**, no `maxi-manual` (que propuso la IA): mismos datos (comparación
+tabla por tabla: 0 diferencias) y `maxi` ya trae vinculadas sus 2 bicis de
+Strava. `maxi-manual` queda sin Strava, como referencia. La receta de TESTING.md
+«garage-044» usa `GARAGE_STRAVA_USER=maxi`. Detalle en docs/garage-handoff.md
+(«Sesión del 31 oct – 1 nov»).
+
+**1 nov 2026, con el usuario paso a paso: garage-048.** «Usa .env, sin miedo»:
+el helper `garage_local_strava.py` lee de `.env` sólo las 3 claves de Strava
+(spec garage-044 §7–§8; el hijo sigue sin abrir `.env`). Implementado por Opus
+con TDD, revisión adversarial y correcciones; re-verificado: suite **2801 + 45**
+(docs/validation/garage-048.json). Falta que el usuario corra `check` (debe
+decir «definida (de .env)») y la sincronización; el histórico se baja con el
+botón «Importar histórico» (sin comando nuevo; no reutilizar
+`load_missing_activities` del legado, notas de garage-044). Pendiente de
+decisión: el gancho de `.env` distingue mayúsculas y APFS no (§8).
+**Por la tarde:** el usuario bajó el histórico (350 salidas; verify `--owner 2`
+350/350, sólo las 3 diferencias esperadas) y un workflow confirmó campo a campo
+que Garage tiene lo mismo que ProBikeGarage (spec 043 §13). **garage-049**:
+tres direcciones visuales en `design/` (maquetas; la app no cambia),
+recomendada la 3 «Telemetría»; **el usuario eligió la 1 «Anillos»** (049
+cerrada). **garage-050**: llevarla a la app; spec
+`.claude/specs/2026-11-01-garage-estilo-anillos-spec.md` en **borrador** (falta
+la crítica adversarial); fuentes ya descargadas en
+`~/.cache/stravagancia/fonts-anillos/`. **El equipo se reinició tras el 1 nov
+~19:50 UTC**: recrear 55433/55434, restaurar
+`demo-backups/garage-demo-2026-11-01-pre-reboot.dump`, relanzar 8766/8765.
+Detalle en el handoff («1 nov ~19:50 UTC» y «1 nov, tarde»).
+
+**3 nov 2026 (Opus 5.5 con el usuario): garage-050 a medias.** La crítica de la
+spec «Anillos» terminó (R1–R29), pero su aplicación se cortó tras F1a por un error
+de la API: faltan F1b–F4, §7 y §8, incluido R1 (cabecera y §9 de la spec). **No
+preguntar §8.1 al usuario hasta terminarla.** El usuario pidió commit del trabajo
+pendiente, sin push; quedan fuera la base de Metabase y `.serena/`. Suite 2801 + 45
+re-ejecutada ese día. Valores reales de bicis retirados de docs y Beads a
+`~/.cache/stravagancia/session-2026-11-03/referencias-reales.md`: nunca al repo.
+Detalle en docs/garage-handoff.md («3 nov»).
+
 **Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
 `0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker
 Compose `web` las aplicaría en producción. La siguiente migración es la
@@ -108,25 +194,37 @@ resolver la sincronización real desde Strava, y el despliegue es lo último.
    demo 8766 (demo / garage-demo); recogerlo en Beads y priorizarlo con él
    antes de tocar nada (el primero, garage-042, ya implementado; falta que lo
    pruebe y decida la nota menor de las acciones con retirada programada).
-   **garage-043** (25 oct, hecha y verificada; volcado real ya importado como
-   `maxi` en la demo 55433): falta que el usuario revise el inventario,
-   **garage-044** (ajustes locales con Strava real; diseñar la spec, acordarla
-   con él, implementar con Opus), el histórico de Strava y
-   `garage_probikegarage_verify`. Después, la sincronización real desde Strava en local
+   **garage-043** (25 oct, hecha y verificada; volcado real importado como
+   `maxi` en la demo 55433, **el usuario destino de Strava**, elegido por el
+   usuario el 1 nov) y **garage-046** (1 nov, réplica a mano idéntica como
+   `maxi-manual`, id 3, queda como referencia sin Strava): falta que el
+   usuario revise garage-047, confirme la spec de **garage-044**
+   (implementada y revisada el 29 oct; D1–D11, sobre todo D4 y D5, y los
+   rechazos del helper §4.1.4) y descargue el histórico con su receta
+   (TESTING.md «garage-044», con `GARAGE_STRAVA_USER=maxi`); después la IA
+   pasa `garage_probikegarage_verify --owner 2` con
+   `mapping-demo-maxi-2026-10-29.json`.
+   Después, la sincronización real desde Strava en local
    (su usuario de Garage para `GARAGE_STRAVA_USER`; el servidor lo arranca él
-   con su token de entorno, nunca leer `.env`; la muestra FIT, spec maestra
+   con las claves de `.env` que lee el helper desde garage-048, o exportadas;
+   la IA no muestra sus valores; la muestra FIT, spec maestra
    §7.3). Sin probar por nadie: Strava y Cloudflare reales. El despliegue
    (garage-023) es lo último.
-2. Pendiente del usuario: su usuario de Garage para `GARAGE_STRAVA_USER`;
-   confirmar el cambio visible de la deducción de iconos (spec 041 §7.7–§8);
+2. Pendiente del usuario: confirmar el cambio visible de la deducción de
+   iconos (spec 041 §7.7–§8);
    garage-040 (OAuth por usuario) anotado, no empezado.
 3. 031: falta sólo instalarla en un teléfono real tras desplegar (023).
 4. 010 espera a que el usuario cree bucket/credencial (propuesta y script listos).
 5. 022 depende de 010. 023: logger `garage`, `STORAGES`, docker-compose sin migrate.
 6. Antes de cualquier tarea: comprobar rama, cambios locales, procesos y entorno.
-   **25 oct**: `main` tiene dos commits nuevos del legado (`dd607f6`, `45a7cf6`,
-   renombrado/webhook; ya en Render) que `garage` debe integrar;
-   `strava_integration/views.py` dará conflicto. Detalle en docs/garage-handoff.md §Siguiente paso 7.
+   **garage-045 (29 oct)**: la fusión de `main` (`dd607f6`, `45a7cf6`, legado
+   ya en Render) está preparada en la rama `garage-integrate-main` (merge
+   `c3eb532`, worktree aparte; 2733 + 45 en verde allí; revisión por workflow:
+   0 defectos de la fusión). Único conflicto real: `strava_integration/tests.py`
+   (`views.py`, `settings.py` y `conftest.py` se fusionaron solos). `garage`
+   sigue en `576ec9c`, sin push. El usuario la adopta (`git merge --ff-only
+   garage-integrate-main` desde `garage`) o la borra. Detalle en
+   docs/garage-handoff.md («Sesión del 29 oct»).
 7. En macOS, `cp`/`rm` piden confirmación (alias): usar `/bin/cp -f` y `/bin/rm -f`
    en mutaciones y restauraciones, y comprobar el hash al restaurar.
 

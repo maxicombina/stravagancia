@@ -46,7 +46,7 @@ Cada tarea contiene contexto, archivos previstos, alcance, criterios de aceptaci
 
 Inventario, fotos y motor con datos sintéticos avanzan sin esperar a una integración externa. Hay una muestra FIT original autorizada en Descargas; validada con el importador final, sin incorporarla al repositorio. La integración existente permanece separada de los nuevos contadores.
 
-La validación conjunta más reciente ejecutó **1730 pruebas y 12 subtests, todos pasaron**, con PostgreSQL 18.6 desechable y migraciones hasta 0008. También pasaron `manage.py check` y `makemigrations --check --dry-run`. La integración externa de fotos no forma parte de esa evidencia. `garage-020` está completada (ver [validación](docs/validation/garage-020.json)). `garage-022` sigue bloqueada por `garage-010`, que necesita una prueba en un bucket privado real con autorización explícita del usuario. Ver [estado de relevo](docs/garage-handoff.md).
+La validación conjunta más reciente (garage-044, 29 oct) ejecutó **2738 pruebas y 45 subcasos, todos pasaron**, con PostgreSQL 18.6 local (55434) y migraciones hasta 0012 (0009–0012 sólo locales; la 0013, reservada); ver docs/validation/garage-044.json. La de 1730 + 12 (garage-020, 11 oct, migraciones hasta 0008) es histórica. También pasaron `manage.py check` y `makemigrations --check --dry-run`. La integración externa de fotos no forma parte de esa evidencia. `garage-020` está completada (ver [validación](docs/validation/garage-020.json)). `garage-022` sigue bloqueada por `garage-010`, que necesita una prueba en un bucket privado real con autorización explícita del usuario. Ver [estado de relevo](docs/garage-handoff.md).
 
 `garage-013` y `garage-021` están cerradas por **no aplicabilidad**, sin implementar adaptador ni cola Strava para Garage, según la decisión de fuentes. Su estado cerrado no representa funcionalidad entregada.
 
@@ -83,7 +83,7 @@ La validación conjunta más reciente ejecutó **1730 pruebas y 12 subtests, tod
 | `garage-027` | Definir notificaciones fuera de la app | `garage-018`, `garage-024` |
 | `garage-028` | Mostrar progreso local de Garage en un tablero | Sin dependencias |
 | `garage-029` | Revisar garage-003: Strava para uso personal — decidido (opción B) | Sin dependencias |
-| `garage-030` | Sincronizar salidas y bicis desde Strava — **aplazada** hasta que el usuario la active | Decisión `garage-029` |
+| `garage-030` | Sincronizar salidas y bicis desde Strava — en curso: fases 1–4 hechas (18 oct, modo token); nadie la ha probado aún con Strava real (garage-044) | Decisión `garage-029` |
 | `garage-031` | Experiencia móvil: web instalable (PWA) para iPhone y Android, estilo B | — |
 | `garage-031.1` | Marco común, instalación (PWA), login, estilo genérico, Más y Añadir | — |
 | `garage-031.2` | Presentación del desgaste e Inicio | `garage-031.1` |
@@ -104,7 +104,7 @@ La validación conjunta más reciente ejecutó **1730 pruebas y 12 subtests, tod
 
 ## Encargo a un agente más ligero
 
-Modelo autorizado actualmente: GPT-6.1 Sol. Entregar una tarea concreta y las secciones relevantes del [plan](GARAGE_PLAN.md), evitando copiar todo el historial de conversación. Revisión previa a avanzar cuando se trate de modelos, migraciones o cálculos. No iniciar varios agentes editando los mismos modelos o migraciones.
+Desde el 18 oct, Fable orquesta y todo agente que se lance es Opus (`model: "opus"`); todo lo que sea implementar (código o pruebas) lo hace un agente Opus. Sol fue el proveedor de las primeras entregas. Entregar una tarea concreta y las secciones relevantes del [plan](GARAGE_PLAN.md), evitando copiar todo el historial de conversación. Revisión previa a avanzar cuando se trate de modelos, migraciones o cálculos. No iniciar varios agentes editando los mismos modelos o migraciones.
 
 Plantilla de encargo:
 

@@ -398,6 +398,21 @@ class StylesheetTests(SimpleTestCase):
                 if "font" in names:  # The shorthand resets it: it has to come after.
                     self.assertGreater(names.index("font-variant-numeric"), names.index("font"))
 
+    def test_figures_are_not_tightened_now_that_their_font_is_not_monospaced(self):
+        # Outfit's digits are close together as they are: pulled closer, «00», «40» and «44» join into a single stroke, in the
+        # most visible figures of Garaje, Taller, Bici and Pieza. Neither the mockup nor the spec tightens them.
+        figures = [rule for rule in contrast.rules(self.css) if "var(--num)" in rule.body or rule.selector == ".stats.four b"]
+        self.assertGreaterEqual(len(figures), 9)
+        for rule in figures:
+            with self.subTest(selector=rule.selector):
+                self.assertFalse(dict(contrast.declarations(rule.body)).get("letter-spacing", "0").startswith("-"))
+
+    def test_the_smallest_figures_get_a_little_air(self):
+        # Measured at scale 3: at 17 px «00» touches even with no spacing, and with .01em it no longer does.
+        for selector in (".trio b", ".stats.four b"):
+            with self.subTest(selector=selector):
+                self.assertEqual(self.rule(selector).get("letter-spacing"), ".01em")
+
     def test_shape_tokens_for_the_next_phases_exist(self):
         tokens = contrast.token_blocks(self.css)["light"]
         for token, value in (("--r-sm", "10px"), ("--r-md", "16px"), ("--r-lg", "22px"), ("--r-xl", "28px"), ("--r-pill", "999px"),

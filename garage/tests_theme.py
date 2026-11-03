@@ -321,3 +321,10 @@ class ThemeScriptTests(SimpleTestCase):
         # And a person who chooses and leaves at once still has it sent: hence keepalive.
         handler = self.source.partition("themeForm.addEventListener('change'")[2]
         self.assertIn("fetch(themeForm.action, { method: 'POST', body: new URLSearchParams(new FormData(themeForm)), keepalive: true })", handler)
+
+    def test_a_tab_follows_the_cookie_when_it_comes_back(self):
+        # Another tab may have changed the theme. Left behind, this one would mark an option the cookie no longer says, and
+        # pressing the marked one fires no change: «Automático» would do nothing. Each event covers what the other misses:
+        # a phone switching tabs changes the visibility, and two windows side by side only move the focus.
+        self.assertIn("document.addEventListener('visibilitychange', () => { if (!document.hidden) followSavedTheme(); });", self.source)
+        self.assertIn("window.addEventListener('focus', followSavedTheme);", self.source)

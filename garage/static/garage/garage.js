@@ -41,6 +41,9 @@
   const followSavedTheme = () => { if (savedTheme() !== (root.dataset.theme || '')) showTheme(savedTheme()); };
   followSavedTheme();
   window.addEventListener('pageshow', event => { if (event.persisted) followSavedTheme(); });
+  // Another tab may have changed it. A phone switching tabs changes the visibility; two windows side by side only move the focus.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) followSavedTheme(); });
+  window.addEventListener('focus', followSavedTheme);
   if (themeForm) {
     const save = themeForm.querySelector('[data-theme-save]');
     if (save) save.hidden = true;

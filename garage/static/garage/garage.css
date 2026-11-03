@@ -418,4 +418,6 @@ details.zone[open] > summary { margin-bottom: 4px; }
     --ink: CanvasText; --ink-2: CanvasText; --line: CanvasText; --field: CanvasText; --primary: CanvasText; --focus: CanvasText; --danger-ink: CanvasText; --card-border: CanvasText;
     --c: CanvasText; --due: CanvasText; --due-150: CanvasText; --due-200: CanvasText; --soon: CanvasText; --ok: CanvasText; --nodata: CanvasText;
   }
+  /* A box-shadow is all that marks the chosen icon, and these colors remove it. */
+  .choice.icons input:checked + label { border-width: 3px; padding: 8.5px 2.5px; }
 }

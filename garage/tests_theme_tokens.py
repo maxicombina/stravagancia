@@ -319,6 +319,22 @@ class StylesheetTests(SimpleTestCase):
                 self.assertNotIn(":root", rule.selector)
                 self.assertNotIn("html", rule.selector)
 
+    def test_the_chosen_icon_shows_in_forced_colors(self):
+        # Its only mark is a box-shadow, which they remove; the radio is out of sight and an icon tile has no tick.
+        selector = ".choice.icons input:checked + label"
+        found = [rule for rule in self.forced_colors_rules() if rule.selector == selector]
+        self.assertEqual(len(found), 1, f"No rule for {selector} in forced colors")
+        chosen = dict(contrast.declarations(found[0].body))
+        self.assertEqual(chosen.get("border-width"), "3px")
+        # The 1,5 px it adds on each side come off the padding: choosing must not rewrap the tile's name.
+        self.assertEqual(self.rule(".choice.icons label").get("padding"), "10px 4px")
+        self.assertEqual(self.rule(".choice label").get("border"), "1.5px solid var(--line)")
+        self.assertEqual(chosen.get("padding"), "8.5px 2.5px")
+        # Same weight as the rule that paints it in normal colors: it has to come later.
+        order = contrast.rules(self.css)
+        normal = max(position for position, rule in enumerate(order) if rule.selector == selector and not rule.conditions)
+        self.assertGreater(order.index(found[0]), normal)
+
     def test_the_chart_table_for_screen_readers_does_not_widen_the_page(self):
         # `.page table` is more specific than `.sr-only`: at 100 % from where it sits, it overflows every page with a chart.
         self.assertEqual(self.rule(".page table").get("width"), "100%")

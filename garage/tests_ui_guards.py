@@ -7,6 +7,8 @@ from django.contrib.staticfiles import finders
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from test_support import contrast
+
 from .models import Bike, Category, Item
 from .services.ownership import create_inventory
 from .test_html import accessible_text, find_all, parse, row_by_href, visible_text
@@ -15,6 +17,23 @@ PAGES = ("index", "bike-list", "item-list", "maintenance", "statistics", "export
          "usage-ride-list", "history", "usage-profile-list", "category-list")
 OTHER_ORIGIN = re.compile(r"(?:https?:)?//[^\s'\")]*", re.IGNORECASE)  # the protocol-relative form too
 CHIP = '<p>Vencido <span aria-hidden="true">≥</span><span class="sr-only">al menos</span> 95 %</p>'
+# D11, one skin for iOS and Android: all a system may still decide is whether something is there and the room it leaves.
+FOR_ONE_SYSTEM = {"display", "height", "min-height", "padding-bottom"}
+
+
+def stylesheet():
+    with open(finders.find("garage/garage.css"), encoding="utf-8") as sheet:
+        return sheet.read()
+
+
+def rules_for_one_system(css):
+    return [rule for rule in contrast.rules(css) if "data-os" in rule.selector + rule.body]  # In the body: nested in another rule.
+
+
+def skin_by_system(css):
+    """What the rules for one system declare beyond FOR_ONE_SYSTEM, as `selector { property }`."""
+    return [f"{rule.selector} {{ {name} }}" for rule in rules_for_one_system(css)
+            for name, _ in contrast.declarations(rule.body) if name.lower() not in FOR_ONE_SYSTEM]
 
 
 class TextHelperTests(SimpleTestCase):
@@ -184,13 +203,90 @@ class PageGuardTests(TestCase):
                 self.assertLessEqual(len(boxes[0].attrs["placeholder"]), 20, boxes[0].attrs["placeholder"])
 
     def test_the_css_names_no_other_origin(self):
-        with open(finders.find("garage/garage.css"), encoding="utf-8") as sheet:
-            css = sheet.read()
-        self.assertEqual(OTHER_ORIGIN.findall(css), [])
+        self.assertEqual(OTHER_ORIGIN.findall(stylesheet()), [])
+
+    def test_each_system_keeps_what_works_differently_on_it(self):
+        # D11: the add button, the way back and the install steps. Both versions go in the page and the stylesheet hides one.
+        def uses(root, tag, cls):
+            return [use.attrs["href"] for node in find_all(root, tag, cls=cls) for use in find_all(node, "use")]
+
+        home, menu, more = self.page("index"), self.page("add"), self.page("more")
+        self.assertEqual(uses(home, "a", "icon-btn only-ios"), ["#i-plus"])
+        self.assertEqual(uses(home, "a", "fab only-android"), ["#i-plus"])
+        self.assertEqual(uses(menu, "svg", "ic only-ios"), ["#i-chev-left"])
+        self.assertEqual(uses(menu, "svg", "ic only-android"), ["#i-arrow-left"])
+        self.assertIn("Compartir", visible_text(find_all(more, "p", cls="only-ios")[0]))
+        self.assertIn("Instalar app", visible_text(find_all(more, "p", cls="only-android")[0]))
+        css = stylesheet()
+        for selector, display in ((".only-android", "none !important"), ('html[data-os="android"] .only-ios', "none !important"),
+                                  ('html[data-os="android"] .only-android:not([hidden])', "revert !important")):
+            with self.subTest(selector=selector):
+                self.assertEqual(contrast.declared(css, selector).get("display"), display)
 
     def test_the_service_worker_leaves_photos_to_the_network(self):
         body = self.client.get(reverse("garage:service-worker")).content.decode()
         self.assertIn("url.pathname.startsWith('/garage/photos/')", body)
+
+
+class OneSkinTests(SimpleTestCase):
+    maxDiff = None  # On failing, the guard's whole list is what says what to look at.
+
+    def test_no_system_has_a_look_of_its_own(self):
+        # D11, measured by what it asks and not by a list of selectors: such a list would only copy the stylesheet.
+        css = stylesheet()
+        self.assertTrue(rules_for_one_system(css), "a stylesheet with no such rules proves nothing")
+        self.assertEqual(skin_by_system(css), [])
+
+    def test_the_way_back_looks_the_same_on_both(self):
+        # Spec §5, `_back.html`: in --primary and with an icon of 24 px, the chevron on iOS and the arrow on Android.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".back").get("color"), "var(--primary)")
+        back_icon = contrast.declared(css, ".back .ic")
+        self.assertEqual((back_icon.get("width"), back_icon.get("height")), ("24px", "24px"))
+
+
+class SkinBySystemTests(SimpleTestCase):
+    """The guard above, on stylesheets written to catch it out: a checker that cannot fail proves nothing."""
+
+    def test_anything_else_a_rule_for_one_system_declares_is_found(self):
+        for declaration in ("color: var(--ink)", "border-radius: 24px", "font-size: 12px", "background: var(--primary-soft)",
+                            "--tabbar: 70px", "transform: none", "padding: 0", "padding-top: 8px", "max-height: 6px", "BORDER-TOP: 0"):
+            with self.subTest(declaration=declaration):
+                self.assertEqual(len(skin_by_system(f'html[data-os="android"] .x {{ {declaration}; }}')), 1)
+
+    def test_only_what_is_there_and_the_room_it_leaves_is_allowed(self):
+        css = """html[data-os="android"] .a { display: revert !important; }
+                 html:not([data-os="android"]) .b { height: 6px; min-height: 0; padding-bottom: 96px; }"""
+        self.assertEqual(skin_by_system(css), [])
+
+    def test_every_way_of_writing_the_attribute_counts(self):
+        for selector in ('html[data-os="ios"] .x', "html[data-os='ios'] .x", "html[data-os=ios] .x", ':root[data-os="android"]',
+                         'html:not([data-os="android"]) .x'):
+            with self.subTest(selector=selector):
+                self.assertEqual(skin_by_system(f"{selector} {{ color: var(--ink); }}"), [f"{selector} {{ color }}"])
+
+    def test_one_system_in_a_list_is_enough(self):
+        self.assertEqual(len(skin_by_system('.a, html[data-os="android"] .b { color: var(--ink); }')), 1)
+
+    def test_a_rule_inside_an_at_rule_is_found(self):
+        css = """@media (min-width: 900px) { html[data-os="android"] .a { color: var(--ink); } }
+                 @supports (display: grid) { @media print { html[data-os="ios"] .b { margin: 0; } } }"""
+        self.assertEqual(skin_by_system(css), ['html[data-os="android"] .a { color }', 'html[data-os="ios"] .b { margin }'])
+
+    def test_a_rule_nested_in_another_is_found(self):
+        self.assertEqual(len(skin_by_system('.a { html[data-os="android"] & { color: var(--ink); } }')), 1)
+
+    def test_every_declaration_is_listed_not_just_the_first(self):
+        self.assertEqual(skin_by_system('html[data-os="android"] .a { color: red; display: none; margin: 0 }'),
+                         ['html[data-os="android"] .a { color }', 'html[data-os="android"] .a { margin }'])
+
+    def test_comments_and_rules_for_everyone_are_left_out(self):
+        css = """/* html[data-os="android"] .a { color: red; } */
+                 .a { color: var(--ink); /* data-os */ }"""
+        self.assertEqual(rules_for_one_system(css), [])
+
+    def test_an_empty_stylesheet_has_nothing_to_list(self):
+        self.assertEqual(skin_by_system(""), [])
 
 
 class OtherOriginPatternTests(SimpleTestCase):

@@ -346,6 +346,22 @@ class StylesheetTests(SimpleTestCase):
         # A delete button already has its border, and it stays: `.btn.danger` outweighs `.btn`.
         self.assertEqual(self.rule(".btn.danger").get("border"), "1.5px solid var(--danger-ink)")
 
+    def test_a_long_word_in_a_name_wraps_instead_of_widening_the_page(self):
+        # Names admit 150 characters. With 20 or more and no space or hyphen, 19 of 69 routes overflowed at 320 px.
+        for selector in (".page h1", ".page h2", ".page h3", ".page h4", ".page p", ".page summary", ".page .help", ".page .field label",
+                         ".checks label", ".timeline", ".gauge-title", ".chip-link"):
+            with self.subTest(selector=selector):
+                self.assertEqual(self.rule(selector).get("overflow-wrap"), "anywhere")
+        self.assertEqual(self.rule(".chip-link").get("min-width"), "0")  # A flex item: without it, it stops at its longest word.
+
+    def test_ordinary_words_are_not_broken_where_they_have_little_room(self):
+        # `anywhere` also lowers an element's minimum width. On the whole page, it left «desconocid/a» on a 390 px phone in a
+        # ride's bike choice and squeezed the figures' captions at 320 px; `break-word` broke that same word.
+        self.assertNotIn("overflow-wrap", self.rule(".page"))
+        for selector in (".stats", ".stats span", ".choice label"):
+            with self.subTest(selector=selector):
+                self.assertNotIn("overflow-wrap", self.rule(selector))
+
     def test_a_link_keeps_its_icon_off_its_text(self):
         # «Posponer aviso» and, from F3b on, «Añadir foto» (spec §4.6): no space between icon and text in their markup.
         self.assertEqual(self.rule(".link .ic").get("margin-right"), "6px")

@@ -100,6 +100,9 @@ html[data-os="android"] .page h1 { font-size: 27px; font-weight: 500; letter-spa
 .page h2 { margin: 0; font-size: 21px; line-height: 1.2; text-wrap: balance; }
 .page h3 { font-size: 17px; margin: 0; }
 .page p { margin: 0; }
+/* What can carry a name, up to 150 characters: a long word wraps instead of widening the page. Only here, not on .page: it also lowers an element's
+   minimum width, and on the whole page it broke ordinary words where they have little room («desconocid/a» in .choice, the captions in .stats). */
+.page h1, .page h2, .page h3, .page h4, .page p, .page summary, .page .help, .page .field label, .checks label, .timeline, .gauge-title, .chip-link { overflow-wrap: anywhere; }
 .lede { color: var(--ink-2); font-size: 14.5px; }
 .messages { list-style: none; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--primary-soft); display: grid; gap: 4px; }
 .messages p { margin: 0; }
@@ -364,7 +367,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .photo-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
 .photo-actions form { margin: 0; }
 .photo-actions .note { flex-basis: 100%; }
-.chip-link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border-radius: 999px; background: var(--primary-soft);
+.chip-link { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 36px; padding: 4px 12px; border-radius: 999px; background: var(--primary-soft);
   color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; }
 .together { border: 0; padding: 0; margin: 18px 0 6px; display: grid; gap: 8px; min-width: 0; }
 .together legend { font-weight: 700; font-size: 17px; margin-bottom: 4px; }

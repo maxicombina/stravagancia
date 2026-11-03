@@ -278,6 +278,12 @@ class StylesheetTests(SimpleTestCase):
         self.assertEqual(self.rule(".sw:checked").get("background"), "var(--primary)")
         self.assertEqual(self.rule(".sw:checked::before").get("background"), "var(--on-primary)")
 
+    def test_the_chart_table_for_screen_readers_does_not_widen_the_page(self):
+        # `.page table` is more specific than `.sr-only`: at 100 % from where it sits, it overflows every page with a chart.
+        self.assertEqual(self.rule(".page table").get("width"), "100%")
+        self.assertEqual(self.rule(".page table.sr-only").get("width"), "1px")
+        self.assertNotIn("display", self.rule(".page table.sr-only"))  # As a block it may stop being a table for some screen readers.
+
     def test_error_text_and_delete_buttons_have_their_own_token(self):
         # D16: --due as text gives 4,49:1 on --bg.
         self.assertEqual(self.rule(".page .errorlist").get("color"), "var(--danger-ink)")

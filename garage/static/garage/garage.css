@@ -309,6 +309,7 @@ html[data-os="android"] .tab[aria-current="page"] .tab-ic { background: var(--pr
 .page dt { font-weight: 650; }
 .page dd { margin: 0 0 10px; color: var(--ink-2); }
 .page table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.page table.sr-only { width: 1px; } /* A chart's table for screen readers: not as wide as the page, from where it sits. */
 .page th, .page td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .table-wrap { overflow-x: auto; }
 .page .pagination { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

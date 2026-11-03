@@ -342,6 +342,13 @@ class ThemeScriptTests(SimpleTestCase):
         self.assertIn("themePost.abort();", leaving)
         self.assertIn("sendTheme({ keepalive: true })", leaving)
 
+    def test_a_choice_that_failed_is_not_sent_again_on_leaving(self):
+        # Only what is on its way is unanswered. A post that failed, with no network, is old by then: going out on leaving,
+        # it could put its cookie over a theme chosen since in another tab.
+        handler = self.source.partition("themeForm.addEventListener('change'")[2]
+        self.assertIn("const settled = () => { if (themePost === post) themePost = null; };", handler)
+        self.assertIn("sendTheme({ signal: post.signal }).then(settled, settled);", handler)
+
     def test_a_tab_follows_the_cookie_when_it_comes_back(self):
         # Another tab may have changed the theme. Left behind, this one would mark an option the cookie no longer says, and
         # pressing the marked one fires no change: «Automático» would do nothing. Each event covers what the other misses:

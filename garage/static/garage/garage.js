@@ -60,7 +60,8 @@
       showTheme(theme);
       if (themePost) themePost.abort();
       const post = themePost = new AbortController();
-      sendTheme({ signal: post.signal }).then(() => { if (themePost === post) themePost = null; }, () => {});
+      const settled = () => { if (themePost === post) themePost = null; };
+      sendTheme({ signal: post.signal }).then(settled, settled);
     });
     window.addEventListener('pagehide', () => {
       if (!themePost) return;

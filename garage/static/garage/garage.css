@@ -305,7 +305,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 
 /* Buttons and sticky actions */
 .actionbar { position: sticky; bottom: calc(var(--nav-space) + 8px); z-index: 2; display: flex; gap: 10px;
-  margin-inline: calc(-1 * var(--s4)); padding: 14px var(--s4) 12px; background: linear-gradient(to bottom, transparent, var(--bg) 32%); } /* To the edge of the page, over the shadow of a card too. */
+  padding: 14px 0 12px; background: linear-gradient(to bottom, transparent, var(--bg) 32%); }
+.page > .actionbar { margin-inline: calc(-1 * var(--s4)); padding-inline: var(--s4); } /* To the edge of the page, over the shadow of the cards above it. Not in a form: it would stick out of the form. */
 /* Under the bar, to the edge of the screen, nothing: on a card, a row cut by the bar showed in the 8 px above the tab bar and around it. Fixed, and not hanging from the bar:
    where the bar stays in the flow, at the end of its parent, it would cover what comes after it. Behind the bar's own buttons, should one come up from below this line. */
 .actionbar::after { content: ""; position: fixed; z-index: -1; left: 0; right: 0; bottom: 0; height: calc(var(--nav-space) + 9px); background: var(--bg); }

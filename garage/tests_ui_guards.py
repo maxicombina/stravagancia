@@ -555,8 +555,11 @@ class ActionBarOverACardTests(SimpleTestCase):
 
     def test_the_band_covers_the_shadow_of_the_card_too(self):
         # As wide as a card, its shadow stayed at each side of the band, two thin lines down to the tab bar. The buttons stay where they were.
-        bar = contrast.declared(stylesheet(), ".actionbar")
-        self.assertEqual((bar.get("margin-inline"), bar.get("padding")), ("calc(-1 * var(--s4))", "14px var(--s4) 12px"))
+        # Only the bar right in the page, the one with cards above it: in a form it would stick out of the form.
+        css = stylesheet()
+        bar = contrast.declared(css, ".page > .actionbar")
+        self.assertEqual((bar.get("margin-inline"), bar.get("padding-inline")), ("calc(-1 * var(--s4))", "var(--s4)"))
+        self.assertNotIn("margin-inline", contrast.declared(css, ".actionbar"))
 
     def test_it_stays_under_the_tab_bar(self):
         css = stylesheet()

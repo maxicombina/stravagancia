@@ -56,10 +56,9 @@
 .st-nodata, .st-snoozed { --c: var(--nodata); --soft: var(--nodata-soft); }
 
 *, *::before, *::after { box-sizing: border-box; }
-/* What takes the focus scrolls clear of the bars. Not with a scroll-margin too: the two would add up. */
+/* What takes the focus scrolls clear of the bars. Not with a scroll-margin too: the two would add up. Its 16 px from 1000 px (§4.5) come with the sidebar of F4a: until then the bar floats there too. */
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px)); scroll-padding-bottom: calc(var(--nav-space) + 24px); }
 html:has(.actionbar, .fab) { scroll-padding-bottom: calc(var(--nav-space) + 104px); } /* Both stand 72 to 84 px above the tab bar. */
-@media (min-width: 1000px) { html, html:has(.actionbar, .fab) { scroll-padding-bottom: 16px; } }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font-body); }
 h1, h2, h3 { font-family: var(--font-display); }
 body.has-tabbar { padding-bottom: calc(var(--nav-space) + 24px); }

@@ -305,6 +305,15 @@ class TightRoomTests(SimpleTestCase):
 
 
 
+class FocusClearOfTheBarTests(SimpleTestCase):
+    def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
+        # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.
+        wide = [rule for rule in contrast.rules(stylesheet()) if any("min-width" in condition for condition in rule.conditions)]
+        lowered = {rule.conditions for rule in wide if "scroll-padding-bottom" in dict(contrast.declarations(rule.body))}
+        moved = {rule.conditions for rule in wide if rule.selector == ".tabbar" and "top" in dict(contrast.declarations(rule.body))}
+        self.assertEqual(lowered - moved, set())
+
+
 class OtherOriginPatternTests(SimpleTestCase):
     def test_it_catches_every_way_of_naming_another_origin(self):
         for css in ("a{background:url(https://x.test/a.png)}", "@import 'http://x.test/a.css';",

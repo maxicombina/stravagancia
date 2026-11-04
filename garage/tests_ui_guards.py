@@ -414,6 +414,16 @@ class ChartTests(SimpleTestCase):
         self.assertNotIn("z-index", contrast.declared(css, ".tip"))
 
 
+class TimelineTests(SimpleTestCase):
+    def test_the_name_and_the_figure_of_a_mount_are_what_stands_out(self):
+        # As in the mockup: 16 px in --ink, the date 14 px in --ink-2. `.timeline span` reached them all: the main things of the row, in the smallest and greyest text.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".timeline span"), {})
+        self.assertEqual(contrast.declared(css, ".timeline li > span > span"), {"font-size": "14px", "color": "var(--ink-2)"})
+        self.assertNotIn("font-size", contrast.declared(css, ".timeline b"))
+        self.assertNotIn("font-size", contrast.declared(css, ".num"), "16 px, as the body")
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.

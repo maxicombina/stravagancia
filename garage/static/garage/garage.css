@@ -245,7 +245,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .timeline li.open::before { background: var(--primary); }
 .timeline li:not(:last-child)::after { content: ""; position: absolute; left: 9px; top: 25px; bottom: -5px; width: 2px; background: var(--line); }
 .timeline b { display: block; font-weight: 650; }
-.timeline span { font-size: 12.5px; color: var(--ink-2); }
+.timeline li > span > span { font-size: 14px; color: var(--ink-2); } /* The date and the list under a name; not the name itself, nor the figure. */
 .num { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
 

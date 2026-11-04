@@ -187,6 +187,12 @@ class WearMetric:
         return self.remaining_text
 
     @property
+    def big_class(self):
+        """Smaller type for a long figure in the large ring: 36 px hold 5 characters, «+24.600» would cross it."""
+        length = len(self.big)
+        return "longest" if length >= 8 else "longer" if length == 7 else "long" if length == 6 else ""
+
+    @property
     def big_caption(self):
         if self.state == "nodata":
             return "sin datos"

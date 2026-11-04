@@ -12,6 +12,8 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
+from test_support import contrast
+
 from .models import Item, MaintenanceRule, ServiceType
 from .presentation import STATES, ring, wear
 from .services import maintenance_due as due_module
@@ -22,6 +24,7 @@ from .services.ownership import create_inventory
 from .services.snoozes import snooze_rule
 from .test_html import accessible_text, find_all, parse, row_by_href, visible_text
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture)
+from .tests_ui_guards import stylesheet
 
 WHEN = datetime(2026, 10, 16, 12, tzinfo=dt_timezone.utc)
 
@@ -343,6 +346,43 @@ class TestLargeGauge:
         label = find_all(panel, "svg", role="img")[0].attrs["aria-label"]
         assert "≈" not in label and "%" not in label
         assert "≈ 95 %" in visible_text(self.gauge_chip(panel))
+
+
+class TestLongFigureInTheLargeGauge:
+    """36 px hold 5 characters. A longer figure would cross the ring, of its own color from 200 % (D21), and lose its first and last digits."""
+
+    @pytest.mark.parametrize("built,figure,expected", [
+        (metric("1450000"), "+450", ""),
+        (metric("0", threshold="7256000", status="current"), "7.256", ""),
+        (metric("0", threshold="10000000", status="current"), "10.000", "long"),
+        (metric("4000000"), "+3.000", "long"),
+        (metric("34600", name="elevation_gain_m", threshold="10000"), "+24.600", "longer"),
+        (metric("0", threshold="100000000", status="current"), "100.000", "longer"),
+        (metric("125600000"), "+124.600", "longest"),
+        (metric("1235567000"), "+1.234.567", "longest"),
+        (metric(None, status="unknown"), "—", ""),
+    ])
+    def test_the_longer_the_figure_the_smaller_its_type(self, built, figure, expected):
+        headline = wear(due_of(built)).headline
+        assert headline.big == figure and headline.big_class == expected
+
+    def test_on_the_screen_of_a_piece(self, garage, client):
+        item, _ = rule_at(garage, 3100)
+        client.force_login(garage.owner)
+        root = parse(client.get(item_url(item)).content.decode())
+        figures = find_all(root, "text", cls="g-num")
+        assert [(visible_text(one), classes(one)) for one in figures] == [("+3.000", {"g-num", "long"})]
+
+    def test_each_length_has_a_smaller_type_than_the_one_before(self):
+        css = stylesheet()
+        assert "36px" in contrast.declared(css, ".gauge .g-num")["font"]
+        sizes = [36] + [int(contrast.declared(css, f".gauge .g-num.{name}")["font-size"].removesuffix("px")) for name in ("long", "longer", "longest")]
+        assert sizes == sorted(set(sizes), reverse=True)
+
+    def test_what_still_touches_the_ring_keeps_a_halo(self):
+        """Nothing limits a figure: «+1.234.567» still reaches the ring, and with its own color only the halo keeps it legible."""
+        figure = contrast.declared(stylesheet(), ".gauge .g-num")
+        assert figure["paint-order"] == "stroke" and figure["stroke"] == "var(--surface)"
 
 
 class TestOtherChipsOfARule:

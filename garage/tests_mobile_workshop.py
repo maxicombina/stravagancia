@@ -1,5 +1,6 @@
 """garage-032.1: local time in forms, rules in km/h, Taller and the intervention screens."""
 import re
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -13,13 +14,17 @@ from django.urls import reverse
 from .forms import UsageBaselineForm
 from .local_forms import LocalDateTimeInput, localize
 from .maintenance_forms import MaintenanceRuleWebForm as MaintenanceRuleForm, ServiceEventWebForm as ServiceEventForm
-from .models import Bike, Item, MaintenanceRule, ServiceEvent, ServiceType
-from .presentation import thresholds
+from .models import Bike, Category, Item, MaintenanceRule, ServiceEvent, ServiceType
+from .presentation import ring, thresholds
+from .services import workshop as workshop_module
 from .services.baselines import record_baseline
+from .services.lifespan import set_lifespan
 from .services.maintenance import save_maintenance
 from .services.ownership import create_inventory
+from .services.snoozes import snooze_rule
 from .services.workshop import EVENT_LIMIT, workshop_snapshot
-from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
+from .test_html import accessible_text, find_all, parse, row_by_href, visible_text
+from .tests_mobile_home import NOW, at, days_ago, garage  # noqa: F401 (fixture)
 from .web_forms import TemporalActionForm
 
 UTC = dt_timezone.utc
@@ -403,3 +408,227 @@ class TestWorkshop:
         kind = save_maintenance(garage.owner, ServiceType, name="Nada")
         assert secured.post(reverse("garage:service-type-delete", args=[kind.pk])).status_code == 403
         assert ServiceType.objects.filter(pk=kind.pk).exists()
+
+
+def workshop_page(client, owner):
+    client.force_login(owner)
+    response = client.get(reverse("garage:maintenance"))
+    assert response.status_code == 200
+    return response.content.decode()
+
+
+def uses(node):
+    return [use.attrs["href"] for use in find_all(node, "use")]
+
+
+def classes(node):
+    return node.attrs.get("class", "").split()
+
+
+def rule_of(garage, item):
+    return MaintenanceRule.objects.get(owner=garage.owner, item=item)
+
+
+class TestGroupsInCards:
+    """Spec F3d, D10: the groups of Taller, in the order they had, each in a card of its own."""
+
+    GROUPS = ["Requiere atención", "Pospuestos", "Sin datos", "En curso y al día"]
+    TITLES = [*GROUPS, "Últimas intervenciones", "Reglas", "Tipos de intervención"]
+
+    def sections(self, html):
+        """Those of the screen: the technical details, folded at its end, are another phase's (F4c)."""
+        return [section for section in find_all(parse(html), "section", aria_labelledby=True) if section.attrs["aria-labelledby"] != "maintenance-alerts-title"]
+
+    def titles(self, html):
+        return [visible_text(find_all(section, "h2")[0]) for section in self.sections(html)]
+
+    def one_in_each_group(self, garage):
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        save_maintenance(garage.owner, MaintenanceRule, bike=garage.gravel, service_type=kind, calendar_days=365, anchor_at=days_ago(10))
+        snooze_rule(garage.owner, rule_of(garage, garage.cleats), calendar_days=3)
+
+    def test_the_groups_keep_their_order(self, garage, client):
+        self.one_in_each_group(garage)
+        assert self.titles(workshop_page(client, garage.owner)) == self.TITLES
+
+    def test_each_group_is_a_card(self, garage, client):
+        self.one_in_each_group(garage)
+        for section in self.sections(workshop_page(client, garage.owner)):
+            assert "card" in classes(section), classes(section)
+
+    def test_each_rule_stays_in_its_group(self, garage, client):
+        self.one_in_each_group(garage)
+        sections = dict(zip(self.TITLES, self.sections(workshop_page(client, garage.owner))))
+        names = {title: [visible_text(find_all(row, cls="entry-name")[0]) for row in find_all(sections[title], "a", cls="entry")] for title in self.GROUPS}
+        assert names == {"Requiere atención": ["Cadena 11v"], "Pospuestos": ["Calas · Calas"], "Sin datos": ["Casco · Revisión"], "En curso y al día": ["Gravel"]}
+
+    def test_a_group_with_nothing_has_no_card(self, garage, client):
+        assert self.titles(workshop_page(client, garage.owner)) == ["Requiere atención", "Sin datos", "Últimas intervenciones", "Reglas", "Tipos de intervención"]
+
+    def test_with_nothing_at_all_the_messages_stay_in_their_cards(self, db, client):
+        from django.contrib.auth import get_user_model
+        html = workshop_page(client, get_user_model().objects.create_user("empty-cards", password="test-only-password"))
+        sections = self.sections(html)
+        assert self.titles(html) == ["Requiere atención", "Últimas intervenciones", "Reglas", "Tipos de intervención"]
+        for section in sections:
+            assert "card" in classes(section) and len(find_all(section, "li", cls="empty")) == 1
+
+    def test_the_rest_of_the_calm_rules_fold_inside_their_card(self, garage, client):
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        for number in range(8):
+            piece = create_inventory(garage.owner, Item, name=f"Pieza {number}", category=garage.helmet.category)
+            save_maintenance(garage.owner, MaintenanceRule, item=piece, service_type=kind, calendar_days=365, anchor_at=days_ago(10))
+        section = find_all(parse(workshop_page(client, garage.owner)), "section", aria_labelledby="calm-title")[0]
+        fold = find_all(section, "details", cls="more")
+        assert "card" in classes(section) and len(fold) == 1 and visible_text(find_all(fold[0], "summary")[0]) == "Ver 2 más"
+        assert len(find_all(fold[0], "a", cls="entry")) == 2 and len(find_all(section, "a", cls="entry")) == 8
+
+    def test_the_date_of_an_intervention_stays_whole(self, garage, client):
+        """A card takes 32 px off the row: at 390 px «27 sep 2025», after the name of the piece, left the year alone on a line."""
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        event = save_maintenance(garage.owner, ServiceEvent, item=garage.chain, service_type=kind, performed_at=at(30))
+        row = row_by_href(workshop_page(client, garage.owner), reverse("garage:service-event-detail", args=[event.pk]))
+        sub = find_all(row, cls="entry-sub")[0]
+        assert visible_text(sub) == "Cadena 11v · 16 sep 2026"
+        assert [visible_text(span) for span in find_all(sub, "span", cls="nowrap")] == ["16 sep 2026"]
+
+
+class TestPostponedAndNoDataRows:
+    """Spec F3d, §4.1, §7.1.5: the ring with the icon of the piece, and a chip, for what their old tile was the only icon of the state."""
+
+    @pytest.fixture
+    def bottle(self, garage):
+        """The pieces of the fixture wear an icon of their own, neither the clock nor the question mark nor what a name would suggest."""
+        Category.objects.filter(owner=garage.owner).update(icon="bottle")
+
+    def postponed(self, garage, client, item=None, **amounts):
+        rule = rule_of(garage, item or garage.cleats)
+        snooze_rule(garage.owner, rule, **(amounts or {"calendar_days": 3}))
+        return row_by_href(workshop_page(client, garage.owner), reverse("garage:maintenance-rule-snooze", args=[rule.pk]))
+
+    def row_without_data(self, garage, client, href):
+        """In its group: «Reglas» links to the same editor."""
+        section = find_all(parse(workshop_page(client, garage.owner)), "section", aria_labelledby="nodata-title")[0]
+        rows = find_all(section, "a", cls="entry", href=href)
+        assert len(rows) == 1, rows
+        return rows[0]
+
+    def without_data(self, garage, client):
+        return self.row_without_data(garage, client, reverse("garage:maintenance-rule-edit", args=[rule_of(garage, garage.helmet).pk]))
+
+    def assert_ring_of_the_bottle(self, row):
+        rings = find_all(row, "svg", cls="ring", aria_hidden="true")
+        assert len(rings) == 1 and uses(rings[0]) == ["#i-bottle"]
+        assert len(find_all(rings[0], "use", cls="ring-glyph")) == 1
+        assert not find_all(row, cls="glyph")
+
+    def test_a_postponed_row_has_the_ring_with_its_piece(self, garage, client, bottle):
+        self.assert_ring_of_the_bottle(self.postponed(garage, client))
+
+    def test_a_row_without_data_has_the_ring_with_its_piece(self, garage, client, bottle):
+        self.assert_ring_of_the_bottle(self.without_data(garage, client))
+
+    @pytest.mark.parametrize("build,state,icon,word", [("postponed", "snoozed", "#i-clock", "Pospuesto"), ("without_data", "nodata", "#i-help", "Sin datos")])
+    def test_the_chip_says_the_state_without_color(self, garage, client, build, state, icon, word):
+        row = getattr(self, build)(garage, client)
+        chips = find_all(row, "span", cls="chip")
+        assert len(chips) == 1 and uses(chips[0]) == [icon]
+        assert visible_text(chips[0]) == word
+        assert classes(chips[0]) == ["chip", f"st-{state}"] and f"st-{state}" in classes(row)
+        assert find_all(chips[0], "svg", cls="ic xs", aria_hidden="true")
+        assert word in accessible_text(row)
+
+    def test_every_ring_of_the_screen_goes_with_its_chip(self, garage, client):
+        snooze_rule(garage.owner, rule_of(garage, garage.cleats), calendar_days=3)
+        rows = [row for row in find_all(parse(workshop_page(client, garage.owner)), "a", cls="entry") if find_all(row, "svg", cls="ring")]
+        assert len(rows) == 3  # review, postponed and without data
+        for row in rows:
+            chip = find_all(row, "span", cls="chip")
+            assert len(chip) == 1 and len(uses(chip[0])) == 1 and visible_text(chip[0]), visible_text(row)
+
+    def test_the_lines_of_text_do_not_change(self, garage, client):
+        postponed = self.postponed(garage, client)
+        assert visible_text(find_all(postponed, cls="entry-name")[0]) == "Calas · Calas"
+        assert visible_text(find_all(postponed, cls="entry-sub")[0]) == "Vencido · quedan 3 días de aplazamiento"
+        row = self.without_data(garage, client)
+        assert visible_text(find_all(row, cls="entry-name")[0]) == "Casco · Revisión"
+        assert visible_text(find_all(row, cls="entry-sub")[0]) == "Falta una intervención o la fecha desde la que contar."
+
+    @pytest.mark.parametrize("build", ["postponed", "without_data"])
+    def test_they_go_on_being_rows_that_navigate(self, garage, client, build):
+        assert uses(getattr(self, build)(garage, client))[-1] == "#i-chev-right"
+
+    def test_a_row_without_data_paints_no_arc(self, garage, client):
+        row = self.without_data(garage, client)
+        assert find_all(row, "circle", cls="arc") == [] and len(find_all(row, "circle", cls="trk")) == 1
+
+    def test_a_rule_without_metrics_does_not_break_the_row(self, garage, client, monkeypatch):
+        """No rule of the base has none today: `wear` already provides for it, and the row must not depend on a headline."""
+        rule = rule_of(garage, garage.helmet)
+        real = workshop_module.maintenance_due
+        monkeypatch.setattr(workshop_module, "maintenance_due", lambda owner, at: tuple(replace(due, metrics=()) if due.rule.pk == rule.pk else due for due in real(owner, at=at)))
+        row = self.without_data(garage, client)
+        assert find_all(row, "circle", cls="arc") == [] and len(find_all(row, "circle", cls="trk")) == 1
+        assert "st-nodata" in classes(row) and visible_text(find_all(row, "span", cls="chip st-nodata")[0]) == "Sin datos"
+
+    def test_a_postponed_ring_shows_the_real_proportion(self, garage, client, frozen):
+        kind = save_maintenance(garage.owner, ServiceType, name="Engrase")
+        rule = save_maintenance(garage.owner, MaintenanceRule, item=garage.light, service_type=kind, calendar_days=10, anchor_at=frozen - timedelta(days=9, hours=12))
+        snooze_rule(garage.owner, rule, calendar_days=3)
+        row = row_by_href(workshop_page(client, garage.owner), reverse("garage:maintenance-rule-snooze", args=[rule.pk]))
+        assert [arc.attrs["stroke-dasharray"] for arc in find_all(row, "circle", cls="arc")] == [ring(Decimal("0.95"), 22)]
+
+    def test_a_postponed_row_never_carries_the_excess(self, garage, client):
+        """However far past its threshold: «Pospuesto» is grey, and its ring only shows that it is full."""
+        kind = save_maintenance(garage.owner, ServiceType, name="Engrase")
+        rule = save_maintenance(garage.owner, MaintenanceRule, item=garage.light, service_type=kind, calendar_days=10, anchor_at=days_ago(30))
+        snooze_rule(garage.owner, rule, calendar_days=3)
+        row = row_by_href(workshop_page(client, garage.owner), reverse("garage:maintenance-rule-snooze", args=[rule.pk]))
+        assert classes(row) == ["entry", "compact", "st-snoozed"]
+        assert classes(find_all(row, "span", cls="chip")[0]) == ["chip", "st-snoozed"]
+        assert [arc.attrs["stroke-dasharray"] for arc in find_all(row, "circle", cls="arc")] == [ring(Decimal(1), 22)]
+
+    def test_the_rule_of_a_bike_has_the_bike_in_its_ring(self, garage, client):
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        rule = save_maintenance(garage.owner, MaintenanceRule, bike=garage.road, service_type=kind, calendar_days=10)
+        row = self.row_without_data(garage, client, reverse("garage:maintenance-rule-edit", args=[rule.pk]))
+        assert uses(find_all(row, "svg", cls="ring")[0]) == ["#i-bike"]
+        MaintenanceRule.objects.filter(pk=rule.pk).update(anchor_at=days_ago(30))
+        snooze_rule(garage.owner, rule, calendar_days=3)
+        row = row_by_href(workshop_page(client, garage.owner), reverse("garage:maintenance-rule-snooze", args=[rule.pk]))
+        assert uses(find_all(row, "svg", cls="ring")[0]) == ["#i-bike"]
+
+    def test_a_postponed_row_goes_on_to_postpone(self, garage, client):
+        rule = rule_of(garage, garage.cleats)
+        row = self.postponed(garage, client)
+        assert row.attrs["href"] == reverse("garage:maintenance-rule-snooze", args=[rule.pk])
+
+    def test_a_row_without_data_goes_on_to_edit_its_rule(self, garage, client):
+        assert self.without_data(garage, client).attrs["href"] == reverse("garage:maintenance-rule-edit", args=[rule_of(garage, garage.helmet).pk])
+
+    def test_a_useful_life_without_data_goes_on_to_edit_the_life(self, garage, client):
+        life = set_lifespan(garage.owner, garage.light, calendar_days=10, start=days_ago(1))
+        MaintenanceRule.objects.filter(pk=life.pk).update(anchor_at=None)
+        row = self.row_without_data(garage, client, reverse("garage:item-lifespan", args=[garage.light.pk]))
+        assert visible_text(find_all(row, "span", cls="chip st-nodata")[0]) == "Sin datos"
+
+    def test_the_rings_do_not_add_a_query_per_row(self, garage, client):
+        """The icon of the ring reads the category of the piece: `maintenance_due` has to bring it along, and with the rows of these two groups too."""
+        client.force_login(garage.owner)
+        url = reverse("garage:maintenance")
+        client.get(url)
+        snooze_rule(garage.owner, rule_of(garage, garage.cleats), calendar_days=3)
+        with CaptureQueriesContext(connection) as before:
+            assert client.get(url).status_code == 200
+        kind = save_maintenance(garage.owner, ServiceType, name="Engrase")
+        for number in range(4):
+            category = create_inventory(garage.owner, Category, name=f"Tipo {number}", icon="bottle")
+            quiet = create_inventory(garage.owner, Item, name=f"Sin datos {number}", category=category)
+            save_maintenance(garage.owner, MaintenanceRule, item=quiet, service_type=kind, calendar_days=10)
+            late = create_inventory(garage.owner, Item, name=f"Pospuesta {number}", category=category)
+            rule = save_maintenance(garage.owner, MaintenanceRule, item=late, service_type=kind, calendar_days=10, anchor_at=days_ago(30))
+            snooze_rule(garage.owner, rule, calendar_days=3)
+        with CaptureQueriesContext(connection) as after:
+            html = client.get(url).content.decode()
+        assert len(find_all(parse(html), "section", aria_labelledby="snoozed-title")) == 1 and html.count('class="entry compact st-snoozed"') == 5
+        assert len(after) == len(before), (len(before), len(after))

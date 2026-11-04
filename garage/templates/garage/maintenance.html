@@ -3,7 +3,7 @@
 {% block garage_content %}
 <h1>Taller</h1>
 
-<section class="sec" aria-labelledby="attention-title">
+<section class="sec card" aria-labelledby="attention-title">
   <div class="sec-h"><h2 id="attention-title">Requiere atención</h2><span class="count">{{ shop.attention|length }}</span></div>
   <ul class="rows">
     {% for alert in shop.attention %}{% include "garage/_wear_row.html" %}{% empty %}
@@ -14,13 +14,14 @@
 </section>
 
 {% if shop.snoozed %}
-<section class="sec" aria-labelledby="snoozed-title" id="snoozed">
+<section class="sec card" aria-labelledby="snoozed-title" id="snoozed">
   <div class="sec-h"><h2 id="snoozed-title">Pospuestos</h2><span class="count">{{ shop.snoozed|length }}</span></div>
   <ul class="rows">{% for alert in shop.snoozed %}{% with w=alert.wear %}
     <li><a class="entry compact st-snoozed" href="{% url 'garage:maintenance-rule-snooze' w.rule.pk %}">
-      <span class="glyph"><svg class="ic"><use href="#i-clock"/></svg></span>
+      {% include "garage/_ring.html" with metric=w.headline %}
       <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
-        <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left|unbroken:" o " }} de aplazamiento</span></span>
+        <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left|unbroken:" o " }} de aplazamiento</span>
+        <span class="entry-sub"><span class="chip st-{{ w.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}</span></span></span>
       <svg class="ic"><use href="#i-chev-right"/></svg>
     </a></li>{% endwith %}{% endfor %}
   </ul>
@@ -28,13 +29,14 @@
 {% endif %}
 
 {% if shop.nodata %}
-<section class="sec" aria-labelledby="nodata-title">
+<section class="sec card" aria-labelledby="nodata-title">
   <div class="sec-h"><h2 id="nodata-title">Sin datos</h2><span class="count">{{ shop.nodata|length }}</span></div>
   <ul class="rows">{% for alert in shop.nodata %}{% with w=alert.wear %}
     <li><a class="entry compact st-nodata" href="{% if w.rule|is_life %}{% url 'garage:item-lifespan' w.rule.item_id %}{% else %}{% url 'garage:maintenance-rule-edit' w.rule.pk %}{% endif %}">
-      <span class="glyph"><svg class="ic"><use href="#i-help"/></svg></span>
+      {% include "garage/_ring.html" with metric=w.headline %}
       <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
-        <span class="entry-sub">{{ w.due|nodata_reason }}</span></span>
+        <span class="entry-sub">{{ w.due|nodata_reason }}</span>
+        <span class="entry-sub"><span class="chip st-{{ w.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}</span></span></span>
       <svg class="ic"><use href="#i-chev-right"/></svg>
     </a></li>{% endwith %}{% endfor %}
   </ul>
@@ -42,7 +44,7 @@
 {% endif %}
 
 {% if shop.calm %}
-<section class="sec" aria-labelledby="calm-title">
+<section class="sec card" aria-labelledby="calm-title">
   <div class="sec-h"><h2 id="calm-title">En curso y al día</h2><span class="count">{{ shop.calm|length }}</span></div>
   <ul class="rows">{% for alert in shop.calm|slice:":6" %}{% include "garage/_wear_row.html" %}{% endfor %}</ul>
   {% if shop.calm|length > 6 %}<details class="more"><summary>Ver {{ shop.calm|length|add:"-6" }} más</summary>
@@ -51,18 +53,18 @@
 </section>
 {% endif %}
 
-<section class="sec" aria-labelledby="events-title">
+<section class="sec card" aria-labelledby="events-title">
   <div class="sec-h"><h2 id="events-title">Últimas intervenciones</h2><a class="link" href="{% url 'garage:service-event-create' %}">Registrar</a></div>
   <ul class="rows">{% for event in shop.events %}
     <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-{% if event.item_id %}{{ event.item|item_icon }}{% else %}bike{% endif %}"/></svg></span>
-      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% if event.item_id %}{{ event.item.name }}{% else %}{{ event.bike.name }}{% endif %} · {% local_date event.performed_at %}</span></span>
+      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% if event.item_id %}{{ event.item.name }}{% else %}{{ event.bike.name }}{% endif %} · <span class="nowrap">{% local_date event.performed_at %}</span></span></span>
       <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>
     {% empty %}<li class="empty">Sin intervenciones registradas.</li>{% endfor %}
   </ul>
   {% if shop.events|length < shop.events_total %}<p><a class="link" href="{% url 'garage:maintenance' %}?all=1#events-title">Ver todas ({{ shop.events_total }})</a></p>{% endif %}
 </section>
 
-<section class="sec" aria-labelledby="rules-title">
+<section class="sec card" aria-labelledby="rules-title">
   <div class="sec-h"><h2 id="rules-title">Reglas</h2><a class="link" href="{% url 'garage:maintenance-rule-create' %}">Nueva regla</a></div>
   <ul class="rows">{% for rule in shop.rules %}
     <li><a class="entry compact" href="{% url 'garage:maintenance-rule-edit' rule.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
@@ -72,7 +74,7 @@
   </ul>
 </section>
 
-<section class="sec" aria-labelledby="types-title">
+<section class="sec card" aria-labelledby="types-title">
   <div class="sec-h"><h2 id="types-title">Tipos de intervención</h2><a class="link" href="{% url 'garage:service-type-create' %}">Nuevo tipo</a></div>
   <ul class="rows">{% for type in shop.types %}
     <li><a class="entry compact" href="{% url 'garage:service-type-edit' type.pk %}"><span class="glyph"><svg class="ic"><use href="#i-tag"/></svg></span>

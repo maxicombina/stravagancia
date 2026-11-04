@@ -73,8 +73,8 @@ def classes(node):
 
 
 def ring_row(html, href):
-    """The row with a ring that links to `href`: the bike's screen also lists the piece under «Montado ahora», without one."""
-    rows = [row for row in find_all(parse(html), "a", cls="entry", href=href) if find_all(row, "svg", cls="ring")]
+    """The row of the rule that links to `href`: the bike's screen also lists the piece under «Montado ahora», in a compact row with a ring of its own."""
+    rows = [row for row in find_all(parse(html), "a", cls="entry", href=href) if "compact" not in classes(row)]
     assert len(rows) == 1, rows
     return rows[0]
 

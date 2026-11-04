@@ -1,4 +1,4 @@
-<section class="sec" aria-labelledby="photos-title">
+<section class="sec{% if in_card %} card{% endif %}" aria-labelledby="photos-title">
   <div class="sec-h"><h2 id="photos-title">Fotos privadas</h2>{% with route='garage:'|add:kind|add:'-photo-create' %}<a class="link" href="{% url route object.pk %}">Añadir foto</a>{% endwith %}</div>
   {% if photos %}<ul class="photos">{% for photo in photos %}
     <li><img src="{% url 'garage:photo-content' photo.pk %}" alt="Foto de {{ object.name|default:title }}" loading="lazy" referrerpolicy="no-referrer" width="{{ photo.storage_object.width }}" height="{{ photo.storage_object.height }}" class="photo">

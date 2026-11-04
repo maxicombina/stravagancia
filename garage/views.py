@@ -107,7 +107,8 @@ def inventory_detail(request, kind, pk):
         context.update(back_url=reverse('garage:category-list'), back_label='Categorías')
     else:
         from .services.photos import owned_photos
-        context['photos'] = owned_photos(request.user).filter(**{kind: obj}).select_related('storage_object')
+        photos = list(owned_photos(request.user).filter(**{kind: obj}).select_related('storage_object'))
+        context['photos'] = photos
         periods = scoped_inventory(request.user, Installation).select_related('item', 'bike', 'parent_item')
         context['periods'] = periods.filter(bike=obj) if kind == 'bike' else periods.filter(item=obj)
         context['periods'] = context['periods'].order_by('-started_at', '-pk')
@@ -117,6 +118,7 @@ def inventory_detail(request, kind, pk):
             context.update(item_dashboard(request, obj))
             return render(request, 'garage/item_detail.html', context)
         context.update(bike_dashboard(request, obj))
+        context['cover'] = photos[0] if photos else None  # The first uploaded: Photo.Meta.ordering.
         return render(request, 'garage/bike_detail.html', context)
     return render(request, 'garage/detail.html', context)
 

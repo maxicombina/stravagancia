@@ -125,7 +125,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chip .ic { color: var(--c, var(--ink-2)); }
 /* A rule's chip goes on to a second line, with its figure whole: at 320 px, beside a long caption, it would run over the figure of the row. */
 .entry-sub .chip { flex-wrap: wrap; row-gap: 0; max-width: 100%; margin-top: 3px; }
-.entry-sub > .chip:not(:has(> .ic)) { padding-left: 10px; } /* «Sin avisos»: the 3 px less on the left are for an icon, and it has none. */
+.entry-sub > .chip:not(:has(> .ic)), .bike-hero .chip:not(:has(> .ic)) { padding-left: 10px; } /* «Sin avisos»: the 3 px less on the left are for an icon, and it has none. */
 .meter { display: block; height: 5px; border-radius: 3px; overflow: hidden; background: var(--soft, var(--surface-2)); }
 .meter > i { display: block; height: 100%; border-radius: 3px; background: var(--c, var(--primary)); }
 .st-nodata .meter { background: repeating-linear-gradient(135deg, var(--surface-2) 0 4px, transparent 4px 8px); }
@@ -155,6 +155,12 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
   :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-sub:has(> .chip) { grid-column: 2 / -1; grid-row: 3; }
   :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > .big { grid-column: 3; grid-row: 1 / span 2; }
 }
+/* A chip at the end of a row, as in «Montado ahora», left the name 82 px at 320 px and 150 at 390: it goes under it, as in the mockup. From 410 px a name and its line fit beside it. */
+@media (max-width: 409px) {
+  :is(.card, .panel) .entry.compact:has(> .chip) { grid-template-columns: 48px minmax(0, 1fr); row-gap: 3px; }
+  :is(.card, .panel) .entry.compact:has(> .chip) > :first-child { grid-row: 1 / span 2; }
+  :is(.card, .panel) .entry.compact:has(> .chip) > .chip { grid-column: 2; justify-self: start; }
+}
 .ring { width: 52px; height: 52px; color: var(--ink); }
 .entry.compact .ring { width: 48px; height: 48px; }
 .st-nodata .ring { color: var(--ink-2); }
@@ -180,6 +186,15 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .hero .glyph { width: 56px; height: 56px; }
 .hero .glyph .ic { width: 28px; height: 28px; }
 .hero h1 { font-size: 26px; }
+/* A bike's header, compact: the mockup's full-width art leaves no piece in sight at 390 px. If a photo does not arrive, its alt shows on the tile's background. */
+.bike-hero { grid-template-columns: minmax(112px, min(38%, 170px)) minmax(0, 1fr); align-items: start; }
+.page .bike-hero.card { border-radius: var(--r-xl); }
+.page:has(> .bike-hero) { gap: var(--s4); } /* The mockup's gap: with the 24 px of the other screens, the first alert falls under the action bar at 390×844. */
+.bike-hero > div { display: grid; justify-items: start; min-width: 0; }
+.bike-hero .lede + .chip { margin-top: 8px; } /* With «Añadir foto» in between, its 44 px are the room. */
+.cover { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--primary-soft); color: var(--primary); font-size: 13px; line-height: 1.25; overflow: hidden; overflow-wrap: anywhere; } /* Hidden: a long alt would stretch the tile past its 4:3. */
+.cover-empty { display: grid; place-items: center; } /* Not on the image: a grid would center an alt with a long word, cut at both sides. */
+.cover-empty .ic { width: 44px; height: 44px; }
 .panel, .page .card { background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: var(--s4); margin: 0; display: grid; gap: var(--s3); min-width: 0; }
 /* A legacy article holds bare text and inline links («Editar regla · Posponer el aviso»): a grid would put each on a line of its own. */
 .page article.card { display: block; }
@@ -214,7 +229,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .stats > div { display: grid; align-content: start; gap: 2px; padding: 10px; min-width: 0; border-radius: var(--r-md); background: var(--surface-2); }
 .stats b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 19px; line-height: 1.15; font-weight: 600; } /* It may wrap: on a tile, the next one paints over what sticks out. */
 .stats span { font-size: 12px; line-height: 1.25; color: var(--ink-2); }
-.panel .stats > div { padding-inline: 8px; } /* A third of a panel at 320 px is 79 px, and «desconocida» 69. */
+:is(.panel, .sec.card) .stats > div { padding-inline: 8px; } /* A third of a card at 320 px is 79 px, «desconocida» 69 and «movimiento» 63. */
 .page > .stats + .stats { margin-top: calc(var(--s2) - 24px); } /* The second row of one set of figures: the page's gap would part them. */
 .c-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .c-head span { font-size: 12px; color: var(--ink-2); }
@@ -445,6 +460,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .checks label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; }
 .page .checks input[type=checkbox] { width: 22px; height: 22px; margin: 0; flex: none; }
 .page .sub-h { font: 600 13px/1.2 var(--font-body); letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 6px; color: var(--ink-2); }
+.page .card > .sub-h { margin: 4px 0 -8px; } /* A card is a grid: its gap and the padding of the row leave the title nearer the rows it names. */
 .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
 .presets .chip-link { cursor: pointer; font: inherit; font-weight: 600; font-size: 15px; }
 .entry.nested { padding-left: 20px; }

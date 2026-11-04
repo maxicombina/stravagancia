@@ -1,11 +1,12 @@
 {% extends "garage/base.html" %}{% load garage_ui %}
 {% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:item-edit' object.pk %}" aria-label="Editar {{ object.name }}"><svg class="ic"><use href="#i-edit"/></svg></a>{% endblock %}
 {% block garage_content %}
-<div class="hero">
-  <span class="glyph accent"><svg class="ic"><use href="#i-{{ object|item_icon }}"/></svg></span>
+<header class="hero piece-hero">
+  <span class="glyph"><svg class="ic" aria-hidden="true"><use href="#i-{{ object|item_icon }}"/></svg></span>
   <div><h1>{{ object.name }}</h1>
-    <p class="lede">{% life_text lifecycle %} · {{ object.category.name }}</p></div>
-</div>
+    <p class="lede">{% life_text lifecycle %} · {{ object.category.name }}</p>
+    {% life_chip lifecycle %}</div>
+</header>
 
 {% if not life %}<section class="panel life-empty" aria-label="Vida útil"><p><b>Vida útil</b> · sin definir. Km, horas, desnivel o tiempo: lo primero que llegue.</p>
   <p><a class="btn ghost" href="{% url 'garage:item-lifespan' object.pk %}"><svg class="ic sm"><use href="#i-gauge"/></svg>Definir vida útil</a></p></section>{% endif %}

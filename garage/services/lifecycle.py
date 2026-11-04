@@ -22,12 +22,15 @@ MOUNTED, IN_USE, AVAILABLE, RETIRED = "mounted", "in_use", "available", "retired
 CHIPS = ((MOUNTED, "Montados"), (AVAILABLE, "Disponibles"), (IN_USE, "En uso"), (RETIRED, "Retirados"), ("all", "Todos"))
 FILTERS = (MOUNTED, AVAILABLE, IN_USE, RETIRED, "active")
 
+MOUNTED_WORD = "Montado"
 AVAILABLE_TEXT = "Disponible"
 UNUSED_TEXT = "Sin estrenar"
 IN_USE_TEXT = "En uso"
-RETIRED_TEXT = "Retirado el"
+RETIRED_WORD = "Retirado"
+RETIRED_TEXT = f"{RETIRED_WORD} el"
 RETIRES_TEXT = "se retira el"  # a retirement still to come: the item keeps its state until then
 ANY_BIKE = "Cualquier bici"
+WORDS = {MOUNTED: MOUNTED_WORD, IN_USE: IN_USE_TEXT, AVAILABLE: AVAILABLE_TEXT, RETIRED: RETIRED_WORD}
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,11 @@ class ItemLifecycle:
     parent: str = ""  # the item it is mounted inside, when it is a part
     contexts: tuple[str, ...] = ()  # in use: the current profiles, as on the home screen
     retires: datetime | None = None  # not retired yet, with a retirement scheduled after the instant
+
+    @property
+    def word(self):
+        """The state in one word, with no date and no bike: the chip of the item screen. `text` is the sentence."""
+        return UNUSED_TEXT if self.unused else WORDS[self.state]
 
 
 def context_label(bike_name, sport_type):

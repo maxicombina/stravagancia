@@ -8,7 +8,7 @@ from django.utils.html import format_html, format_html_join
 from garage.assets import asset_url
 from garage.icons import ICON_LABELS, category_icon_key, item_icon_key
 from garage.presentation import STATES, number, power_figures as ride_power_figures, quantity, thresholds as rule_thresholds
-from garage.services.lifecycle import RETIRES_TEXT
+from garage.services.lifecycle import AVAILABLE, IN_USE, MOUNTED, RETIRED, RETIRES_TEXT
 from garage.sports import sport_label as modality_label
 from garage.timezones import DEFAULT_ZONE, user_time_zone
 
@@ -24,6 +24,8 @@ THEME_COOKIE = "garage_theme"
 FORCED_THEMES = ("light", "dark")
 WEEKDAYS = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
 MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+LIFE_ICONS = {MOUNTED: "bike", AVAILABLE: "box", IN_USE: "user", RETIRED: "archive"}
+UNUSED_ICON = "sparkle"
 
 
 def tab_for(url_name):
@@ -224,6 +226,15 @@ def life_text(context, lifecycle):
     if lifecycle.retires is not None:
         text += f" · {RETIRES_TEXT} {local_date(context, lifecycle.retires)}"
     return text
+
+
+@register.simple_tag
+def life_chip(lifecycle):
+    """An item's state in one word and its icon, for the header of its screen (D19). The Material list keeps its own grey chip."""
+    if lifecycle is None:
+        return ""
+    icon, variant = (UNUSED_ICON, " unused") if lifecycle.unused else (LIFE_ICONS[lifecycle.state], "")
+    return format_html('<span class="chip life{}"><svg class="ic xs" aria-hidden="true"><use href="#i-{}"/></svg>{}</span>', variant, icon, lifecycle.word)
 
 
 @register.simple_tag(takes_context=True)

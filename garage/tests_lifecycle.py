@@ -2,26 +2,31 @@
 import re
 from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
+from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.template import Context, Template
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .models import Bike, Category, Installation, Item, UsageProfile, UsageProfileItem
+from .icons import item_icon_key
+from .models import Bike, Category, Installation, Item, MaintenanceRule, ServiceType, UsageProfile, UsageProfileItem
 from .services.baselines import record_baseline
 from .services.home import home_snapshot
 from .services.installations import close_installation, create_installation
 from .services.lifecycle import AVAILABLE, IN_USE, MOUNTED, RETIRED, ItemLifecycle, filter_state, item_lifecycles
+from .services.maintenance import save_maintenance
 from .services.ownership import InventoryWriteError, create_inventory, retire_inventory, scoped_inventory
 from .services.rides import create_manual_ride
 from .services.service_usage import category_comparison
 from .services.usage_profiles import create_profile_history, set_usage_override
-from .test_html import find_all, parse, visible_text
+from .test_html import accessible_text, find_all, parse, visible_text
+from .tests_categories import SPRITE
 
 UTC = dt_timezone.utc
 NOW = datetime(2026, 10, 16, 12, tzinfo=UTC)
@@ -450,3 +455,104 @@ class TestOtherScreens:
         with CaptureQueriesContext(connection) as queries:
             assert client.get(url).status_code == 200
         assert len(queries) == few <= 28, few  # garage-036 kept it under 27; the state of the loose ones adds two reads at most
+
+
+class TestChipWord:
+    """D19: the state in one word, with no date and no bike. The sentence stays in `text`."""
+
+    @pytest.mark.parametrize("name,word", [("Rueda trasera", "Montado"), ("Válvula", "Montado"), ("Cadena usada", "Disponible"),
+                                           ("Cadena nueva", "Sin estrenar"), ("Casco", "En uso"), ("Cubierta vieja", "Retirado")])
+    def test_each_state_has_its_word(self, life, name, word):
+        assert by_name(life)[name].word == word
+
+    def test_a_retirement_to_come_keeps_the_word_of_today(self, life):
+        assert by_name(life)["Sillín"].word == "Sin estrenar"
+        assert by_name(life, at=NOW + timedelta(days=5))["Sillín"].word == "Retirado"
+
+    def test_the_word_does_not_take_the_place_of_the_sentence(self, life):
+        retired = by_name(life)["Cubierta vieja"]
+        assert (retired.word, retired.text) == ("Retirado", "Retirado el")
+        mounted = by_name(life)["Rueda trasera"]
+        assert (mounted.word, mounted.text) == ("Montado", "En Gravel desde el")
+
+
+class TestChipIcons:
+    @pytest.mark.parametrize("key", ["box", "user", "archive", "sparkle"])
+    def test_each_new_icon_is_one_symbol_drawn_with_lines_only(self, key):
+        sprite = (Path(settings.BASE_DIR) / SPRITE).read_text(encoding="utf-8")
+        drawings = re.findall(rf'<symbol id="i-{key}" viewBox="0 0 24 24">(.*?)</symbol>', sprite)
+        assert len(drawings) == 1 and drawings[0] and "fill=" not in drawings[0]
+
+
+class TestItemHeader:
+    """D19 and §4.7: the tile, the name, the state in a sentence and, in one word, in its chip."""
+
+    def page(self, client, item):
+        return parse(client.get(reverse("garage:item-detail", args=[item.pk])).content.decode())
+
+    def header(self, client, item):
+        headers = find_all(self.page(client, item), "header", cls="hero piece-hero")
+        assert len(headers) == 1
+        return headers[0]
+
+    def chip(self, client, item):
+        chips = find_all(self.header(client, item), "span", cls="chip life")
+        assert len(chips) == 1
+        return chips[0]
+
+    @pytest.mark.parametrize("attr,word,icon", [("rear", "Montado", "bike"), ("valve", "Montado", "bike"), ("chain", "Disponible", "box"),
+                                                ("new_chain", "Sin estrenar", "sparkle"), ("helmet", "En uso", "user"), ("tyre", "Retirado", "archive")])
+    def test_the_chip_says_the_state_with_its_icon(self, life, client, now, attr, word, icon):
+        client.force_login(life.owner)
+        chip = self.chip(client, getattr(life, attr))
+        assert visible_text(chip) == accessible_text(chip) == word
+        assert [use.attrs["href"] for use in find_all(chip, "use")] == [f"#i-{icon}"]
+        assert len(find_all(chip, "svg", aria_hidden="true")) == 1
+
+    @pytest.mark.parametrize("attr,extra", [("rear", set()), ("chain", set()), ("new_chain", {"unused"}), ("helmet", set()), ("tyre", set())])
+    def test_it_speaks_of_no_wear_and_only_sin_estrenar_stands_out(self, life, client, now, attr, extra):
+        client.force_login(life.owner)
+        assert set(self.chip(client, getattr(life, attr)).attrs["class"].split()) == {"chip", "life"} | extra
+
+    def test_a_retirement_to_come_keeps_the_chip_of_today_and_says_when_in_the_sentence(self, life, client, now):
+        client.force_login(life.owner)
+        header = self.header(client, life.saddle)
+        assert visible_text(find_all(header, "span", cls="chip life")[0]) == "Sin estrenar"
+        assert visible_text(find_all(header, "p", cls="lede")[0]) == "Sin estrenar · se retira el 21 oct 2026 · Sillines"
+
+    @pytest.mark.parametrize("attr,sentence", [("rear", "En Gravel desde el 8 jul 2026 · Ruedas"), ("tyre", "Retirado el 6 oct 2026 · Cubiertas"),
+                                               ("chain", "Disponible · Cadenas")])
+    def test_the_sentence_with_its_date_stays(self, life, client, now, attr, sentence):
+        client.force_login(life.owner)
+        assert visible_text(find_all(self.header(client, getattr(life, attr)), "p", cls="lede")[0]) == sentence
+
+    def test_the_tile_and_the_name(self, life, client, now):
+        client.force_login(life.owner)
+        header = self.header(client, life.chain)
+        tile = find_all(header, "span", cls="glyph")
+        assert len(tile) == 1 and [use.attrs["href"] for use in find_all(tile[0], "use")] == [f"#i-{item_icon_key(life.chain)}"]
+        assert [visible_text(title) for title in find_all(header, "h1")] == ["Cadena usada"]
+
+    def test_a_retired_piece_keeps_its_gauge(self, life, client, now):
+        kind = save_maintenance(life.owner, ServiceType, name="Revisión")
+        save_maintenance(life.owner, MaintenanceRule, item=life.pads, service_type=kind, calendar_days=30, anchor_at=ago(15))
+        retire_inventory(life.owner, Item, life.pads.pk, at=ago(1))
+        client.force_login(life.owner)
+        root = self.page(client, life.pads)
+        assert visible_text(find_all(root, "span", cls="chip life")[0]) == "Retirado"
+        panels = find_all(root, "section", cls="panel", aria_label="Revisión")
+        assert len(panels) == 1 and len(find_all(panels[0], "svg", role="img")) == 1
+        assert [visible_text(title) for title in find_all(panels[0], cls="gauge-title")] == ["Revisión"]
+
+    def test_the_material_list_keeps_its_grey_chip_with_no_icon(self, life, client, now):
+        # The exception of D19: the chip with an icon goes only in the header of the piece.
+        client.force_login(life.owner)
+        root = parse(client.get(reverse("garage:item-list")).content.decode())
+        assert find_all(root, cls="chip life") == []
+        chips = find_all(root, "span", cls="chip st-nodata")
+        assert [visible_text(chip) for chip in chips] == ["Retirado"] and find_all(chips[0], "svg") == []
+
+
+class TestLifeChipTag:
+    def test_without_a_state_there_is_no_chip(self):
+        assert render("{% life_chip value %}", value=None) == ""

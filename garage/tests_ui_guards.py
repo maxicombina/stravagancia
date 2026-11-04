@@ -350,9 +350,42 @@ class LegendTests(SimpleTestCase):
 
 
 class TrioTests(SimpleTestCase):
-    def test_the_columns_of_a_rule_keep_their_rows_level(self):
-        # Beside a longer caption, the short column shared out what it had left: at 320 px its bar fell 9 px below the other's. The caption takes it now.
-        self.assertEqual(contrast.declared(stylesheet(), ".trio > div").get("grid-template-rows"), "auto auto 1fr")
+    def test_each_metric_of_a_rule_is_a_key_and_its_value(self):
+        # §4.7, the .kv of the mockup: one metric on each line, with a line above it, the caption at the left and the figure at the right.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".trio").get("grid-template-columns"), "minmax(0, 1fr) auto")
+        metric = contrast.declared(css, ".trio > div")
+        self.assertEqual(metric.get("border-top"), "1px solid var(--line)")
+        self.assertEqual(contrast.declared(css, ".trio b").get("grid-area"), "1 / 2")
+        self.assertEqual(contrast.declared(css, ".trio > div > span:not(.trio-state)").get("grid-area"), "1 / 1")
+        # The bar under the two, leaving its side to the word when a rule has more than one metric.
+        self.assertEqual(contrast.declared(css, ".trio .bar").get("grid-column"), "1 / -1")
+        self.assertEqual(contrast.declared(css, ".trio .trio-state").get("grid-area"), "2 / 2")
+
+    def test_a_bar_across_the_card_keeps_its_ends_round(self):
+        # The svg stretches to any width, its corners with it: at 768 px the ends tapered over 15 px, for a bar 5 px high.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".trio .bar").get("border-radius"), "2.5px")
+        self.assertEqual(contrast.declared(css, ".trio .bar rect").get("rx"), "0")
+
+    def test_the_bars_of_a_rule_end_at_the_same_place(self):
+        # A bar is read against the others: with a column of its own in each metric, «Revisar» left one shorter than the one beside «Al día».
+        self.assertEqual(contrast.declared(stylesheet(), ".trio > div").get("grid-template-columns"), "subgrid")
+
+
+class ItemHeaderTests(SimpleTestCase):
+    def test_the_tile_of_a_piece_is_larger_than_that_of_other_headers(self):
+        css = stylesheet()
+        self.assertEqual((contrast.declared(css, ".piece-hero .glyph").get("width"), contrast.declared(css, ".piece-hero .glyph").get("height")), ("64px", "64px"))
+        self.assertEqual(contrast.declared(css, ".piece-hero").get("grid-template-columns"), "64px minmax(0, 1fr)")
+
+    def test_the_chip_of_the_life_of_a_piece_is_neutral_and_sin_estrenar_is_violet(self):
+        # §4.2. Explicit, not through --soft and --c: it speaks of the piece, not of a state of wear, wherever it stands.
+        css = stylesheet()
+        for selector, background, icon in ((".chip.life", "var(--surface-2)", "var(--ink-2)"), (".chip.life.unused", "var(--primary-soft)", "var(--primary)")):
+            with self.subTest(selector=selector):
+                self.assertEqual(contrast.declared(css, selector).get("background"), background)
+                self.assertEqual(contrast.declared(css, f"{selector} .ic").get("color"), icon)
 
 
 class ChartTests(SimpleTestCase):

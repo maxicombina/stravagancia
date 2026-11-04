@@ -9,6 +9,8 @@ from django.template import Context, Template
 from django.urls import reverse
 
 from .models import Category, UsageProfile
+from .services.ownership import create_inventory
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture)
 
 UTC = dt_timezone.utc
@@ -94,6 +96,65 @@ class TestLists:
         client.force_login(owner)
         html = client.get(reverse("garage:bike-list")).content.decode()
         assert "No hay resultados." in html and f'href="{reverse("garage:bike-create")}">Crear la primera' in html
+
+
+LIST_ROUTES = ["garage:bike-list", "garage:item-list", "garage:category-list"]
+
+
+class TestListsInACard:
+    """Spec garage-050 §5, `list.html`: the rows in one card. D19: not one card per state, as in the mockup; the filters stay the server's."""
+
+    @staticmethod
+    def page(client, route, **params):
+        return parse(client.get(reverse(route), params).content.decode())
+
+    @staticmethod
+    def card(page):
+        cards = find_all(page, cls="card")
+        assert len(cards) == 1, cards
+        return cards[0]
+
+    @pytest.mark.parametrize("route", LIST_ROUTES)
+    def test_all_the_rows_are_in_one_card(self, garage, client, route):
+        client.force_login(garage.owner)
+        page = self.page(client, route)
+        rows = find_all(page, "a", cls="entry")
+        assert rows and find_all(self.card(page), "a", cls="entry") == rows
+
+    @pytest.mark.parametrize("route", LIST_ROUTES)
+    def test_the_title_the_search_and_the_filters_stay_above_it(self, garage, client, route):
+        client.force_login(garage.owner)
+        page = self.page(client, route)
+        assert len(find_all(page, "nav", cls="chips")) == 1 and len(find_all(page, "form", cls="filters")) == 1
+        card = self.card(page)
+        assert not find_all(card, "h1") and not find_all(card, "nav") and not find_all(card, "form")
+
+    @pytest.mark.parametrize("route", LIST_ROUTES)
+    def test_no_results_is_said_in_the_card(self, garage, client, route):
+        client.force_login(garage.owner)
+        empties = find_all(self.card(self.page(client, route, q="nada se llama así")), "li", cls="empty")
+        assert len(empties) == 1 and "No hay resultados." in visible_text(empties[0])
+
+    @pytest.mark.parametrize("route", ["garage:category-list", "garage:item-list"])
+    def test_the_offer_of_the_usual_categories_is_a_panel_of_its_own(self, db, client, route):
+        from django.contrib.auth import get_user_model
+        client.force_login(get_user_model().objects.create_user("sin-categorias", password="test-only-password"))
+        page = self.page(client, route)
+        assert len(find_all(page, "section", cls="panel starter")) == 1
+        assert not find_all(self.card(page), cls="panel")
+
+    def test_the_pages_are_outside_the_card(self, garage, client):
+        for number in range(21):
+            create_inventory(garage.owner, Category, name=f"Categoría {number:02}")
+        client.force_login(garage.owner)
+        page = self.page(client, "garage:category-list", state="active")
+        assert len(find_all(page, "nav", cls="pagination")) == 1
+        assert not find_all(self.card(page), cls="pagination")
+
+    def test_the_grey_chip_of_a_retired_bike_does_not_change(self, garage, client):
+        client.force_login(garage.owner)
+        chips = find_all(self.card(self.page(client, "garage:bike-list")), "span", cls="chip st-nodata")
+        assert [visible_text(chip) for chip in chips] == ["Retirada"] and not find_all(chips[0], "svg")
 
 
 class TestOtherScreens:

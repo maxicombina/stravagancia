@@ -14,6 +14,7 @@ from .importers.fit import FIT_EPOCH
 from .models import ActivitySource, Bike, ImportRun, Ride, StravaAccount, StravaGear
 from .services.export import TABLES, csv_zip, export_snapshot
 from .services.ownership import create_inventory
+from .test_html import find_all, parse, visible_text
 from .tests_fit_import import activity
 from .tests_strava_client import FakeResponse, at, connected, strava  # noqa: F401 (fixture)
 from .tests_strava_sources import fit, store
@@ -76,6 +77,127 @@ def test_connected_page_lists_state_gear_and_removal(web):
     for text in ("Conectado con el token de Stravagancia (atleta Ana Prueba)", "Strava Gravel", "Sin vincular",
                  "Importar histórico", "Quitar lo sincronizado", 'type="date"', "todavía ninguna"):
         assert text in page, text
+
+
+def strava_page(web):
+    return parse(html(web.client.get(reverse("garage:strava"))))
+
+
+def section_of(page, title):
+    sections = find_all(page, "section", aria_labelledby=title)
+    assert len(sections) == 1, title
+    return sections[0]
+
+
+def classes(node):
+    return set(node.attrs["class"].split())
+
+
+def connected_chips(page):
+    return [chip for chip in find_all(page, cls="chip") if "Conectado" in visible_text(chip)]
+
+
+@pytest.mark.django_db
+def test_the_state_panel_says_connected_in_its_header(web):
+    """Spec garage-050 §5, `strava.html`: «`.panel` Estado; chip "Conectado" si procede», as in the mockup."""
+    connected(web)
+    panel = section_of(strava_page(web), "strava-state")
+    assert "panel" in classes(panel)
+    heads = find_all(panel, cls="sec-h")
+    assert len(heads) == 1 and visible_text(find_all(heads[0], "h2", id="strava-state")[0]) == "Estado"
+    chips = connected_chips(heads[0])
+    assert len(chips) == 1 and {"chip", "st-ok"} <= classes(chips[0]) and visible_text(chips[0]) == "Conectado"
+    # The color never goes alone (spec §4.2): an icon and a word.
+    assert [use.attrs["href"] for use in find_all(chips[0], "use")] == ["#i-check"]
+    assert find_all(chips[0], "svg", aria_hidden="true")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("changes,says", [
+    ({"revoked_at": at(1), "last_sync_status": "failed", "last_error_code": "unauthorized"}, "Strava rechaza el token"),
+    ({"last_sync_status": "failed", "last_error_code": "unauthorized"}, "Strava rechazó el token"),
+    ({"last_sync_status": "failed", "last_error_code": "rate_limited"}, "Strava pide esperar"),
+    ({"last_sync_status": "failed", "last_error_code": "network"}, "No se pudo hablar con Strava"),
+])
+def test_no_connected_chip_beside_a_failure(web, changes, says):
+    connected(web)
+    StravaAccount.objects.filter(owner=web.owner).update(**changes)
+    panel = section_of(strava_page(web), "strava-state")
+    assert says in visible_text(panel) and not connected_chips(panel)
+
+
+@pytest.mark.django_db
+def test_no_connected_chip_before_the_first_sync(web):
+    panel = section_of(strava_page(web), "strava-state")
+    assert "Todavía sin sincronizar" in visible_text(panel) and not connected_chips(panel)
+
+
+@pytest.mark.django_db
+def test_no_connected_chip_for_an_account_that_does_not_sync(web, settings):
+    connected(web)
+    settings.GARAGE_STRAVA_USER = web.other.username
+    page = strava_page(web)
+    assert "Esta cuenta no sincroniza" in visible_text(page) and not connected_chips(page)
+
+
+@pytest.mark.django_db
+def test_a_sync_that_skipped_activities_is_still_connected(web):
+    connected(web)
+    StravaAccount.objects.filter(owner=web.owner).update(last_sync_status="partial", last_error_code="")
+    assert len(connected_chips(section_of(strava_page(web), "strava-state"))) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("title", ["strava-import", "strava-gear", "strava-remove"])
+def test_each_section_of_strava_is_a_card(web, title):
+    connected(web)
+    section = section_of(strava_page(web), title)
+    assert {"sec", "card"} <= classes(section) and find_all(section, "h2", id=title)
+
+
+@pytest.mark.django_db
+def test_no_surface_of_strava_holds_another(web):
+    connected(web)
+    page = strava_page(web)
+    surfaces = find_all(page, cls="card") + find_all(page, cls="panel")
+    assert len(surfaces) == 4
+    for surface in surfaces:
+        assert not find_all(surface, cls="card") and not find_all(surface, cls="panel"), surface
+
+
+@pytest.mark.django_db
+def test_each_bike_of_strava_keeps_its_own_form(web):
+    connected(web)
+    StravaGear.objects.create(owner=web.owner, gear_id="b2", name="Strava 2")
+    forms = find_all(section_of(strava_page(web), "strava-gear"), "form", cls="form")
+    assert {form.attrs["action"] for form in forms} == {reverse("garage:strava-gear", args=[gear.pk]) for gear in StravaGear.objects.filter(owner=web.owner)}
+    assert len(forms) == 2
+    for form in forms:
+        assert len(find_all(form, "select")) == 1 and [visible_text(button) for button in find_all(form, "button")] == ["Guardar vínculo"]
+
+
+@pytest.mark.django_db
+def test_without_bikes_of_strava_the_card_says_so(web):
+    section = section_of(strava_page(web), "strava-gear")
+    assert "card" in classes(section) and "Todavía no hay bicis de Strava" in visible_text(section)
+
+
+@pytest.mark.django_db
+def test_the_danger_zone_is_a_card_and_its_button_says_it_deletes(web):
+    connected(web)
+    zone = section_of(strava_page(web), "strava-remove")
+    assert "danger-zone" in classes(zone)
+    assert [visible_text(button) for button in find_all(zone, "button", cls="btn danger")] == ["Quitar lo sincronizado"]
+
+
+@pytest.mark.django_db
+def test_powered_by_strava_stays_outside_the_cards(web):
+    connected(web)
+    page = strava_page(web)
+    notes = [note for note in find_all(page, "p", cls="note") if visible_text(note) == "Powered by Strava"]
+    assert len(notes) == 1
+    for surface in find_all(page, cls="card") + find_all(page, cls="panel"):
+        assert notes[0] not in find_all(surface, "p", cls="note")
 
 
 @pytest.mark.django_db

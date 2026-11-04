@@ -10,7 +10,7 @@
 
 {% if state.is_owner or account %}
 <section class="panel" aria-labelledby="strava-state">
-  <h2 id="strava-state">Estado</h2>
+  <div class="sec-h"><h2 id="strava-state">Estado</h2>{% if account and state.is_owner and not revoked_at and not error %}<span class="chip st-ok"><svg class="ic xs" aria-hidden="true"><use href="#i-check"/></svg>Conectado</span>{% endif %}</div>
   {% if account %}
   <p>Conectado con el token de Stravagancia (atleta {{ account.athlete_name|default:account.athlete_id }}).</p>
   <p class="note">Última sincronización: {% if account.last_sync_at %}{% local_datetime account.last_sync_at %}{% if sync_status %} · {{ sync_status }}{% endif %}{% else %}todavía ninguna{% endif %}.</p>
@@ -30,7 +30,7 @@
 {% endif %}
 
 {% if state.is_owner %}
-<section class="sec" aria-labelledby="strava-import">
+<section class="sec card" aria-labelledby="strava-import">
   <div class="sec-h"><h2 id="strava-import">Importar histórico</h2></div>
   <form method="post" action="{% url 'garage:strava-import' %}" novalidate class="form">{% csrf_token %}
     {% if import_form.non_field_errors %}<div role="alert">{{ import_form.non_field_errors }}</div>{% endif %}
@@ -46,11 +46,11 @@
 </section>
 {% endif %}
 
-<section class="sec" aria-labelledby="strava-gear">
+<section class="sec card" aria-labelledby="strava-gear">
   <div class="sec-h"><h2 id="strava-gear">Bicis de Strava</h2></div>
   <p class="note">Cada bici de Strava cuenta como la bici de Garage que elijas. Cambiarla recalcula sus salidas y contadores; una corrección manual de la bici de una salida prevalece. Una bici retirada en Strava conserva su vínculo.</p>
   {% for row in gear_rows %}{% with gear=row.gear form=row.form %}
-  <form method="post" action="{% url 'garage:strava-gear' gear.pk %}" class="card form">{% csrf_token %}
+  <form method="post" action="{% url 'garage:strava-gear' gear.pk %}" class="form">{% csrf_token %}
     <p><b>{{ gear.name|default:gear.gear_id }}</b>{% if gear.retired %} <span class="badge">Retirada en Strava</span>{% endif %}<br><span class="muted">{% if gear.bike %}Cuenta como {{ gear.bike.name }}{% else %}Sin vincular: sus salidas quedan por revisar{% endif %}</span></p>
     {% for field in form %}{% include "garage/_field.html" %}{% endfor %}
     <button type="submit" class="btn ghost">Guardar vínculo</button>
@@ -59,7 +59,7 @@
 </section>
 
 {% if account or strava_rides %}
-<section class="sec danger-zone" aria-labelledby="strava-remove">
+<section class="sec card danger-zone" aria-labelledby="strava-remove">
   <div class="sec-h"><h2 id="strava-remove">Quitar lo sincronizado desde Strava</h2></div>
   <p class="note">Borra todas las fuentes de Strava y los vínculos de sus bicis. Las salidas que sólo venían de Strava y no tienen correcciones de medida (inicio, deporte, distancia o tiempos) se borran con su uso; las demás se conservan y pueden quedar pendientes. Corregir sólo la bici o las notas no las conserva. No revoca nada en Strava.</p>
   <form method="post" action="{% url 'garage:strava-remove' %}" novalidate class="form">{% csrf_token %}

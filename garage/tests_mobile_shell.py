@@ -99,6 +99,54 @@ class ShellTests(TestCase):
             self.assertIn(f'href="{reverse("garage:" + name)}"', html)
         self.assertIn('class="back"', html)
 
+    def test_each_group_of_more_is_a_card_titled_as_a_group(self):
+        """Spec garage-050 §5, `more.html`: the mockup's cards and its `.grp`. The same groups, in the same order."""
+        sections = find_all(parse(self.get("more").content.decode()), "section")
+        titles = []
+        for section in sections:
+            with self.subTest(section=section.attrs.get("aria-labelledby")):
+                self.assertLessEqual({"sec", "card"}, set(section.attrs["class"].split()))
+                headings = find_all(section, "h2", cls="grp")
+                self.assertEqual(len(headings), 1)
+                self.assertEqual(section.attrs["aria-labelledby"], headings[0].attrs["id"])
+                titles.append(visible_text(headings[0]))
+        self.assertEqual(titles, ["Inventario", "Uso", "Datos y app", "Apariencia", "Instalar"])
+
+    def test_each_row_of_more_stays_in_its_group_and_in_its_order(self):
+        page = parse(self.get("more").content.decode())
+        links = {title: [link.attrs["href"] for link in find_all(find_all(page, "section", aria_labelledby=title)[0], "a")]
+                 for title in ("more-inventory", "more-usage", "more-data")}
+        self.assertEqual(links, {
+            "more-inventory": [reverse("garage:bike-list"), reverse("garage:item-list"), reverse("garage:category-list")],
+            "more-usage": [reverse("garage:usage-profile-list")],
+            "more-data": [reverse("garage:strava"), reverse("garage:export"), "#instalar"],
+        })
+        data = find_all(page, "section", aria_labelledby="more-data")[0]
+        self.assertEqual([visible_text(button) for button in find_all(data, "button")], ["Cerrar sesión"])
+
+    def test_the_install_row_still_lands_on_its_group(self):
+        page = parse(self.get("more").content.decode())
+        targets = find_all(page, "section", id="instalar")
+        self.assertEqual(len(targets), 1)
+        self.assertIn("card", targets[0].attrs["class"].split())
+        for platform in ("only-ios", "only-android"):
+            self.assertEqual(len(find_all(targets[0], "p", cls=platform)), 1)
+
+    def test_appearance_keeps_its_form_inside_its_group(self):
+        section = find_all(parse(self.get("more").content.decode()), "section", aria_labelledby="more-appearance")[0]
+        self.assertEqual(len(find_all(section, "form", action=reverse("garage:appearance"))), 1)
+        self.assertEqual(len(find_all(section, "fieldset", cls="seg")), 1)
+
+    def test_the_add_menu_is_one_card_under_its_title(self):
+        page = parse(self.get("add").content.decode())
+        cards = find_all(page, cls="card")
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(find_all(cards[0], "h1"), [])
+        menus = find_all(cards[0], "ul", cls="menu")
+        self.assertEqual(len(menus), 1)
+        names = ("bike-create", "item-create", "item-used-create", "history-manual-create", "history", "service-event-create", "category-create")
+        self.assertEqual([link.attrs["href"] for link in find_all(menus[0], "a")], [reverse("garage:" + name) for name in names])
+
     def test_menus_require_a_session_and_get(self):
         self.client.logout()
         for name in ("more", "add"):

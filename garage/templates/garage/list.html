@@ -10,7 +10,7 @@
 <nav class="chips" aria-label="Estado">
   {% for key, label in states %}<a class="chip-link{% if state == key %} on{% endif %}" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}state={{ key }}"{% if state == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
 </nav>
-<ul class="rows">
+<div class="card"><ul class="rows">
 {% for object in page %}{% with route='garage:'|add:kind|add:'-detail' %}
   <li><a class="entry compact" href="{% url route object.pk %}">
     <span class="glyph{% if kind == 'bike' %} accent{% endif %}"><svg class="ic"><use href="#i-{% if kind == 'bike' %}bike{% elif kind == 'item' %}{{ object|item_icon }}{% else %}{{ object|category_icon }}{% endif %}"/></svg></span>
@@ -21,7 +21,7 @@
 {% empty %}
   <li class="empty">No hay resultados.{% if not q and state == 'all' %} {% with route='garage:'|add:kind|add:'-create' %}<a href="{% url route %}">{% if kind == 'item' %}Crear el primero{% else %}Crear la primera{% endif %}</a>.{% endwith %}{% endif %}</li>
 {% endfor %}
-</ul>
+</ul></div>
 {% include "garage/_starter.html" %}
 {% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas">{% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 {% endblock %}

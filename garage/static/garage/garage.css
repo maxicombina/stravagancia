@@ -217,7 +217,6 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .page article.card > * + * { margin-top: var(--s3); }
 .page .card + .card { margin-top: var(--s3); } /* In a <details> or a plain <section>, with their shadow and radius, they touched. */
 .page > .card + .card, .sec > .card + .card, .stats > .card + .card { margin-top: 0; }
-.page .card.form { gap: 4px; } /* Its fields bring their own margin. */
 .page form.card:not(.form) > p { margin: 0; }
 .page .card > button:not([class]) { justify-self: start; }
 .page .notes:empty { display: none; } /* It would add a gap of nothing. */
@@ -344,6 +343,7 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .choice small { display: block; font-size: 12px; color: var(--ink-2); }
 /* Segmented choice: the theme in Más → Apariencia. */
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 4px; border: 0; min-width: 0; border-radius: var(--r-pill); background: var(--surface-2); }
+@media (max-width: 374px) { .seg { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); } } /* In a card, at 320 px, a third is 79 px and «Automático» 82: it touched the edges of its pill. */
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 /* Each radio covers its own option, as in .choice.icons: the browser brings it into view on focus and a screen reader's box matches it. */
 .seg .tile { position: relative; display: grid; min-width: 0; }
@@ -351,6 +351,7 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .seg label { display: grid; place-items: center; min-height: 44px; border-radius: var(--r-pill); font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .seg input:checked + label { background: var(--primary); color: var(--on-primary); font-weight: 700; }
 .seg input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.seg + .btn { margin-top: var(--s2); } /* Without JavaScript, «Guardar» stays: at the 4 px of the form it touched the segment. */
 .switches { list-style: none; margin: 0; padding: 0; }
 .switches li { border-bottom: 1px solid var(--line); }
 .switches label { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; min-height: 56px; cursor: pointer; }
@@ -379,6 +380,7 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
   border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; width: 100%; text-align: left; cursor: pointer; font-size: 16.5px; line-height: 1.3; font-weight: 650; }
 .menu .ic.go { color: var(--ink-2); }
 .menu small { display: block; color: var(--ink-2); font-size: 14px; line-height: 1.4; font-weight: 400; }
+:is(.card, .panel) .menu > li:last-child :is(a, button) { border-bottom: 0; } /* As the last row of .rows: the edge of the card closes it. */
 
 /* Tab bar */
 .tabbar { position: fixed; z-index: 5; left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
@@ -468,6 +470,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .link-btn.danger { color: var(--danger-ink); }
 .danger-zone { padding-top: 8px; border-top: 1px solid var(--line); }
 .danger-zone form { margin: 0; }
+.sec.card > .form + .form { padding-top: var(--s3); border-top: 1px solid var(--line); } /* The bikes of Strava: a form each, in one card. */
 .photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .photos li { display: grid; gap: 6px; min-width: 0; }
 .photos img.photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--surface-2); }
@@ -484,7 +487,8 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .checks { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: var(--s2); }
 .checks label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; }
 .page .checks input[type=checkbox] { width: 22px; height: 22px; margin: 0; flex: none; }
-.page .sub-h { font: 600 13px/1.2 var(--font-body); letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 6px; color: var(--ink-2); }
+.page .sub-h, .page .card .grp { font: 600 13px/1.2 var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); } /* The two names of one look: .sub-h is the title of a subgroup, .grp of a card of Más, as in the mockup. */
+.page .sub-h { margin: 14px 0 6px; }
 .page .card > .sub-h { margin: 4px 0 -8px; } /* A card is a grid: its gap and the padding of the row leave the title nearer the rows it names. */
 .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
 .presets .chip-link { cursor: pointer; font: inherit; font-weight: 600; font-size: 15px; }

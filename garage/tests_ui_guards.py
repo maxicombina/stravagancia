@@ -353,6 +353,10 @@ class ChartTests(SimpleTestCase):
         low = [rule for rule in contrast.rules(stylesheet()) if rule.selector == ".chart svg" and any("max-height" in condition for condition in rule.conditions)]
         self.assertEqual([dict(contrast.declarations(rule.body)).get("max-width") for rule in low], ["320px"])
 
+    def test_a_tap_on_the_chart_paints_no_ring(self):
+        # :focus-visible does not match it, but the browser's own sheet paints any focused svg: `auto 5px`, blue or white, until it loses the focus.
+        self.assertEqual(contrast.declared(stylesheet(), ".chart svg:focus:not(:focus-visible)").get("outline"), "none")
+
     def test_the_arrow_keys_bring_the_bubble_into_view(self):
         # At 844x390, with the chart of a bike just focused, 7 of 12 bubbles stood above the top of the screen, 2 of them entirely. Only the keys: not a scroll under a finger.
         with open(finders.find("garage/garage.js"), encoding="utf-8") as script:

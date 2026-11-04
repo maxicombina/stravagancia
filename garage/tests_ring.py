@@ -333,6 +333,26 @@ class TestLargeGauge:
         assert visible_text(self.gauge_chip(panel)).startswith("Pospuesto · 230 %")
         assert not [node for node in find_all(panel, "div") if classes(node) & {"over-150", "over-200"}]
 
+    def rule_without_data(self, garage, **thresholds):
+        kind = save_maintenance(garage.owner, ServiceType, name="Tipo sin datos")
+        item = create_inventory(garage.owner, Item, name="Pieza sin datos", category=garage.helmet.category)
+        return item, save_maintenance(garage.owner, MaintenanceRule, item=item, service_type=kind, **thresholds)
+
+    @pytest.mark.parametrize("thresholds,threshold", [({"elevation_gain_m": 1000}, "1.000"), ({"calendar_days": 1825}, "1.825")])
+    def test_without_data_the_chip_says_so_with_no_percent(self, garage, client, thresholds, threshold):
+        """§4.1, as the row of a rule does. The threshold stays where the metric is, and in what the gauge says aloud."""
+        item, _ = self.rule_without_data(garage, **thresholds)
+        panel = find_all(self.page(garage, client, item), "section", cls="panel st-nodata")[0]
+        chip = self.gauge_chip(panel)
+        assert visible_text(chip) == "Sin datos" and accessible_text(chip) == "Sin datos"
+        assert threshold in visible_text(find_all(panel, "div", cls="trio")[0])
+        assert threshold in find_all(panel, "svg", role="img")[0].attrs["aria-label"]
+
+    def test_with_a_percent_the_chip_keeps_its_threshold(self, garage, client):
+        item, _ = rule_at(garage, 230)
+        panel = find_all(self.page(garage, client, item), "section", cls="panel st-due")[0]
+        assert visible_text(self.gauge_chip(panel)) == "Vencido · 230 % de 100 días"
+
     def test_a_minimum_is_in_the_chip_and_not_in_the_label(self, garage, client):
         panel = find_all(self.page(garage, client, garage.chain), "section", cls="panel st-review")[0]
         label = find_all(panel, "svg", role="img")[0].attrs["aria-label"]

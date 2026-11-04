@@ -18,7 +18,7 @@
       <text class="g-num{% if metric.big_class %} {{ metric.big_class }}{% endif %}" x="80" y="84">{{ metric.big }}</text>
       <text class="g-lbl" x="80" y="104">{{ metric.big_caption }}</text>
     </svg>
-    <span class="chip st-{{ w.state }}{% if w.over_class %} {{ w.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }} · {{ metric.percent_text }} de {{ metric.threshold_label }}</span>
+    <span class="chip st-{{ w.state }}{% if w.over_class %} {{ w.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}{% if metric.percent is not None %} · {{ metric.percent_text }} de {{ metric.threshold_label }}{% endif %}</span>
     <div class="trio">{% for m in w.metrics %}
       <div class="st-{{ m.state }}{% if m.over_class and not w.snoozed %} {{ m.over_class }}{% endif %}"><b>{{ m.value_text }}</b>
         <svg class="bar" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ m.bar_width }}" height="5" rx="2.5"/></svg>

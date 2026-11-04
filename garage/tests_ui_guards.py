@@ -340,6 +340,15 @@ class FieldRowTests(SimpleTestCase):
         self.assertEqual(contrast.declared(css, ".field-row + :is(.field, .field-row)").get("margin-top"), contrast.declared(css, ".page .field")["margin"].split()[2])
 
 
+class LegendTests(SimpleTestCase):
+    def test_every_legend_shown_starts_where_the_rest_of_the_form_starts(self):
+        # The browser gives a legend 2 px at each side: «También en esta visita» stood 2 px right of the titles and of the paragraph under it.
+        css = stylesheet()
+        for selector in (".together legend", ".icon-field > legend"):  # Any other legend is .sr-only.
+            with self.subTest(selector=selector):
+                self.assertEqual(contrast.declared(css, selector).get("padding"), "0")
+
+
 class TrioTests(SimpleTestCase):
     def test_the_columns_of_a_rule_keep_their_rows_level(self):
         # Beside a longer caption, the short column shared out what it had left: at 320 px its bar fell 9 px below the other's. The caption takes it now.

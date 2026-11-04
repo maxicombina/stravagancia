@@ -36,7 +36,7 @@
 {% endfor %}
 {% if not wears %}<p class="note">Sin otras reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear regla</a></p>{% else %}<p class="note"><a class="link solo" href="{% url 'garage:maintenance-rule-create' %}?item={{ object.pk }}">Crear otra regla</a></p>{% endif %}
 
-<section class="sec" aria-labelledby="usage-title">
+<section class="sec card" aria-labelledby="usage-title">
   <div class="sec-h"><h2 id="usage-title">Uso registrado en Garage</h2></div>
   {% if stats and usage_current %}
   {% with elevation=stats.observed.3 %}<div class="stats{% if elevation.value is not None %} four{% endif %}">{% for m in stats.observed|slice:":3" %}
@@ -56,7 +56,7 @@
   {% endif %}
 </section>
 
-<section class="sec" aria-labelledby="mounts-title">
+<section class="sec card" aria-labelledby="mounts-title">
   <div class="sec-h"><h2 id="mounts-title">Montajes</h2>{% if not object.retired_at and not current_mount %}<a class="link" href="{% url 'garage:installation-create' object.pk %}">Montar</a>{% endif %}</div>
   {% if mounts %}<ul class="timeline">{% for block in mounts %}
     <li{% if block.reference.ended_at is None %} class="open"{% endif %}><span><b>{% if block.reference.bike %}{{ block.reference.bike.name }}{% else %}Sobre {{ block.reference.parent_item.name }}{% endif %}</b><span>{% local_date block.start %} → {% if block.reference.ended_at %}{% local_date block.reference.ended_at %}{% else %}hoy{% endif %}</span></span>
@@ -64,7 +64,7 @@
   </ul>{% else %}<p class="empty">Nunca montado.</p>{% endif %}
 </section>
 
-<section class="sec" aria-labelledby="parts-title">
+<section class="sec card" aria-labelledby="parts-title">
   <div class="sec-h"><h2 id="parts-title">Piezas</h2>{% if not object.retired_at %}<a class="link" href="{% url 'garage:item-part-create' object.pk %}">Añadir pieza</a>{% endif %}</div>
   <ul class="rows">{% for row in parts %}{% with m=row.mount %}
     <li><a class="entry compact" href="{% url 'garage:item-detail' m.item_id %}"><span class="glyph"><svg class="ic"><use href="#i-{{ m.item|item_icon }}"/></svg></span>
@@ -76,7 +76,7 @@
   </ul>
 </section>
 
-<section class="sec" aria-labelledby="events-title">
+<section class="sec card" aria-labelledby="events-title">
   <div class="sec-h"><h2 id="events-title">Intervenciones</h2><a class="link" href="{% url 'garage:service-event-create' %}?item={{ object.pk }}">Registrar</a></div>
   <ul class="rows">{% for block in interventions %}{% with event=block.reference %}
     <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>
@@ -84,12 +84,11 @@
       <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>{% endwith %}
     {% empty %}<li class="empty">Sin intervenciones registradas.</li>{% endfor %}
   </ul>
-  {% if stats.costs %}<div class="panel"><h3>Coste por km</h3>{% for cost in stats.costs %}
-    <p>{{ cost.amount|money }} {{ cost.currency }} · {% if cost.per_km is None %}<span class="note">No calculable: {{ cost.reason|lower }}.</span>{% else %}<b class="num">{{ cost.per_km|num:3 }} {{ cost.currency }}/km</b>{% endif %}<br><span class="note">{{ cost.scope }}</span></p>{% endfor %}
-  </div>{% endif %}
+  {% if stats.costs %}<h3 class="sub-h">Coste por km</h3>{% for cost in stats.costs %}
+  <p>{{ cost.amount|money }} {{ cost.currency }} · {% if cost.per_km is None %}<span class="note">No calculable: {{ cost.reason|lower }}.</span>{% else %}<b class="num">{{ cost.per_km|num:3 }} {{ cost.currency }}/km</b>{% endif %}<br><span class="note">{{ cost.scope }}</span></p>{% endfor %}{% endif %}
 </section>
 
-{% include 'garage/photo_list.html' %}
+{% include 'garage/photo_list.html' with in_card=True %}
 
 <details class="more">
   <summary>Detalles, lecturas y montajes completos</summary>

@@ -258,9 +258,12 @@ class TestSectionsInCards:
         headings = [visible_text(heading) for heading in find_all(parse(page(client, garage.road)[0]), "h2")]
         assert headings == [*self.TITLES, "Historial de montajes directos en la bici"]
 
-    def test_the_photos_of_a_piece_stay_as_they_were(self, garage, client):
+    def test_the_photos_of_an_intervention_stay_as_they_were(self, garage, client):
+        """Its screen is for F4c. The photos of a bike or a piece are cards, the sections around them too."""
         client.force_login(garage.owner)
-        html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        event = save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=at(2))
+        html = client.get(reverse("garage:service-event-detail", args=[event.pk])).content.decode()
         section = find_all(parse(html), "section", aria_labelledby="photos-title")[0]
         assert classes(section) == ["sec"]
 

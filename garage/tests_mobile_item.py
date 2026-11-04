@@ -145,6 +145,36 @@ class TestChart:
         assert all(re.fullmatch(r"\d+\.\d{2}", p.x) for p in chart.points)
 
 
+class TestSectionsInCards:
+    """Spec §4.3, the #pieza-fox38 of the mockup and the screen of a bike: the same sections, in the same order, in cards."""
+
+    TITLES = ["Uso registrado en Garage", "Km por mes", "Montajes", "Piezas", "Intervenciones", "Fotos privadas"]
+
+    def root(self, garage, client):
+        client.force_login(garage.owner)
+        return parse(client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode())
+
+    def test_each_section_is_a_card(self, garage, client):
+        sections = find_all(self.root(garage, client), "section", aria_labelledby=True)
+        assert [visible_text(find_all(section, "h2")[0]) for section in sections] == self.TITLES
+        for section in sections:
+            assert {"card", "panel"} & set(section.attrs["class"].split()), section.attrs["class"]
+
+    def test_no_card_holds_another(self, garage, client):
+        root = self.root(garage, client)
+        for surface in find_all(root, cls="card") + find_all(root, cls="panel"):
+            assert not find_all(surface, cls="card") and not find_all(surface, cls="panel"), surface.attrs
+
+    def test_the_cost_per_km_is_a_group_of_the_card_of_interventions(self, garage, client):
+        section = find_all(self.root(garage, client), "section", aria_labelledby="events-title")[0]
+        assert [heading.attrs.get("class") for heading in find_all(section, "h3") if visible_text(heading) == "Coste por km"] == ["sub-h"]
+
+    def test_the_action_bar_stays_outside_of_them(self, garage, client):
+        """Sticky, it only stays in view within its parent: inside a card it would scroll away with it."""
+        main = find_all(self.root(garage, client), "main")[0]
+        assert [child for child in main.children if not isinstance(child, str) and "actionbar" in child.attrs.get("class", "").split()]
+
+
 class TestComponentScreen:
     def test_page(self, garage, client):
         from unittest.mock import patch

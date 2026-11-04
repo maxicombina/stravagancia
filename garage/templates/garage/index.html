@@ -52,7 +52,7 @@
     <li><a class="entry compact" href="{% url 'garage:bike-detail' entry.bike.pk %}">
       <span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
       <span><span class="entry-name">{{ entry.bike.name }}</span>
-        <span class="entry-sub">{{ entry.moving_time_s|hours }} h{% if entry.elevation_gain_m is not None %} · ↑ {% if entry.no_elevation %}≥ {% endif %}{{ entry.elevation_gain_m|metric_m }}{% endif %}{% if entry.alerts %} · {% if entry.alerts == 1 %}1 aviso{% else %}{{ entry.alerts }} avisos{% endif %}{% endif %}</span></span>
+        <span class="entry-sub"><span class="nowrap">{{ entry.moving_time_s|hours }} h</span>{% if entry.elevation_gain_m is not None %} · <span class="nowrap">↑ {% if entry.no_elevation %}≥ {% endif %}{{ entry.elevation_gain_m|metric_m }}</span>{% endif %}{% if entry.alerts %} · <span class="nowrap">{% if entry.alerts == 1 %}1 aviso{% else %}{{ entry.alerts }} avisos{% endif %}</span>{% endif %}</span></span>
       <span class="big"><b class="odo">{{ entry.distance_m|km }}</b><small>km registrados</small></span>
     </a></li>
     {% empty %}

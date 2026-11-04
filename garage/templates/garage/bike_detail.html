@@ -50,7 +50,7 @@
   <div class="sec-h"><h2 id="rides-title">Últimas salidas</h2><a class="link" href="{% url 'garage:usage-ride-list' %}?bike={{ object.pk }}">Ver todas</a></div>
   <ul class="rows">{% for ride in recent %}
     <li><a class="entry compact" href="{% url 'garage:ride-review' ride.pk %}?next={{ request.get_full_path|urlencode }}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
-      <span><span class="entry-name">{{ ride.name|default:"Salida sin nombre" }}</span><span class="entry-sub">{% local_date ride.started_at "weekday" %}{% if ride.elevation_gain_m is not None %} · ↑ {{ ride.elevation_gain_m|metric_m }}{% endif %}</span></span>
+      <span><span class="entry-name">{{ ride.name|default:"Salida sin nombre" }}</span><span class="entry-sub">{% local_date ride.started_at "weekday" %}{% if ride.elevation_gain_m is not None %} · <span class="nowrap">↑ {{ ride.elevation_gain_m|metric_m }}</span>{% endif %}</span></span>
       <span class="big"><b>{{ ride.distance_m|km }}</b><small>km</small></span></a></li>
     {% empty %}<li class="empty">Sin salidas con esta bici.</li>{% endfor %}
   </ul>
@@ -60,7 +60,7 @@
   <div class="sec-h"><h2 id="events-title">Intervenciones en la bici</h2><a class="link" href="{% url 'garage:service-event-create' %}?bike={{ object.pk }}">Registrar</a></div>
   <ul class="rows">{% for event in events %}
     <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>
-      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% local_date event.performed_at %}{% if event.since %} · a {{ event.since|span_short }} de la anterior{% endif %}{% if event.notes %} · {{ event.notes|truncatechars:40 }}{% endif %}</span></span>
+      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% local_date event.performed_at %}{% if event.since %} · a <span class="nowrap">{{ event.since|span_short }}</span> de la anterior{% endif %}{% if event.notes %} · {{ event.notes|truncatechars:40 }}{% endif %}</span></span>
       <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>
     {% empty %}<li class="empty">Sin intervenciones en la bici. Las de sus componentes están en cada ficha.</li>{% endfor %}
   </ul>

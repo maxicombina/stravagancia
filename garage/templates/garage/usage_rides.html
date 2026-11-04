@@ -10,7 +10,7 @@
   <li><a class="entry compact" href="{% url 'garage:ride-review' row.ride.pk %}?next={{ request.get_full_path|urlencode }}">
     <span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
     <span><span class="entry-name">{{ row.ride.name|default:'Salida sin nombre' }}</span>
-      <span class="entry-sub">{% if row.ride.started_at %}{% local_date row.ride.started_at "weekday" %}{% else %}Inicio desconocido{% endif %} · {{ row.ride.bike.name|default:'Sin bici' }}{% if row.ride.elevation_gain_m is not None %} · ↑ {{ row.ride.elevation_gain_m|metric_m }}{% endif %}{% if row.ride.sport_type %} · {{ row.ride.sport_type|sport_label }}{% endif %} · {{ row.origin }}{% if row.duplicate %} · <span class="badge">Posible duplicado</span>{% endif %}</span>
+      <span class="entry-sub">{% if row.ride.started_at %}{% local_date row.ride.started_at "weekday" %}{% else %}Inicio desconocido{% endif %} · {{ row.ride.bike.name|default:'Sin bici' }}{% if row.ride.elevation_gain_m is not None %} · <span class="nowrap">↑ {{ row.ride.elevation_gain_m|metric_m }}</span>{% endif %}{% if row.ride.sport_type %} · {{ row.ride.sport_type|sport_label }}{% endif %} · {{ row.origin }}{% if row.duplicate %} · <span class="badge">Posible duplicado</span>{% endif %}</span>
       {% if row.resolution.unknown_started_at %}<span class="entry-sub"><span class="badge">Pendiente: sin inicio confirmado; no genera contador.</span></span>{% else %}<span class="entry-sub">{% for item in row.items %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}Sin material{% endfor %}</span>{% endif %}</span>
     <span class="big"><b>{{ row.ride.distance_m|km }}</b><small>km</small></span>
   </a></li>

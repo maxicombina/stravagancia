@@ -502,13 +502,13 @@ class TestOtherChipsOfARule:
         assert classes(panel) == {"panel", "st-due", "over-200"} and classes(chip_of(panel)) == {"chip", "st-due", "over-200"}
         assert visible_text(chip_of(panel)) == "Vencido" and "230 %" in visible_text(panel)
 
-    def test_the_percent_on_the_postpone_screen_stays_whole(self, garage, client):
-        """Outside a chip nothing else holds it: at 320 px it left «110» on a line and «% de 365 días» on the next."""
+    def test_the_figures_on_the_postpone_screen_stay_whole(self, garage, client):
+        """Outside a chip nothing else holds them: at 320 px it left «110» on a line and «% de 365 días» on the next, at 390 «365» and «días»."""
         _, rule = rule_at(garage, 110)
         client.force_login(garage.owner)
         root = parse(client.get(reverse("garage:maintenance-rule-snooze", args=[rule.pk])).content.decode())
         panel = find_all(root, "section", cls="panel st-due")[0]
-        assert [visible_text(span) for span in find_all(panel, "span", cls="nowrap")] == ["110 %"]
+        assert [visible_text(span) for span in find_all(panel, "span", cls="nowrap")] == ["110 %", "100 días"]
         assert contrast.declared(stylesheet(), ".nowrap") == {"white-space": "nowrap"}
 
     def test_a_snoozed_chip_outside_the_row_is_not_deepened(self, garage, client):

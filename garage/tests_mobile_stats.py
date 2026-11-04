@@ -15,6 +15,7 @@ from .services.ownership import InventoryWriteError, create_inventory
 from .services.rides import create_manual_ride
 from .services.statistics import statistics
 from .statistics_views import period_bounds
+from .test_html import parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 UTC = dt_timezone.utc
@@ -97,10 +98,11 @@ class TestPage:
         update_inventory(garage.owner, Item, garage.chain.pk, purchase_amount=Decimal("99"), purchase_currency="EUR", acquisition_anchor_at=at(300))
         client.force_login(garage.owner)
         html, _ = get(client, period="all")
-        for text in ("Todo lo registrado", "<b>543</b>", "Carretera", "<b>400</b>", "Gravel", "Sin bici", "2 salidas · revisar",
+        for text in ("Todo lo registrado", "<b>543</b>", "Carretera", "<b>400</b>", "Gravel", "Sin bici",
                      f'href="{reverse("garage:usage-ride-list")}?pending=1"', "Casco", "<b>14,50</b>", "<b>3,00</b>", "USD",
                      "1 sin importe: el gasto real es al menos esto.", "Últimos 12 meses"):
             assert text in html, text
+        assert "2 salidas · revisar" in visible_text(parse(html))
         assert "<b>113,50</b>" not in html  # the purchase is never added to the spending
 
     def test_custom_form_keeps_the_detailed_report(self, garage, client):

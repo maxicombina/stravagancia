@@ -35,13 +35,13 @@
   <ul class="rows">{% for entry in bikes %}{% with row=entry.row %}
     <li><a class="entry compact" href="{% url 'garage:bike-detail' row.target.pk %}"><span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
       <span><span class="entry-name">{{ row.target.name }}</span>
-        <span class="entry-sub">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }} · {{ row.observed.1.value|hours }} h{% if row.observed.3.value is not None %} · ↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}{% endif %}{% if row.observed.0.missing_values %} · {{ row.observed.0.missing_values }} sin distancia{% endif %}{% if row.observed.1.missing_values %} · {{ row.observed.1.missing_values }} sin tiempo{% endif %}</span>
+        <span class="entry-sub"><span class="nowrap">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }}</span> · <span class="nowrap">{{ row.observed.1.value|hours }} h</span>{% if row.observed.3.value is not None %} · <span class="nowrap">↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}</span>{% endif %}{% if row.observed.0.missing_values %} · <span class="nowrap">{{ row.observed.0.missing_values }} sin distancia</span>{% endif %}{% if row.observed.1.missing_values %} · <span class="nowrap">{{ row.observed.1.missing_values }} sin tiempo</span>{% endif %}</span>
         <svg class="bar share" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ entry.share }}" height="5" rx="2.5"/></svg></span>
       <span class="big"><b>{{ row.observed.0.value|km }}</b><small>km</small></span></a></li>{% endwith %}
     {% endfor %}
     {% if report.unknown_bike_rides %}{% with km=report.no_bike.0 %}
     <li><a class="entry compact st-review" href="{% url 'garage:usage-ride-list' %}?pending=1"><span class="glyph"><svg class="ic"><use href="#i-{{ 'review'|state_icon }}"/></svg></span>
-      <span><span class="entry-name">Sin bici</span><span class="entry-sub">{{ report.unknown_bike_rides }} salida{{ report.unknown_bike_rides|pluralize }}{% if km.missing_values %} · {{ km.missing_values }} sin distancia{% endif %} · revisar</span>
+      <span><span class="entry-name">Sin bici</span><span class="entry-sub"><span class="nowrap">{{ report.unknown_bike_rides }} salida{{ report.unknown_bike_rides|pluralize }}</span>{% if km.missing_values %} · <span class="nowrap">{{ km.missing_values }} sin distancia</span>{% endif %} · revisar</span>
         <svg class="bar share" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-trk" width="100" height="5" rx="2.5"/><rect class="bar-fill" width="{{ no_bike_share }}" height="5" rx="2.5"/></svg></span>
       <span class="big"><b>{{ km.value|km }}</b><small>km</small></span></a></li>{% endwith %}{% endif %}
     {% if not bikes and not report.unknown_bike_rides %}<li class="empty">Sin salidas en este período.</li>{% endif %}
@@ -53,7 +53,7 @@
   {% if not report.materialization_current %}<p class="empty">Uso del material pendiente de calcular: reconstruye el uso desde el histórico.</p>{% else %}
   <ul class="rows">{% for row in items %}
     <li><a class="entry compact" href="{% url 'garage:item-detail' row.target.pk %}"><span class="glyph"><svg class="ic"><use href="#i-{{ row.target|item_icon }}"/></svg></span>
-      <span><span class="entry-name">{{ row.target.name }}</span><span class="entry-sub">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }} · {{ row.observed.1.value|hours }} h{% if row.observed.3.value is not None %} · ↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}{% endif %}</span></span>
+      <span><span class="entry-name">{{ row.target.name }}</span><span class="entry-sub"><span class="nowrap">{{ row.observed.2.value|num }} salida{{ row.observed.2.value|pluralize }}</span> · <span class="nowrap">{{ row.observed.1.value|hours }} h</span>{% if row.observed.3.value is not None %} · <span class="nowrap">↑ {% if row.observed.3.missing_values %}≥ {% endif %}{{ row.observed.3.value|metric_m }}</span>{% endif %}</span></span>
       <span class="big"><b>{{ row.observed.0.value|km }}</b><small>km</small></span></a></li>
     {% empty %}<li class="empty">Ningún material con uso en este período.</li>{% endfor %}
   </ul>{% endif %}

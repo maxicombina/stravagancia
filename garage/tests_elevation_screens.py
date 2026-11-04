@@ -1,5 +1,6 @@
 """garage-030 phase 3 (garage-037), screens half: elevation in rules, snoozes, statistics and screens;
 power only on the ride's own screens; the four minors deferred from phases 1–2."""
+import re
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -29,7 +30,8 @@ from .services.strava_sync import process_pending_events, sync_now
 from .services.usage import rebuild_usage
 from .services.usage_profiles import create_profile_history
 from .snooze_forms import SnoozeForm, presets
-from .templatetags.garage_ui import metric_m, span_text
+from .templatetags.garage_ui import metric_m, span_text, unbroken
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, due, garage, metric  # noqa: F401 (fixture)
 from .tests_strava_client import ATHLETE, connected, strava  # noqa: F401 (fixture)
 from .tests_strava_sync import ago, hint
@@ -283,7 +285,7 @@ class TestStatistics:
         client.force_login(hills.owner)
         default, count = html_of(client, "statistics")
         assert "Km por mes" in default and "<b>↑ 2.000</b><span>m de desnivel</span>" in default and 'class="stats four"' in default
-        assert "7 sin desnivel: el desnivel es un mínimo." in default and "· ↑ ≥ 2.000 m" in default, "a minimum per bike too"
+        assert "7 sin desnivel: el desnivel es un mínimo." in default and "· ↑ ≥ 2.000 m" in visible_text(parse(default)), "a minimum per bike too"
         assert 'href="?period=12m&amp;chart=elevation"' in default and 'href="?period=year"' in default
         html, elevated = html_of(client, "statistics", chart="elevation")
         assert elevated == count, "the chart only changes which metric is summed"
@@ -336,16 +338,18 @@ class TestScreens:
     def test_review_effects_carry_the_elevation(self, hills, client):
         client.force_login(hills.owner)
         html, _ = html_of(client, "ride-review-preview", hills.climbs[30].pk, bike=str(hills.gravel.pk))
-        assert html.count("· 2 h 00 · ↑ 1.200 m</span>") >= 2, html  # the bike it leaves and the one it joins
+        effects = [visible_text(one) for one in find_all(parse(html), cls="e-val")]
+        assert sum(text.endswith("· 2 h 00 · ↑ 1.200 m") for text in effects) >= 2, effects  # the bike it leaves and the one it joins
 
     def test_lists_show_elevation_never_power(self, powered, client):
         client.force_login(powered.owner)
         rides, _ = html_of(client, "usage-ride-list")
-        assert "Carretera · ↑ 1.200 m" in rides and "Carretera · ↑ 1.234 m" in rides and rides.count("↑") == 3
+        listed = visible_text(parse(rides))
+        assert "Carretera · ↑ 1.200 m" in listed and "Carretera · ↑ 1.234 m" in listed and rides.count("↑") == 3
         history, _ = html_of(client, "history")
         assert history.count("↑ ") == 3 and "↑ 800 m" in history
         home, _ = html_of(client, "index")
-        assert "h · ↑ ≥ 3.234 m" in home and home.count("↑") == 1, "only the bike that has elevation, a minimum"
+        assert "h · ↑ ≥ 3.234 m" in visible_text(parse(home)) and home.count("↑") == 1, "only the bike that has elevation, a minimum"
         for html in (rides, history, home):
             assert "Ø" not in html and "W media" not in html and "<span>kJ</span>" not in html
 
@@ -353,7 +357,7 @@ class TestScreens:
         client.force_login(hills.owner)
         road, _ = html_of(client, "bike-detail", hills.road.pk)
         assert 'class="stats four"' in road and "<b>↑ 2.000</b><span>m de desnivel</span>" in road
-        assert "4 sin desnivel: el desnivel es un mínimo." in road and "· ↑ 800 m</span>" in road
+        assert "4 sin desnivel: el desnivel es un mínimo." in road and "· ↑ 800 m" in visible_text(parse(road))
         gravel, _ = html_of(client, "bike-detail", hills.gravel.pk)
         assert "desnivel" not in gravel and "↑" not in gravel
 
@@ -391,6 +395,86 @@ class TestScreens:
         headline = wear(due(metric("elevation_gain_m", "1000", "1100", "due", "partial"))).headline
         assert (headline.title, headline.unit, headline.big, headline.big_caption) == ("Desnivel", "m", "+100", "↑ m de más como mín.")
         assert headline.threshold_label == "↑ 1.000 m" and wear(due(metric())).headline.threshold_label == "3.000 km"
+
+
+def loose_text(node):
+    """The text of a node without what a `.nowrap` or a chip holds together."""
+    if {"nowrap", "chip"} & set(node.attrs.get("class", "").split()):
+        return ""
+    return "".join(child if isinstance(child, str) else loose_text(child) for child in node.children)
+
+
+class TestFiguresStayWhole:
+    """A normal space is where a line can part: at 320 px rows ended in «· ↑» or «≥» with the figure on the next line, and «876» parted from its «m»."""
+
+    CUT = re.compile(r"[↑≥≈] |\d (?:km|m|h|min|salidas?|días?|avisos?|sin \w+)\b")
+
+    def whole(self, html):
+        """What the rows of a page hold together, once sure that nothing else in them can part."""
+        root = parse(html)
+        rows = find_all(root, cls="entry-sub") + find_all(root, cls="e-val")
+        assert rows
+        for row in rows:
+            assert not self.CUT.search(" ".join(loose_text(row).split())), visible_text(row)
+        return [visible_text(one) for row in rows for one in find_all(row, cls="nowrap")]
+
+    def test_rides(self, hills, client):
+        client.force_login(hills.owner)
+        assert {"↑ 1.200 m", "↑ 800 m"} <= set(self.whole(html_of(client, "usage-ride-list")[0]))
+
+    def test_history(self, hills, client):
+        client.force_login(hills.owner)
+        assert {"↑ 1.200 m", "↑ 800 m"} <= set(self.whole(html_of(client, "history")[0]))
+
+    def test_garage(self, hills, client):
+        road_rule(hills, distance_m=Decimal(1000))
+        client.force_login(hills.owner)
+        whole = self.whole(html_of(client, "index")[0])
+        assert "↑ ≥ 2.000 m" in whole and "2 avisos" in whole and any(text.endswith(" h") for text in whole)
+
+    def test_statistics(self, hills, client):
+        create_manual_ride(hills.owner, started_at=at(6), bike=hills.road, name="Sin medir")
+        rebuild_usage(hills.owner)
+        client.force_login(hills.owner)
+        whole = self.whole(html_of(client, "statistics")[0])
+        assert "↑ ≥ 2.000 m" in whole and "1 sin distancia" in whole and "1 sin tiempo" in whole
+        assert any(text.endswith(" salidas") for text in whole) and any(text.endswith(" h") for text in whole)
+
+    def test_bike(self, hills, client):
+        cleaned = kind(hills, "Limpieza")
+        for day in (40, 10):
+            save_maintenance(hills.owner, ServiceEvent, bike=hills.road, service_type=cleaned, performed_at=at(day))
+        client.force_login(hills.owner)
+        whole = self.whole(html_of(client, "bike-detail", hills.road.pk)[0])
+        assert "↑ 800 m" in whole and any(text.startswith("≥ ") and text.endswith(" km") for text in whole)
+
+    def test_item(self, hills, client):
+        cleaned = kind(hills, "Limpieza")
+        for day in (40, 10):
+            save_maintenance(hills.owner, ServiceEvent, item=hills.chain, service_type=cleaned, performed_at=at(day))
+        client.force_login(hills.owner)
+        assert any(text.startswith("≥ ") and text.endswith(" km") for text in self.whole(html_of(client, "item-detail", hills.chain.pk)[0]))
+
+    def test_usage_of_an_intervention(self, hills, client):
+        event = save_maintenance(hills.owner, ServiceEvent, item=hills.chain, service_type=kind(hills), performed_at=at(40))
+        client.force_login(hills.owner)
+        whole = self.whole(html_of(client, "service-event-detail", event.pk)[0])
+        assert "↑ ≥ 2.000 m" in whole and any(text.endswith(" días") for text in whole)
+
+    def test_how_long_each_one_lasts(self, hills, client):
+        client.force_login(hills.owner)
+        assert any(text.endswith(" días") for text in self.whole(html_of(client, "category-detail", hills.chain.category_id)[0]))
+
+    def test_effects_of_a_review(self, hills, client):
+        client.force_login(hills.owner)
+        whole = self.whole(html_of(client, "ride-review-preview", hills.climbs[30].pk, bike=str(hills.gravel.pk))[0])
+        assert {"2 h 00", "↑ 1.200 m"} <= set(whole)
+
+    def test_each_part_of_a_span_stays_whole(self):
+        span = SimpleNamespace(metrics=(), days=Decimal(3))
+        assert str(unbroken(span_text(span))) == '<span class="nowrap">3 días</span> · <span class="nowrap">uso desconocido</span>'
+        assert str(unbroken("≥ 3 km · <b>")) == '<span class="nowrap">≥ 3 km</span> · <span class="nowrap">&lt;b&gt;</span>', "text, not markup"
+        assert unbroken("") == "" and unbroken(span_text(None)) == ""
 
 
 # Deferred minors of phases 1–2 ---------------------------------------------

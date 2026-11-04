@@ -28,7 +28,7 @@
   <ul class="rows">{% for ride in page %}
     <li><a class="entry compact" href="{% url 'garage:usage-ride-detail' ride.pk %}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
       <span><span class="entry-name">{{ ride.name|default:'Salida sin nombre' }}</span>
-        <span class="entry-sub">{% if ride.started_at %}{% local_datetime ride.started_at %}{% else %}Inicio desconocido{% endif %} · {{ ride.bike.name|default:'Bici pendiente / desconocida' }}{% if ride.elevation_gain_m is not None %} · ↑ {{ ride.elevation_gain_m|metric_m }}{% endif %} · {{ ride.sport_type|sport_label|default:'Modalidad desconocida' }}</span></span>
+        <span class="entry-sub">{% if ride.started_at %}{% local_datetime ride.started_at %}{% else %}Inicio desconocido{% endif %} · {{ ride.bike.name|default:'Bici pendiente / desconocida' }}{% if ride.elevation_gain_m is not None %} · <span class="nowrap">↑ {{ ride.elevation_gain_m|metric_m }}</span>{% endif %} · {{ ride.sport_type|sport_label|default:'Modalidad desconocida' }}</span></span>
       <span class="big"><b>{{ ride.distance_m|km }}</b><small>km</small></span></a></li>
     {% empty %}<li class="empty">No hay salidas observadas con estos filtros; no demuestra que no hayas salido.</li>{% endfor %}
   </ul>

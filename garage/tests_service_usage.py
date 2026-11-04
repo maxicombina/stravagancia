@@ -15,6 +15,7 @@ from .services.ownership import create_inventory, retire_inventory, update_inven
 from .services.service_usage import Span, category_comparison, event_usage
 from .services.statistics import StatisticMetric
 from .templatetags.garage_ui import metric_km, span_short, span_text
+from .test_html import parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 MADRID = ZoneInfo("Europe/Madrid")
@@ -139,8 +140,9 @@ class TestScreens:
         with CaptureQueriesContext(connection) as queries:
             html = client.get(reverse("garage:service-event-detail", args=[history[1].pk])).content.decode()
         assert not [q for q in queries if q["sql"].split()[0] in WRITES] and len(queries) <= 30, len(queries)
-        assert "Desde la anterior, el" in html and "≥ 200 km · ≥ 8 h · ≥ 2 salidas · 100 días" in html
-        assert "Desde entonces, hasta hoy" in html and "≥ 200 km · ≥ 8 h · ≥ 2 salidas · 60 días" in html
+        text = visible_text(parse(html))
+        assert "Desde la anterior, el" in text and "≥ 200 km · ≥ 8 h · ≥ 2 salidas · 100 días" in text
+        assert "Desde entonces, hasta hoy" in text and "≥ 200 km · ≥ 8 h · ≥ 2 salidas · 60 días" in text
         first = client.get(reverse("garage:service-event-detail", args=[history[0].pk])).content.decode()
         assert "Primera de este tipo registrada" in first and "No hay ninguna intervención «Cambio de cadena» anterior en Cadena 11v" in first
         assert "Hasta la siguiente, el" in first
@@ -155,18 +157,18 @@ class TestScreens:
     def test_lists(self, garage, history, client, now):
         client.force_login(garage.owner)
         item = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
-        assert item.count("a ≥ 200 km de la anterior") == 1  # only the second change has a previous one
+        assert visible_text(parse(item)).count("a ≥ 200 km de la anterior") == 1  # only the second change has a previous one
         kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
         for days in (120, 30):
             save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=at(days))
         save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=NOW + timedelta(days=20))
         bike = client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()
-        assert bike.count("de la anterior") == 1 and "a ≥ 200 km de la anterior" in bike  # the planned one has no usage
+        assert bike.count("de la anterior") == 1 and "a ≥ 200 km de la anterior" in visible_text(parse(bike))  # the planned one has no usage
         with CaptureQueriesContext(connection) as queries:
             category = client.get(reverse("garage:category-detail", args=[garage.chain.category_id])).content.decode()
         assert len(queries) <= 27, len(queries)
         assert "Cuánto dura cada uno" in category and "≥ 400" in category and "km en Garage" in category
-        assert "Montado · 200 días montado" in category
+        assert "Montado · 200 días montado" in visible_text(parse(category))
 
 
 class TestReviewFixes:

@@ -208,10 +208,12 @@ class TestRidesWithoutElevation:
         client.force_login(hills.owner)
         html, _ = html_of(client, "statistics")
         # Carretera and its chain: 2.000 m known, 4 rides without it; Montaña's only ride has it.
-        assert "Carretera</span>" in html and "· ↑ ≥ 2.000 m" in html and "1 h · ↑ 500 m" in html and "↑ ≥ 500 m" not in html
+        text = visible_text(parse(html))
+        assert "Carretera</span>" in html and "· ↑ ≥ 2.000 m" in text and "1 h · ↑ 500 m" in text and "↑ ≥ 500 m" not in text
         assert "7 sin desnivel: el desnivel es un mínimo. " + HINT in html
         assert "no registran desnivel" not in html, "the km chart says nothing about elevation"
         chart, _ = html_of(client, "statistics", chart="elevation")
         assert "7 salidas de estos meses no registran desnivel: lo mostrado es un mínimo. " + HINT in chart
         home, _ = html_of(client, "index")
+        home = visible_text(parse(home))
         assert "h · ↑ ≥ 2.000 m" in home and "1 h · ↑ 500 m" in home

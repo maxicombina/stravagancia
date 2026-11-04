@@ -3,7 +3,7 @@ from datetime import datetime, timezone as dt_timezone
 from decimal import Decimal
 
 from django import template
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 
 from garage.assets import asset_url
 from garage.icons import ICON_LABELS, category_icon_key, item_icon_key
@@ -309,6 +309,12 @@ def span_text(span):
         return ""
     parts, days = _span_parts(span)
     return " · ".join([*parts, days]) if parts else f"{days} · uso desconocido"
+
+
+@register.filter
+def unbroken(text):
+    """Each «·» part of a line, whole: at 320 px a normal space left «≥» at the end of a line and its figure on the next."""
+    return format_html_join(" · ", '<span class="nowrap">{}</span>', ((part,) for part in text.split(" · ") if part))
 
 
 @register.filter

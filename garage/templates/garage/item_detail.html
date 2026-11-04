@@ -79,7 +79,7 @@
   <div class="sec-h"><h2 id="events-title">Intervenciones</h2><a class="link" href="{% url 'garage:service-event-create' %}?item={{ object.pk }}">Registrar</a></div>
   <ul class="rows">{% for block in interventions %}{% with event=block.reference %}
     <li><a class="entry compact" href="{% url 'garage:service-event-detail' event.pk %}"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>
-      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% local_date event.performed_at %}{% if block.since %} · a {{ block.since|span_short }} de la anterior{% endif %}{% if event.notes %} · {{ event.notes|truncatechars:40 }}{% endif %}</span></span>
+      <span><span class="entry-name">{{ event.service_type.name }}</span><span class="entry-sub">{% local_date event.performed_at %}{% if block.since %} · a <span class="nowrap">{{ block.since|span_short }}</span> de la anterior{% endif %}{% if event.notes %} · {{ event.notes|truncatechars:40 }}{% endif %}</span></span>
       <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>{% endwith %}
     {% empty %}<li class="empty">Sin intervenciones registradas.</li>{% endfor %}
   </ul>

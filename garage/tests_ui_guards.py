@@ -494,6 +494,15 @@ class ShareBarTests(SimpleTestCase):
         self.assertEqual(rules, [{"rx": "1px", "ry": "2.5px"}])
 
 
+class FoldTests(SimpleTestCase):
+    def test_what_unfolds_takes_a_finger(self):
+        # Inside a page this rule, as specific as `details.more > summary` and after it, is the one that counts: it left 44 px at 40.
+        self.assertEqual(contrast.declared(stylesheet(), ".page details > summary").get("min-height"), "44px")
+
+    def test_a_field_for_the_time_zone_keeps_its_own_height(self):
+        self.assertEqual(contrast.declared(stylesheet(), "details.zone > summary").get("min-height"), "47px")
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.

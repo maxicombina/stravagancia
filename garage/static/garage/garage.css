@@ -427,7 +427,7 @@ details.more:has(> .note + form.card) > * + * { margin-top: var(--s3); } /* The 
 .page th, .page td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .table-wrap { overflow-x: auto; }
 .page .pagination { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.page details > summary { cursor: pointer; font-weight: 600; min-height: 40px; display: flex; align-items: center; }
+.page details > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 .page ul:not([class]), .page ol:not([class]) { padding-left: 20px; }
 
 @media (prefers-reduced-motion: no-preference) {

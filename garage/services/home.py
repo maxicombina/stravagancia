@@ -40,6 +40,7 @@ class HomeBike:
     alerts: int
     elevation_gain_m: Decimal | None = None  # None while no ride of the bike has elevation (garage-030 phase 3)
     no_elevation: int = 0  # rides of the bike without elevation: the figure is a minimum («↑ ≥»)
+    worst: str | None = None  # the gravest state among its alerts, a key of STATES; None without alerts
 
 
 @dataclass(frozen=True)
@@ -119,11 +120,13 @@ def home_snapshot(actor, *, at=None):
     wears = [item for item in by_severity([wear(due) for due in dues]) if not _retired(item.target, at)]
     alerts = []
     per_bike = Counter()
-    for item in wears:
+    worst = {}
+    for item in wears:  # The gravest first.
         bike_id, place = place_of(item, mount_of)
         if item.needs_attention:
             if bike_id is not None:
                 per_bike[bike_id] += 1
+                worst.setdefault(bike_id, item.state)
             alerts.append(HomeAlert(item, place))
 
     gear = [HomeGear(item, lives[item.pk].state == IN_USE, lives[item.pk].contexts,
@@ -139,7 +142,8 @@ def home_snapshot(actor, *, at=None):
         pending_distance_m=pending["distance"],
         pending_first=pending_first,
         bikes=tuple(HomeBike(bike, totals.get(bike.pk, {}).get("distance", Decimal(0)), totals.get(bike.pk, {}).get("moving", Decimal(0)),
-                             per_bike[bike.pk], totals.get(bike.pk, {}).get("elevation"), totals.get(bike.pk, {}).get("no_elevation", 0))
+                             per_bike[bike.pk], totals.get(bike.pk, {}).get("elevation"), totals.get(bike.pk, {}).get("no_elevation", 0),
+                             worst.get(bike.pk))
                     for bike in bikes),
         gear=tuple(gear),
         usage_current=usage_current,

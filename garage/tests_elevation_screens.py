@@ -429,8 +429,11 @@ class TestFiguresStayWhole:
     def test_garage(self, hills, client):
         road_rule(hills, distance_m=Decimal(1000))
         client.force_login(hills.owner)
-        whole = self.whole(html_of(client, "index")[0])
-        assert "↑ ≥ 2.000 m" in whole and "2 avisos" in whole and any(text.endswith(" h") for text in whole)
+        html = html_of(client, "index")[0]
+        whole = self.whole(html)
+        assert "↑ ≥ 2.000 m" in whole and any(text.endswith(" h") for text in whole)
+        # The count went from this line to the badge (spec D17), and a chip holds its text together as well.
+        assert "2 avisos" in [visible_text(chip) for chip in find_all(parse(html), cls="chip")]
 
     def test_statistics(self, hills, client):
         create_manual_ride(hills.owner, started_at=at(6), bike=hills.road, name="Sin medir")

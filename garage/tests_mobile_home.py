@@ -8,17 +8,20 @@ from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Bike, Category, Item, MaintenanceRule, Ride, ServiceType, UsageMaterializationState
-from .presentation import SEVERITY, by_severity, number, quantity, ring, wear
+from .presentation import SEVERITY, STATES, by_severity, number, quantity, ring, wear
 from .services.home import home_snapshot
 from .services.installations import create_installation
 from .services.maintenance import save_maintenance
-from .services.maintenance_due import MaintenanceDue, MaintenanceMetric
+from .services.maintenance_due import MaintenanceDue, MaintenanceMetric, maintenance_due
 from .services.ownership import create_inventory
 from .services.rides import create_manual_ride
+from .services.snoozes import snooze_rule
 from .services.usage import rebuild_usage
 from .services.usage_profiles import create_profile_history
+from .test_html import accessible_text, find_all, parse, row_by_href, visible_text
 
 UTC = dt_timezone.utc
 NOW = datetime(2026, 10, 16, 12, tzinfo=UTC)
@@ -248,3 +251,169 @@ class TestHome:
         client.force_login(owner)
         html = client.get(reverse("garage:index")).content.decode()
         assert "Aún no hay reglas de mantenimiento" in html and "Aún no tienes bicis" in html and "90 %" in html
+
+
+def days_ago(days):
+    """Against the real clock, as the page reads it: `at()` is fixed, so a calendar rule built on it would change state as days go by."""
+    return timezone.now() - timedelta(days=days)
+
+
+def on_bike(g, bike, state, name="Regla"):
+    """A rule of `bike` in `state`, by what the domain computes from it. Gravel has one ride: 50 km, 20 days before NOW."""
+    amounts = {"due": dict(calendar_days=10, anchor_at=days_ago(30)),
+               "soon": dict(calendar_days=100, anchor_at=days_ago(95)),
+               "review": dict(distance_m=Decimal(52000), anchor_at=at(30)),
+               "current": dict(calendar_days=1000, anchor_at=days_ago(1)),
+               "nodata": dict(calendar_days=1000)}[state]
+    rule = save_maintenance(g.owner, MaintenanceRule, bike=bike, service_type=save_maintenance(g.owner, ServiceType, name=f"{name} {state}"), **amounts)
+    rebuild_usage(g.owner)
+    built = wear(next(entry for entry in maintenance_due(g.owner) if entry.rule.pk == rule.pk))
+    assert built.state == state, (built.state, state)  # Otherwise the test would not be about what it says.
+    return rule
+
+
+class TestBikeWorst:
+    """Spec D17: `worst` is the gravest state among what needs attention on a bike; what `alerts` counts, nothing else."""
+
+    def entry(self, g, bike):
+        return next(entry for entry in home_snapshot(g.owner).bikes if entry.bike == bike)
+
+    def test_due_and_soon_is_due(self, garage):
+        on_bike(garage, garage.gravel, "soon")
+        on_bike(garage, garage.gravel, "due")
+        entry = self.entry(garage, garage.gravel)
+        assert (entry.worst, entry.alerts) == ("due", 2)
+
+    def test_only_soon_is_soon(self, garage):
+        on_bike(garage, garage.gravel, "soon")
+        assert self.entry(garage, garage.gravel).worst == "soon"
+
+    def test_review_and_soon_is_review(self, garage):
+        on_bike(garage, garage.gravel, "soon")
+        on_bike(garage, garage.gravel, "review")
+        assert self.entry(garage, garage.gravel).worst == "review"
+
+    def test_no_alerts_is_none(self, garage):
+        entry = self.entry(garage, garage.gravel)
+        assert (entry.worst, entry.alerts) == (None, 0)
+
+    def test_a_snoozed_rule_does_not_count_even_if_it_is_due(self, garage):
+        snooze_rule(garage.owner, on_bike(garage, garage.gravel, "due"), calendar_days=3)
+        entry = self.entry(garage, garage.gravel)
+        assert (entry.worst, entry.alerts) == (None, 0)
+        on_bike(garage, garage.gravel, "soon")
+        entry = self.entry(garage, garage.gravel)
+        assert (entry.worst, entry.alerts) == ("soon", 1)
+
+    def test_no_data_and_calm_rules_do_not_count(self, garage):
+        on_bike(garage, garage.gravel, "nodata")
+        on_bike(garage, garage.gravel, "current")
+        entry = self.entry(garage, garage.gravel)
+        assert (entry.worst, entry.alerts) == (None, 0)
+
+    def test_a_bike_past_the_cap_of_the_attention_list_keeps_it(self, garage):
+        for number in range(7):
+            on_bike(garage, garage.road, "due", name=f"Regla {number}")
+        on_bike(garage, garage.gravel, "soon")
+        home = home_snapshot(garage.owner)
+        assert garage.gravel not in {alert.target for alert in home.attention}
+        assert {entry.bike: entry.worst for entry in home.bikes} == {garage.road: "due", garage.gravel: "soon"}
+
+    def test_each_bike_has_its_own_and_a_piece_on_no_bike_counts_for_none(self, garage):
+        # The cleats are due, inside shoes mounted on no bike.
+        home = home_snapshot(garage.owner)
+        assert "due" in {alert.wear.state for alert in home.attention}
+        assert {entry.bike: entry.worst for entry in home.bikes} == {garage.road: "review", garage.gravel: None}
+
+    def test_a_piece_inside_a_mounted_piece_counts_for_the_bike(self, garage):
+        create_installation(garage.owner, item=garage.shoes, bike=garage.gravel, parent_item=None, started_at=at(1), ended_at=None, slot=None)
+        assert self.entry(garage, garage.gravel).worst == "due"
+
+
+def classes(node):
+    return node.attrs.get("class", "").split()
+
+
+class TestGarageScreen:
+    """Spec F3a: the sections in cards and, on each bike, the badge of D17."""
+
+    def html(self, g, client):
+        client.force_login(g.owner)
+        response = client.get(reverse("garage:index"))
+        assert response.status_code == 200
+        return response.content.decode()
+
+    def row(self, html, bike):
+        """Its row in «Bicis»: a rule of the bike also links to it, from «Requiere atención»."""
+        section = find_all(parse(html), "section", aria_labelledby="bikes-title")[0]
+        rows = find_all(section, "a", cls="entry", href=reverse("garage:bike-detail", args=[bike.pk]))
+        assert len(rows) == 1, rows
+        return rows[0]
+
+    def badge(self, html, bike):
+        chips = find_all(self.row(html, bike), "span", cls="chip")
+        assert len(chips) == 1, chips
+        return chips[0]
+
+    def test_the_badge_counts_with_the_icon_of_the_gravest(self, garage, client):
+        on_bike(garage, garage.gravel, "soon")
+        on_bike(garage, garage.gravel, "due")
+        badge = self.badge(self.html(garage, client), garage.gravel)
+        assert visible_text(badge) == "2 avisos" and "st-due" in classes(badge)
+        assert [use.attrs["href"] for use in find_all(badge, "use")] == ["#i-octagon"]
+        assert len(find_all(badge, "svg", aria_hidden="true")) == 1
+
+    def test_the_gravest_is_heard_and_not_seen(self, garage, client):
+        on_bike(garage, garage.gravel, "soon")
+        on_bike(garage, garage.gravel, "due")
+        html = self.html(garage, client)
+        assert accessible_text(self.badge(html, garage.gravel)) == "2 avisos, el más grave: Vencido"
+        assert "el más grave" not in visible_text(self.row(html, garage.gravel))
+
+    @pytest.mark.parametrize("gravest,others", [("soon", "soon"), ("review", "soon")])
+    def test_the_badge_takes_icon_and_word_from_states(self, garage, client, gravest, others):
+        on_bike(garage, garage.gravel, others)
+        on_bike(garage, garage.gravel, gravest, name="Otra")
+        badge = self.badge(self.html(garage, client), garage.gravel)
+        word, icon = STATES[gravest]
+        assert f"st-{gravest}" in classes(badge) and [use.attrs["href"] for use in find_all(badge, "use")] == [f"#i-{icon}"]
+        assert accessible_text(badge) == f"2 avisos, el más grave: {word}"
+
+    def test_one_alert_has_nothing_to_be_the_gravest_of(self, garage, client):
+        on_bike(garage, garage.gravel, "due")
+        badge = self.badge(self.html(garage, client), garage.gravel)
+        assert visible_text(badge) == "1 aviso" and accessible_text(badge) == "1 aviso: Vencido"
+
+    def test_no_alerts_is_a_neutral_chip(self, garage, client):
+        row = self.row(self.html(garage, client), garage.gravel)
+        badge = find_all(row, "span", cls="chip")[0]
+        assert visible_text(badge) == accessible_text(badge) == "Sin avisos"
+        assert not [name for element in [row, badge] + find_all(row) for name in classes(element) if name.startswith("st-")]
+
+    def test_the_alerts_leave_the_second_line(self, garage, client):
+        on_bike(garage, garage.gravel, "due")
+        on_bike(garage, garage.gravel, "soon")
+        row = self.row(self.html(garage, client), garage.gravel)
+        figures = visible_text(find_all(row, cls="entry-sub")[0])
+        assert figures.endswith(" h") and "aviso" not in figures, figures
+        assert visible_text(row).count("aviso") == 1, "said once, in the badge"
+
+    def test_the_bike_row_keeps_its_tile_name_and_kilometres(self, garage, client):
+        row = self.row(self.html(garage, client), garage.gravel)
+        tile = find_all(row, cls="glyph")
+        assert len(tile) == 1 and [use.attrs["href"] for use in find_all(tile[0], "use")] == ["#i-bike"]
+        assert visible_text(find_all(row, cls="entry-name")[0]) == "Gravel"
+        assert visible_text(find_all(row, cls="big")[0]) == "50km registrados"
+
+    def test_the_three_sections_are_cards_with_the_same_titles(self, garage, client):
+        cards = find_all(parse(self.html(garage, client)), "section", cls="sec card")
+        assert [visible_text(find_all(card, "h2")[0]) for card in cards] == ["Requiere atención", "Bicis", "Equipación y material sin montar"]
+        for card in cards:
+            assert find_all(card, "h2")[0].attrs["id"] == card.attrs["aria-labelledby"]
+
+    def test_the_rides_to_review_keep_their_circle(self, garage, client):
+        href = f'{reverse("garage:ride-review", args=[garage.pending.pk])}?next=/garage/'
+        row = row_by_href(self.html(garage, client), href)
+        circles = find_all(row, cls="ring-ic")
+        assert "st-review" in classes(row) and len(circles) == 1
+        assert [use.attrs["href"] for use in find_all(circles[0], "use")] == ["#i-route"]

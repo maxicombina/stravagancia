@@ -125,12 +125,14 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chip .ic { color: var(--c, var(--ink-2)); }
 /* A rule's chip goes on to a second line, with its figure whole: at 320 px, beside a long caption, it would run over the figure of the row. */
 .entry-sub .chip { flex-wrap: wrap; row-gap: 0; max-width: 100%; margin-top: 3px; }
+.entry-sub > .chip:not(:has(> .ic)) { padding-left: 10px; } /* «Sin avisos»: the 3 px less on the left are for an icon, and it has none. */
 .meter { display: block; height: 5px; border-radius: 3px; overflow: hidden; background: var(--soft, var(--surface-2)); }
 .meter > i { display: block; height: 100%; border-radius: 3px; background: var(--c, var(--primary)); }
 .st-nodata .meter { background: repeating-linear-gradient(135deg, var(--surface-2) 0 4px, transparent 4px 8px); }
 
 /* Entries */
 .rows { display: grid; margin: 0; padding: 0; list-style: none; }
+.card > .rows:not(:has(> li)) { display: none; } /* «Nada pendiente» comes after the list, and an empty list would add its gap above it. */
 .entry { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line);
   color: inherit; text-decoration: none; min-height: 64px; }
 .entry.compact { grid-template-columns: 48px minmax(0, 1fr) auto; min-height: 56px; }
@@ -142,6 +144,17 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .big b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; white-space: nowrap; }
 .big small { font-size: 12px; color: var(--ink-2); }
 @media (max-width: 389px) { .big small { max-width: 92px; text-wrap: balance; } } /* «↑ m de más como mín.» in one line leaves the name and the chip 90 px at 320 px. */
+@media (max-width: 439px) { :is(.card, .panel) .big small { max-width: 92px; text-wrap: balance; } } /* A card takes 32 px off the row: at 390 px that long caption already broke «Vencido · ≥ 109 %». */
+/* At this width, in a card, the name column is narrower than a chip, which broke in three lines, its icon alone on the first: the chip and its note go under the name and the figure, across both. */
+@media (max-width: 389px) {
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) { row-gap: 0; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > span:not([class]) { display: contents; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > :first-child { grid-column: 1; grid-row: 1 / span 3; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-name { grid-column: 2; grid-row: 1; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-sub { grid-column: 2; grid-row: 2; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-sub:has(> .chip) { grid-column: 2 / -1; grid-row: 3; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > .big { grid-column: 3; grid-row: 1 / span 2; }
+}
 .ring { width: 52px; height: 52px; color: var(--ink); }
 .entry.compact .ring { width: 48px; height: 48px; }
 .st-nodata .ring { color: var(--ink-2); }
@@ -150,7 +163,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .st-nodata .ring .trk { stroke: var(--c, var(--nodata)); stroke-dasharray: 3 5; stroke-width: 2.5; }
 /* The piece's icon. currentColor, not --ink: forced colors force `color`, but not a stroke of a fixed color. */
 .ring .ring-glyph { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.ring-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--c, var(--primary)); color: var(--c, var(--primary)); }
+/* The rides to review: only the track, with nothing read on it, as wide as what a ring paints of its 52 px, so the two line up in a column. */
+.ring-ic { width: 46px; height: 46px; margin: 3px; border-radius: 50%; display: grid; place-items: center; border: 6px solid var(--soft, var(--surface-2)); color: var(--c, var(--primary)); }
 .glyph { width: 48px; height: 48px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
 .entry.compact .glyph { width: 40px; height: 40px; }
 .glyph.accent { background: var(--primary-soft); color: var(--primary); }
@@ -484,6 +498,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
   .btn, .button, .fab { border: 1px solid; }
   /* What a background told apart now needs a line. */
   .chip { border: 2px solid; }
+  .ring-ic { border-width: 2px; } /* Its track takes the color of the text, and at full width it would read as a full ring. */
   .tab[aria-current="page"] .tab-ic, .seg input:checked + label { border: 2px solid; }
   /* With the same border on all, the chosen filter would not show. */
   .chip-link { border: 1px solid; }

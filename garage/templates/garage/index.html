@@ -10,7 +10,7 @@
   <button type="button" class="icon-btn" data-install-dismiss aria-label="Cerrar aviso"><svg class="ic sm"><use href="#i-x"/></svg></button>
 </aside>
 
-<section class="sec" aria-labelledby="attention-title">
+<section class="sec card" aria-labelledby="attention-title">
   <div class="sec-h"><h2 id="attention-title">Requiere atención</h2><span class="count">{{ home.attention_total|add:home.pending_count }}</span></div>
   <ul class="rows">
     {% for alert in home.attention %}{% include "garage/_wear_row.html" %}{% endfor %}
@@ -45,14 +45,15 @@
   <p class="note">Próximo significa alcanzar el 90 % de un umbral. Si el histórico está incompleto se indica lo registrado como mínimo (≥). {% if home.calm %}<a href="{% url 'garage:maintenance' %}">{{ home.calm }} en curso o al día en Taller</a>.{% endif %}</p>
 </section>
 
-<section class="sec" aria-labelledby="bikes-title">
+<section class="sec card" aria-labelledby="bikes-title">
   <div class="sec-h"><h2 id="bikes-title">Bicis</h2><a class="link" href="{% url 'garage:bike-list' %}">Ver todas</a></div>
   <ul class="rows">
     {% for entry in home.bikes %}
     <li><a class="entry compact" href="{% url 'garage:bike-detail' entry.bike.pk %}">
       <span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
       <span><span class="entry-name">{{ entry.bike.name }}</span>
-        <span class="entry-sub"><span class="nowrap">{{ entry.moving_time_s|hours }} h</span>{% if entry.elevation_gain_m is not None %} · <span class="nowrap">↑ {% if entry.no_elevation %}≥ {% endif %}{{ entry.elevation_gain_m|metric_m }}</span>{% endif %}{% if entry.alerts %} · <span class="nowrap">{% if entry.alerts == 1 %}1 aviso{% else %}{{ entry.alerts }} avisos{% endif %}</span>{% endif %}</span></span>
+        <span class="entry-sub"><span class="nowrap">{{ entry.moving_time_s|hours }} h</span>{% if entry.elevation_gain_m is not None %} · <span class="nowrap">↑ {% if entry.no_elevation %}≥ {% endif %}{{ entry.elevation_gain_m|metric_m }}</span>{% endif %}</span>
+        <span class="entry-sub">{% if entry.worst %}<span class="chip st-{{ entry.worst }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ entry.worst|state_icon }}"/></svg>{% if entry.alerts == 1 %}1 aviso<span class="sr-only">: {{ entry.worst|state_word }}</span>{% else %}{{ entry.alerts }} avisos<span class="sr-only">, el más grave: {{ entry.worst|state_word }}</span>{% endif %}</span>{% else %}<span class="chip">Sin avisos</span>{% endif %}</span></span>
       <span class="big"><b class="odo">{{ entry.distance_m|km }}</b><small>km registrados</small></span>
     </a></li>
     {% empty %}
@@ -61,7 +62,7 @@
   </ul>
 </section>
 
-<section class="sec" aria-labelledby="gear-title">
+<section class="sec card" aria-labelledby="gear-title">
   <div class="sec-h"><h2 id="gear-title">Equipación y material sin montar</h2><a class="link" href="{% url 'garage:item-list' %}">Ver todo</a></div>
   <ul class="rows">
     {% for entry in home.gear %}

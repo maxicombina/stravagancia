@@ -139,13 +139,15 @@
       const r = svg.getBoundingClientRect();
       return Math.floor(((clientX - r.left) * box.width / r.width - left) / band);
     };
+    // On a low view the chart is taller than the room between the bars. Only the keys: no scroll under a finger.
+    const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };
     svg.addEventListener('pointermove', e => pick(at(e.clientX)));
     svg.addEventListener('pointerdown', e => pick(at(e.clientX)));
     svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
     svg.addEventListener('blur', hide);
     svg.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight') { pick(Math.min(points.length - 1, current + 1)); e.preventDefault(); }
-      else if (e.key === 'ArrowLeft') { pick(current < 0 ? points.length - 1 : Math.max(0, current - 1)); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { step(Math.min(points.length - 1, current + 1)); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft') { step(current < 0 ? points.length - 1 : Math.max(0, current - 1)); e.preventDefault(); }
       else if (e.key === 'Escape') hide();
     });
   });

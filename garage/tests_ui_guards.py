@@ -316,6 +316,14 @@ class ChartTests(SimpleTestCase):
         # The marks end at x=28, and at 10,5 px «15.000» measures 35: the svg cut what passed x=0, and the axis read 5.000, 0.000, 5.000 and 0.
         self.assertEqual(contrast.declared(stylesheet(), ".chart svg").get("overflow"), "visible")
 
+    def test_the_arrow_keys_bring_the_bubble_into_view(self):
+        # At 844x390, with the chart of a bike just focused, 7 of 12 bubbles stood above the top of the screen, 2 of them entirely. Only the keys: not a scroll under a finger.
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            source = script.read()
+        keys = source[source.index("svg.addEventListener('keydown'"):]
+        self.assertEqual(keys[:keys.index("});")].count("step("), 2)
+        self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };", source)
+
     def test_the_bubble_stays_over_every_bar(self):
         # At 844x390 the chart measures 369 px and the bars leave 167: of «junio 2026: 417 km» only the lower edge showed under the top bar.
         css = stylesheet()

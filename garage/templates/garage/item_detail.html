@@ -16,7 +16,7 @@
     <svg viewBox="0 0 160 160" role="img" aria-label="{{ metric.title }}: {{ metric.value_text }} de {{ metric.threshold_label }}. {{ w.word }}.">
       <circle class="trk" cx="80" cy="80" r="62"/>{% if metric.ratio %}<circle class="arc" cx="80" cy="80" r="62" stroke-dasharray="{{ metric.large_ring }}" transform="rotate(-90 80 80)"/>{% endif %}
       <text class="g-num{% if metric.big_class %} {{ metric.big_class }}{% endif %}" x="80" y="84">{{ metric.big }}</text>
-      <text class="g-lbl" x="80" y="104">{{ metric.big_caption }}</text>
+      <text class="g-lbl" x="80" y="104">{% for line in metric.big_caption_lines %}<tspan x="80"{% if not forloop.first %} dy="14"{% endif %}>{{ line }}</tspan>{% endfor %}</text>
     </svg>
     <span class="chip st-{{ w.state }}{% if w.over_class %} {{ w.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}{% if metric.percent is not None %} · {{ metric.percent_text }} de {{ metric.threshold_label }}{% endif %}</span>
     <div class="trio">{% for m in w.metrics %}

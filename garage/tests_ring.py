@@ -408,6 +408,64 @@ class TestLongFigureInTheLargeGauge:
         assert figure["paint-order"] == "stroke" and figure["stroke"] == "var(--surface)"
 
 
+class TestCaptionInTheLargeGauge:
+    """SVG text does not wrap: under the figure the ring leaves 97 units, and «km de más como mín.» measures 121 (Disco 160 mm of the demo)."""
+
+    UNITS = {"distance_m": "km", "moving_time_s": "h", "elevation_gain_m": "↑ m", "ride_count": "salidas", "calendar_days": "días"}
+    # What the states of a metric make it say after the unit.
+    ENDINGS = {
+        "quedan": dict(value="500", threshold="1000", status="current"),
+        "como máx.": dict(value="500", threshold="1000", status="unknown", coverage="partial"),
+        "estimados": dict(value="500", threshold="1000", status="unknown", estimated=True),
+        "de más": dict(value="1100", threshold="1000"),
+        "de más como mín.": dict(value="1100", threshold="1000", coverage="partial"),
+        "de más (estimado)": dict(value="1100", threshold="1000", estimated=True),
+    }
+
+    @pytest.mark.parametrize("name", UNITS)
+    @pytest.mark.parametrize("ending", ENDINGS)
+    def test_every_caption_fits_and_keeps_its_words(self, name, ending):
+        headline = wear(due_of(metric(name=name, **self.ENDINGS[ending]))).headline
+        assert headline.big_caption == f"{self.UNITS[name]} {ending}", "the words are not the layout's to change"
+        lines = headline.big_caption_lines
+        assert " ".join(lines) == headline.big_caption and len(lines) <= 2
+        # 14 characters measure at most 86 units, and the shortest that does not fit, «salidas estimados», is 17 and 98.
+        assert all(len(line) <= 14 for line in lines), lines
+        # The second line is lower down, with 74 units: «(estimado)» and «como máx.», the widest, measure 60,5.
+        assert all(len(line) <= 10 for line in lines[1:]), lines
+
+    @pytest.mark.parametrize("built,lines", [
+        (metric("1100", threshold="1000", coverage="partial"), ("km de más", "como mín.")),
+        (metric("1100", threshold="1000", estimated=True), ("km de más", "(estimado)")),
+        (metric("500", name="ride_count", threshold="1000", status="unknown", coverage="partial"), ("salidas", "como máx.")),
+        (metric("500", threshold="1000", status="unknown", coverage="partial"), ("km como máx.",)),
+        (metric("1100", threshold="1000"), ("km de más",)),
+        (metric(None, status="unknown", coverage="unknown"), ("sin datos",)),
+    ])
+    def test_it_parts_before_what_qualifies_it_and_only_if_it_has_to(self, built, lines):
+        assert wear(due_of(built)).headline.big_caption_lines == lines
+
+    def test_on_the_screen_of_a_piece(self, garage, client, monkeypatch):
+        real = due_module.maintenance_due
+
+        def partial(*args, **kwargs):
+            return tuple(replace(due, metrics=tuple(replace(one, coverage="partial") for one in due.metrics)) for due in real(*args, **kwargs))
+        monkeypatch.setattr(due_module, "maintenance_due", partial)
+        item, _ = rule_at(garage, 110)
+        client.force_login(garage.owner)
+        root = parse(client.get(item_url(item)).content.decode())
+        spans = find_all(find_all(root, "text", cls="g-lbl")[0], "tspan")
+        assert [visible_text(span) for span in spans] == ["días de más", "como mín."]
+        assert [(span.attrs.get("x"), span.attrs.get("dy")) for span in spans] == [("80", None), ("80", "14")]
+
+    def test_a_caption_that_fits_stays_on_one_line_on_the_screen(self, garage, client):
+        item, _ = rule_at(garage, 110)
+        client.force_login(garage.owner)
+        root = parse(client.get(item_url(item)).content.decode())
+        label = find_all(root, "text", cls="g-lbl")[0]
+        assert [visible_text(span) for span in find_all(label, "tspan")] == ["días de más"]
+
+
 class TestOtherChipsOfARule:
     """The same rule, with the same word, must not change color from one chip to the next (D21: wherever a due state is painted)."""
 

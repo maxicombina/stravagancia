@@ -185,8 +185,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .gauge .g-num.long { font-size: 30px; } /* Inside the ring with 6, 7 and 8 characters. */
 .gauge .g-num.longer { font-size: 26px; }
 .gauge .g-num.longest { font-size: 24px; }
-.gauge .g-lbl { fill: var(--ink-2); font: 12.5px var(--font-body); text-anchor: middle; /* A halo: a long caption reaches the ring, by then black or almost white (D21). */
-  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.gauge .g-lbl { fill: var(--ink-2); font: 12.5px var(--font-body); text-anchor: middle; }
 .gauge-title { font-weight: 650; text-align: center; }
 .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 12px; width: 100%; }
 .trio > div { display: grid; gap: 5px; min-width: 0; }

@@ -193,14 +193,25 @@ class WearMetric:
         return "longest" if length >= 8 else "longer" if length == 7 else "long" if length == 6 else ""
 
     @property
-    def big_caption(self):
+    def _caption_parts(self):
+        """What the caption says and what qualifies it: the two places where it can part."""
         if self.state == "nodata":
-            return "sin datos"
+            return ("sin datos",)
         if self.state == "due":
-            return f"{self.unit_text} de más" + (" (estimado)" if self.estimated else " como mín." if self.lower_bound else "")
+            said = f"{self.unit_text} de más"
+            return (said, "(estimado)") if self.estimated else (said, "como mín.") if self.lower_bound else (said,)
         if self.estimated:
-            return f"{self.unit_text} estimados"
-        return f"{self.unit_text} como máx." if self.lower_bound else f"{self.unit_text} quedan"
+            return (self.unit_text, "estimados")
+        return (self.unit_text, "como máx." if self.lower_bound else "quedan")
+
+    @property
+    def big_caption(self):
+        return " ".join(self._caption_parts)
+
+    @property
+    def big_caption_lines(self):
+        """The caption in the large ring, where text does not wrap: 14 characters fit under the figure, «salidas estimados» already reaches the ring."""
+        return self._caption_parts if len(self.big_caption) > 14 else (self.big_caption,)
 
     @property
     def word(self):

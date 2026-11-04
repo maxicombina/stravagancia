@@ -265,6 +265,9 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice input:checked + label { border-color: var(--primary); background: var(--primary-soft); }
 .choice input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* A name. A word wider than its column may take the 26 px of the tick and the gap, as always, so that «Stumpjumper» stays whole at 360 px; only a longer one breaks,
+   at the edge of the tile, and not with `anywhere`: that would make this min-content the width of a letter. */
+.choice:not(.icons) label > span { width: min-content; min-width: 100%; max-width: calc(100% + 26px); overflow-wrap: break-word; }
 .choice .tick { opacity: 0; color: var(--primary); }
 .choice input:checked + label .tick { opacity: 1; }
 .choice small { display: block; font-size: 12px; color: var(--ink-2); }
@@ -280,6 +283,7 @@ html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !
 .switches { list-style: none; margin: 0; padding: 0; }
 .switches li { border-bottom: 1px solid var(--line); }
 .switches label { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; min-height: 56px; cursor: pointer; }
+.switches label > span { overflow-wrap: anywhere; } /* A name: its column is wide enough for an ordinary word even at 320 px. */
 .switches .tag { display: block; font-size: 12px; color: var(--ink-2); }
 .switches .tag.ex { color: var(--primary); font-weight: 600; }
 .sw { appearance: none; -webkit-appearance: none; margin: 0; width: 51px; height: 31px; border-radius: var(--r-pill); background: var(--field); position: relative; cursor: pointer; flex: none; }

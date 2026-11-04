@@ -294,6 +294,16 @@ class TightRoomTests(SimpleTestCase):
         # On a tile with a background, the next tile paints over what sticks out: «máx 1.234», of 3 figures at 320 px, lost its last digit.
         self.assertNotEqual(contrast.declared(stylesheet(), ".stats b").get("white-space"), "nowrap")
 
+    def test_a_long_word_in_a_name_on_the_ride_review_wraps(self):
+        # «SantaCruzHightowerCC2026» widened the page by 67 px at 390 px, as a bike and as a piece of gear.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".switches label > span").get("overflow-wrap"), "anywhere")
+        tile = contrast.declared(css, ".choice:not(.icons) label > span")
+        # Not `anywhere`: it would lower the minimum width that keeps an ordinary word whole, «desconocid/a» or «Stumpjumpe/r» on a phone.
+        self.assertEqual((tile.get("overflow-wrap"), tile.get("width")), ("break-word", "min-content"))
+        self.assertNotIn("overflow-wrap", contrast.declared(css, ".choice label"))
+
+
 
 class OtherOriginPatternTests(SimpleTestCase):
     def test_it_catches_every_way_of_naming_another_origin(self):

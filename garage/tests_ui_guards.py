@@ -305,6 +305,12 @@ class TightRoomTests(SimpleTestCase):
 
 
 
+class TrioTests(SimpleTestCase):
+    def test_the_columns_of_a_rule_keep_their_rows_level(self):
+        # Beside a longer caption, the short column shared out what it had left: at 320 px its bar fell 9 px below the other's. The caption takes it now.
+        self.assertEqual(contrast.declared(stylesheet(), ".trio > div").get("grid-template-rows"), "auto auto 1fr")
+
+
 class ChartTests(SimpleTestCase):
     def test_a_long_mark_of_the_axis_keeps_its_first_digit(self):
         # The marks end at x=28, and at 10,5 px «15.000» measures 35: the svg cut what passed x=0, and the axis read 5.000, 0.000, 5.000 and 0.

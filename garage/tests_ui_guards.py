@@ -313,6 +313,13 @@ class FocusClearOfTheBarTests(SimpleTestCase):
         moved = {rule.conditions for rule in wide if rule.selector == ".tabbar" and "top" in dict(contrast.declarations(rule.body))}
         self.assertEqual(lowered - moved, set())
 
+    def test_on_a_very_low_view_the_action_bar_stays_in_the_flow(self):
+        # 1280x800 at 400 % is 320x200: the three bars took 223 px, and Tab left all it reached in a form out of sight.
+        low = [rule for rule in contrast.rules(stylesheet()) if any("max-height" in condition for condition in rule.conditions)]
+        self.assertEqual([dict(contrast.declarations(rule.body)).get("position") for rule in low if rule.selector == ".actionbar"], ["static"])
+        # And what scrolls into view no longer leaves it room: 64 px above and 186 below are more than the 200 there are.
+        self.assertEqual({rule.selector for rule in low if "scroll-padding-bottom" in dict(contrast.declarations(rule.body))}, {"html, html:has(.actionbar, .fab)"})
+
 
 class OtherOriginPatternTests(SimpleTestCase):
     def test_it_catches_every_way_of_naming_another_origin(self):

@@ -241,6 +241,11 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .actionbar > * { flex: 1; }
 .actionbar > .btn.ghost { flex: 0 0 auto; }
 .actionbar .btn { padding-inline: 14px; } /* Side by side on a phone; with the 20 px of a button alone, «Registrar mantenimiento» and «Mover» overflow at 320 px. */
+/* A view this low is the zoom of a desktop (1280×800 at 400 % is 320×200). With this bar over the other two, what takes the focus has nowhere left to be seen. */
+@media (max-height: 300px) {
+  .actionbar { position: static; }
+  html, html:has(.actionbar, .fab) { scroll-padding-bottom: var(--nav-space); }
+}
 .btn, .button {
   border: 0; border-radius: var(--r-md); min-height: 50px; padding: 0 20px; font-weight: 650; line-height: 1.2; text-align: center; cursor: pointer; display: inline-flex; align-items: center;
   justify-content: center; gap: 8px; background: var(--primary); color: var(--on-primary); text-decoration: none; }

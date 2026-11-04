@@ -289,6 +289,12 @@ class SkinBySystemTests(SimpleTestCase):
         self.assertEqual(skin_by_system(""), [])
 
 
+class TightRoomTests(SimpleTestCase):
+    def test_a_figure_of_a_tile_can_go_on_to_a_second_line(self):
+        # On a tile with a background, the next tile paints over what sticks out: «máx 1.234», of 3 figures at 320 px, lost its last digit.
+        self.assertNotEqual(contrast.declared(stylesheet(), ".stats b").get("white-space"), "nowrap")
+
+
 class OtherOriginPatternTests(SimpleTestCase):
     def test_it_catches_every_way_of_naming_another_origin(self):
         for css in ("a{background:url(https://x.test/a.png)}", "@import 'http://x.test/a.css';",

@@ -40,7 +40,7 @@
     </a></li>
     {% endif %}
   </ul>
-  {% if home.attention_hidden %}<p><a class="link" href="{% url 'garage:maintenance' %}">Ver {{ home.attention_hidden }} más en Taller</a></p>{% endif %}
+  {% if home.attention_hidden %}<p><a class="link solo" href="{% url 'garage:maintenance' %}">Ver {{ home.attention_hidden }} más en Taller</a></p>{% endif %}
   {% if not home.attention and not home.pending_count and not home.nodata and not home.snoozed %}<p class="empty">{% if home.rules %}Nada pendiente.{% else %}Aún no hay reglas de mantenimiento. <a href="{% url 'garage:maintenance-rule-create' %}">Crear una regla</a>.{% endif %}</p>{% endif %}
   <p class="note">Próximo significa alcanzar el 90 % de un umbral. Si el histórico está incompleto se indica lo registrado como mínimo (≥). {% if home.calm %}<a href="{% url 'garage:maintenance' %}">{{ home.calm }} en curso o al día en Taller</a>.{% endif %}</p>
 </section>

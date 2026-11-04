@@ -61,7 +61,7 @@
       <span class="num">{% if event.amount is not None %}{{ event.amount|money }} {{ event.currency }}{% endif %}</span></a></li>
     {% empty %}<li class="empty">Sin intervenciones registradas.</li>{% endfor %}
   </ul>
-  {% if shop.events|length < shop.events_total %}<p><a class="link" href="{% url 'garage:maintenance' %}?all=1#events-title">Ver todas ({{ shop.events_total }})</a></p>{% endif %}
+  {% if shop.events|length < shop.events_total %}<p><a class="link solo" href="{% url 'garage:maintenance' %}?all=1#events-title">Ver todas ({{ shop.events_total }})</a></p>{% endif %}
 </section>
 
 <section class="sec card" aria-labelledby="rules-title">

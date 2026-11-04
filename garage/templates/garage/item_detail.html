@@ -28,7 +28,7 @@
     </div>
   </div>
   {% if w.rule|is_life %}<p class="note">Vence con lo primero que llegue: {{ w.rule|thresholds_or }}. {% if w.due.reference_at %}Cuenta desde el {% local_date w.due.reference_at %}{% if w.due.event %} (última sustitución){% endif %}.{% elif w.rule.anchor_at %}Empieza el {% local_date w.rule.anchor_at %}.{% else %}Sin fecha de inicio.{% endif %} Avisa al 90 %.</p>
-  <p><a class="link" href="{% url 'garage:item-lifespan' object.pk %}">Editar vida útil</a></p>
+  <p><a class="link solo" href="{% url 'garage:item-lifespan' object.pk %}">Editar vida útil</a></p>
   {% else %}<p class="note">{% if w.due.reference_at %}Contado desde el {% local_date w.due.reference_at %}{% if w.due.event %} ({{ w.rule.service_type.name|lower }}){% endif %}.{% else %}Sin referencia: registra una intervención o un ancla en la regla.{% endif %} Avisa al 90 % y vence con el primer umbral que se alcance.</p>{% endif %}
   {% include "garage/_elevation_rule_note.html" %}
   {% include "garage/_snooze_note.html" %}

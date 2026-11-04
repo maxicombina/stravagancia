@@ -48,5 +48,5 @@
     <div class="actionbar"><button type="submit" class="btn"><svg class="ic sm"><use href="#i-clock"/></svg>Posponer</button><a class="btn ghost" href="{{ back_url }}">Cancelar</a></div>
   </form>
 </section>
-<p class="note"><a class="link" href="{{ edit_url }}">{% if rule|is_life %}Editar vida útil{% else %}Editar la regla{% endif %} ({{ rule|thresholds }})</a></p>
+<p class="note"><a class="link solo" href="{{ edit_url }}">{% if rule|is_life %}Editar vida útil{% else %}Editar la regla{% endif %} ({{ rule|thresholds }})</a></p>
 {% endblock %}

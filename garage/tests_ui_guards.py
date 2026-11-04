@@ -1,4 +1,5 @@
 """garage-050 F0: what no restyle may break, and the helpers that read the rendered pages."""
+from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
@@ -501,6 +502,30 @@ class FoldTests(SimpleTestCase):
 
     def test_a_field_for_the_time_zone_keeps_its_own_height(self):
         self.assertEqual(contrast.declared(stylesheet(), "details.zone > summary").get("min-height"), "47px")
+
+
+class TextLinkTests(SimpleTestCase):
+    """The 44 px of the mockup's .card-link: a text link stands alone, with nothing around it for a finger to land on."""
+
+    ALONE = re.compile(r'<p(?: class="[^"]*")?><a class="(link[^"]*)"[^>]*>(?:(?!</a>).)*</a></p>', re.DOTALL)
+
+    def test_a_link_in_the_head_of_a_card_takes_a_finger_and_the_head_stays_as_low(self):
+        link = contrast.declared(stylesheet(), ".sec-h > .link")
+        self.assertEqual((link.get("display"), link.get("min-height")), ("inline-flex", "44px"))
+        # A head without a link measures 28: the rest of the 44 reaches into the padding of the card above and the gap below, 12 px at least.
+        self.assertEqual(link.get("margin-block"), "-8px")
+
+    def test_a_link_alone_on_its_line_says_so(self):
+        found = {}
+        for path in Path(finders.find("garage/garage.css")).parents[2].glob("templates/garage/*.html"):
+            for classes in self.ALONE.findall(path.read_text(encoding="utf-8")):
+                found.setdefault(path.name, []).append(classes)
+        self.assertGreaterEqual(set(found), {"_snooze_note.html", "index.html", "maintenance.html", "item_detail.html", "snooze.html"})
+        self.assertEqual({name: kinds for name, kinds in found.items() if set(kinds) != {"link solo"}}, {})
+
+    def test_a_link_in_the_middle_of_a_sentence_is_not_alone(self):
+        self.assertIsNone(self.ALONE.search('<p class="note">Antes. <a class="link" href="#">Registrar</a></p>'))
+        self.assertIsNone(self.ALONE.search('<p><a class="link" href="#">Registrar</a> después.</p>'))
 
 
 class FocusClearOfTheBarTests(SimpleTestCase):

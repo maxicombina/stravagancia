@@ -112,7 +112,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .page form > .sec + .sec { margin-top: var(--s6); } /* A form is no grid: the page's gap between sections does not reach inside it. */
 .sec-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; }
 .sec-h h2, .sec-h h3 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 600; }
-.sec-h > .link { flex: none; } /* Beside a title that now wraps, «Ver todo» would go on to two lines. */
+.sec-h > .link { flex: none; display: inline-flex; align-items: center; min-height: 44px; margin-block: -8px; } /* flex: none: beside a title that now wraps, «Ver todo» would go on to two lines. The 44 px of a finger reach into the padding above and the gap below: the head stays at its 28. */
 .count, .pill-count { font: 600 14px/1 var(--font-body); min-width: 28px; height: 28px; padding: 0 9px; border-radius: var(--r-pill); display: inline-grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
 .link { color: var(--primary); font-weight: 600; text-decoration: none; font-size: 15px; padding: 6px 0; }
 .link .ic { margin-right: 6px; }

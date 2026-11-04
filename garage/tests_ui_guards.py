@@ -316,6 +316,14 @@ class ChartTests(SimpleTestCase):
         # The marks end at x=28, and at 10,5 px «15.000» measures 35: the svg cut what passed x=0, and the axis read 5.000, 0.000, 5.000 and 0.
         self.assertEqual(contrast.declared(stylesheet(), ".chart svg").get("overflow"), "visible")
 
+    def test_the_bubble_stays_over_every_bar(self):
+        # At 844x390 the chart measures 369 px and the bars leave 167: of «junio 2026: 417 km» only the lower edge showed under the top bar.
+        css = stylesheet()
+        bubble = int(contrast.declared(css, ".tip").get("z-index", 0))
+        for bar in (".appbar", ".actionbar", ".fab", ".tabbar"):
+            with self.subTest(bar=bar):
+                self.assertGreater(bubble, int(contrast.declared(css, bar)["z-index"]))
+
 
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):

@@ -470,11 +470,43 @@ class TestFiguresStayWhole:
         whole = self.whole(html_of(client, "ride-review-preview", hills.climbs[30].pk, bike=str(hills.gravel.pk))[0])
         assert {"2 h 00", "↑ 1.200 m"} <= set(whole)
 
+    def test_workshop(self, hills, client):
+        # «4.000 km · 730 días · 20.000» / «m de desnivel» at 320 px, in the list of rules.
+        road_rule(hills, distance_m=Decimal(4000000), calendar_days=730, elevation_gain_m=Decimal(20000))
+        client.force_login(hills.owner)
+        assert {"4.000 km", "730 días", "20.000 m de desnivel"} <= set(self.whole(html_of(client, "maintenance")[0]))
+
+    def test_workshop_with_a_row_postponed(self, hills, client):
+        # «Vencido · quedan como máx. ↑» / «151 m o 30 días de» at 320 px; the amounts stay apart, each one whole.
+        snoozed = road_rule(hills, calendar_days=1, elevation_gain_m=Decimal(1))
+        snooze_rule(hills.owner, snoozed, elevation_gain_m=Decimal(1000), calendar_days=5)
+        client.force_login(hills.owner)
+        html = html_of(client, "maintenance")[0]
+        assert {"como máx. ↑ 1.000 m", "5 días"} <= set(self.whole(html))
+        assert "como máx. ↑ 1.000 m o 5 días" not in self.whole(html), "too long for one line at 320 px"
+
+    def test_a_postponed_row_says_it_whole_on_the_screen_of_its_bike(self, hills, client):
+        snoozed = road_rule(hills, calendar_days=1, elevation_gain_m=Decimal(1))
+        snooze_rule(hills.owner, snoozed, elevation_gain_m=Decimal(1000), calendar_days=5)
+        client.force_login(hills.owner)
+        assert {"como máx. ↑ 1.000 m", "5 días"} <= set(self.whole(html_of(client, "bike-detail", hills.road.pk)[0]))
+
+    def test_how_many_rides_lack_elevation_stays_whole(self, hills, client):
+        # «En curso · ≥ 10 % 2 sin» / «desnivel»: the fixture's other rides have none.
+        road_rule(hills, elevation_gain_m=Decimal(20000))
+        client.force_login(hills.owner)
+        assert any(text.endswith(" sin desnivel") for text in self.whole(html_of(client, "maintenance")[0]))
+
     def test_each_part_of_a_span_stays_whole(self):
         span = SimpleNamespace(metrics=(), days=Decimal(3))
         assert str(unbroken(span_text(span))) == '<span class="nowrap">3 días</span> · <span class="nowrap">uso desconocido</span>'
         assert str(unbroken("≥ 3 km · <b>")) == '<span class="nowrap">≥ 3 km</span> · <span class="nowrap">&lt;b&gt;</span>', "text, not markup"
         assert unbroken("") == "" and unbroken(span_text(None)) == ""
+
+    def test_the_amounts_of_a_snooze_stay_whole_one_by_one(self):
+        assert str(unbroken("como máx. ↑ 151 m o 30 días", " o ")) == '<span class="nowrap">como máx. ↑ 151 m</span> o <span class="nowrap">30 días</span>'
+        assert str(unbroken("5 días", " o ")) == '<span class="nowrap">5 días</span>'
+        assert unbroken("", " o ") == ""
 
 
 # Deferred minors of phases 1–2 ---------------------------------------------

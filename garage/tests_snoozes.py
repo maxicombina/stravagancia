@@ -26,6 +26,7 @@ from .services.snoozes import end_snooze, open_snooze, snooze_rule
 from .services.usage import rebuild_usage
 from .services.workshop import workshop_snapshot
 from .snooze_forms import SnoozeForm, presets
+from .test_html import parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 WRITES = {"INSERT", "UPDATE", "DELETE"}
@@ -351,7 +352,7 @@ class TestScreens:
         home = client.get(reverse("garage:index")).content.decode()
         assert "1 aviso pospuesto" in home and reverse("garage:maintenance") + "#snoozed" in home
         shop = client.get(reverse("garage:maintenance")).content.decode()
-        assert 'id="snoozed"' in shop and "Vencido · quedan 5 días de aplazamiento" in shop
+        assert 'id="snoozed"' in shop and "Vencido · quedan 5 días de aplazamiento" in visible_text(parse(shop))
         assert "Aplazamiento desde el" in shop and "activo" in shop  # technical details
 
     def test_bike_rule_row_on_its_own_page(self, garage, client, now):

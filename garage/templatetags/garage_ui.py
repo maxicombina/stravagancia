@@ -312,9 +312,9 @@ def span_text(span):
 
 
 @register.filter
-def unbroken(text):
-    """Each «·» part of a line, whole: at 320 px a normal space left «≥» at the end of a line and its figure on the next."""
-    return format_html_join(" · ", '<span class="nowrap">{}</span>', ((part,) for part in text.split(" · ") if part))
+def unbroken(text, separator=" · "):
+    """Each part of a line, whole: at 320 px a normal space left «≥» at the end of a line and its figure on the next."""
+    return format_html_join(separator, '<span class="nowrap">{}</span>', ((part,) for part in text.split(separator) if part))
 
 
 @register.filter

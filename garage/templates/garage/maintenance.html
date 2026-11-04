@@ -20,7 +20,7 @@
     <li><a class="entry compact st-snoozed" href="{% url 'garage:maintenance-rule-snooze' w.rule.pk %}">
       <span class="glyph"><svg class="ic"><use href="#i-clock"/></svg></span>
       <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
-        <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left }} de aplazamiento</span></span>
+        <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left|unbroken:" o " }} de aplazamiento</span></span>
       <svg class="ic"><use href="#i-chev-right"/></svg>
     </a></li>{% endwith %}{% endfor %}
   </ul>
@@ -66,7 +66,7 @@
   <div class="sec-h"><h2 id="rules-title">Reglas</h2><a class="link" href="{% url 'garage:maintenance-rule-create' %}">Nueva regla</a></div>
   <ul class="rows">{% for rule in shop.rules %}
     <li><a class="entry compact" href="{% url 'garage:maintenance-rule-edit' rule.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
-      <span><span class="entry-name">{{ rule|rule_name }} · {% if rule.item_id %}{{ rule.item.name }}{% else %}{{ rule.bike.name }}{% endif %}</span><span class="entry-sub">{% with target=rule.item|default:rule.bike %}{% if target.retired_at %}Retirado · {% endif %}{% endwith %}{{ rule|thresholds }}</span></span>
+      <span><span class="entry-name">{{ rule|rule_name }} · {% if rule.item_id %}{{ rule.item.name }}{% else %}{{ rule.bike.name }}{% endif %}</span><span class="entry-sub">{% with target=rule.item|default:rule.bike %}{% if target.retired_at %}Retirado · {% endif %}{% endwith %}{{ rule|thresholds|unbroken }}</span></span>
       <svg class="ic"><use href="#i-edit"/></svg></a></li>
     {% empty %}<li class="empty">No hay reglas.</li>{% endfor %}
   </ul>

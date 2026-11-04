@@ -305,6 +305,26 @@ class TightRoomTests(SimpleTestCase):
 
 
 
+class FieldRowTests(SimpleTestCase):
+    def test_the_two_boxes_stay_level_whatever_the_columns_hold(self):
+        # With `align-items: end` a rejected «Tiempo» dropped the box of «Unidad» 54,6 px at 320 px. And a label on two lines must not stretch the one beside it.
+        css = stylesheet()
+        self.assertNotIn("align-items", contrast.declared(css, ".field-row"))
+        field = contrast.declared(css, ".field-row .field")
+        self.assertEqual(field.get("grid-template-rows"), "subgrid")
+        self.assertEqual(field.get("row-gap"), "0", "a row left empty, with no help and no error, would leave its gap under the box")
+        self.assertEqual(contrast.declared(css, ".field-row .field > label").get("align-self"), "end")
+
+    def test_every_part_a_field_can_hold_has_a_row_of_its_own(self):
+        # A subgrid adds no rows: with fewer, a help and an error would land on each other.
+        self.assertEqual(contrast.declared(stylesheet(), ".field-row .field").get("grid-row"), "span 4")  # label, control, help and errors: garage/_field.html
+
+    def test_the_next_field_keeps_the_room_of_a_loose_field(self):
+        # The next label stood 4 px under the box above and 6 px over its own: it seemed to name the wrong box.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".field-row + :is(.field, .field-row)").get("margin-top"), contrast.declared(css, ".page .field")["margin"].split()[2])
+
+
 class TrioTests(SimpleTestCase):
     def test_the_columns_of_a_rule_keep_their_rows_level(self):
         # Beside a longer caption, the short column shared out what it had left: at 320 px its bar fell 9 px below the other's. The caption takes it now.

@@ -1,5 +1,5 @@
 /* Garage — estilo «Anillos». Mobile first; tokens per theme; self-hosted fonts.
-   Layout: sticky top app bar, document scroll, bottom tab bar fixed with safe areas. */
+   Layout: sticky top app bar, document scroll, a tab bar floating above the bottom edge and its safe area. */
 :root { /* Anillos · claro */
   --bg: #F5F3EF; --surface: #FFFFFF; --surface-2: #EFEBE4; --line: #E4DFD7; --ink: #1C1A21; --ink-2: #5D5866; --field: #8C8694;
   --primary: #5536C8; --on-primary: #FFFFFF; --primary-soft: #ECE6FD; --focus: #C2410C;
@@ -15,7 +15,6 @@
   --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 28px; --r-pill: 999px;
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s7: 32px; --s8: 40px;
   --nav-h: 72px; --nav-gap: 10px; --nav-space: calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px));
-  --tabbar: 62px; /* The docked bar's height, until the bar floats on --nav-space. */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -57,10 +56,13 @@
 .st-nodata, .st-snoozed { --c: var(--nodata); --soft: var(--nodata-soft); }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* What takes the focus scrolls clear of the bars. Not with a scroll-margin too: the two would add up. */
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px)); scroll-padding-bottom: calc(var(--nav-space) + 24px); }
+html:has(.actionbar, .fab) { scroll-padding-bottom: calc(var(--nav-space) + 104px); } /* Both stand 72 to 84 px above the tab bar. */
+@media (min-width: 1000px) { html, html:has(.actionbar, .fab) { scroll-padding-bottom: 16px; } }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font-body); }
 h1, h2, h3 { font-family: var(--font-display); }
-body.has-tabbar { padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px)); }
+body.has-tabbar { padding-bottom: calc(var(--nav-space) + 24px); }
 a { color: var(--primary); text-underline-offset: 3px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -73,17 +75,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 html[data-os="android"] .only-android:not([hidden]) { display: revert !important; }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 img.photo { max-width: 100%; height: auto; }
-.page [id] { scroll-margin-top: calc(64px + env(safe-area-inset-top, 0px)); }
 html[data-os="android"] .only-ios { display: none !important; }
 
 /* App bar */
-.appbar { position: sticky; top: 0; z-index: 3; background: var(--bg); -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px);
+.appbar { position: sticky; top: 0; z-index: 3; background: var(--bg);
   padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid transparent; }
-.appbar-row { max-width: 760px; margin: 0 auto; height: 48px; display: flex; align-items: center; gap: 4px;
+.appbar-row { max-width: 760px; margin: 0 auto; height: 56px; display: flex; align-items: center; gap: 4px;
   padding-left: max(6px, env(safe-area-inset-left, 0px)); padding-right: max(6px, env(safe-area-inset-right, 0px)); }
 .appbar-row .spacer { flex: 1; }
 html:not([data-os="android"]) .appbar-row:not(:has(:is(a, button):not(.only-android))),
-html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { height: 6px; }
+html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { height: 6px; min-height: 0; }
 .back, .icon-btn { border: 0; background: transparent; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
   gap: 2px; border-radius: 22px; color: var(--primary); text-decoration: none; cursor: pointer; font-size: 17px; }
 .back { padding-right: 8px; justify-content: flex-start; }
@@ -231,7 +232,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .num { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 
 /* Buttons and sticky actions */
-.actionbar { position: sticky; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px)); z-index: 2; display: flex; gap: 10px;
+.actionbar { position: sticky; bottom: calc(var(--nav-space) + 8px); z-index: 2; display: flex; gap: 10px;
   padding: 14px 0 12px; background: linear-gradient(to bottom, transparent, var(--bg) 32%); }
 .actionbar > * { flex: 1; }
 .actionbar > .btn.ghost { flex: 0 0 auto; }
@@ -245,7 +246,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
   background: var(--surface-2); color: var(--ink); }
 html[data-os="android"] body:has(.fab) .page { padding-bottom: 96px; }
 .link-btn { border: 0; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; padding: 6px 2px; min-height: 36px; }
-.fab { position: fixed; z-index: 4; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--tabbar) + 16px + env(safe-area-inset-bottom, 0px));
+.fab { position: fixed; z-index: 4; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-space) + 16px);
   height: 56px; padding: 0 20px 0 16px; border-radius: 16px; background: var(--primary); color: var(--on-primary); font-weight: 650; text-decoration: none;
   box-shadow: var(--shadow-float); align-items: center; gap: 8px; }
 html[data-os="android"] .fab.only-android:not([hidden]) { display: inline-flex !important; }
@@ -300,13 +301,17 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 .menu small { display: block; color: var(--ink-2); font-size: 14px; line-height: 1.4; font-weight: 400; }
 
 /* Tab bar */
-.tabbar { position: fixed; z-index: 5; left: 0; right: 0; bottom: 0; background: var(--surface); -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px);
-  border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.tabbar ul { list-style: none; margin: 0 auto; max-width: 760px; display: grid; grid-template-columns: repeat(5, 1fr);
-  padding: 6px max(2px, env(safe-area-inset-right, 0px)) 0 max(2px, env(safe-area-inset-left, 0px)); }
-.tab { display: grid; justify-items: center; gap: 2px; min-height: 52px; padding: 3px 0 4px; font-size: 10.5px; color: var(--ink-2); text-decoration: none; }
-.tab[aria-current="page"] { color: var(--primary); font-weight: 650; }
-.tab-ic { display: grid; place-items: center; height: 28px; width: 56px; border-radius: 15px; }
+.tabbar { position: fixed; z-index: 5; left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
+  max-width: 560px; margin: 0 auto; background: var(--surface); border: 1px solid var(--card-border); border-radius: 26px; box-shadow: var(--shadow-float); }
+.tabbar ul { list-style: none; margin: 0; padding: 5px 4px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.tab { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 60px; padding: 4px 0; border-radius: 20px; font: 600 12px/1.25 var(--font-body); letter-spacing: -.005em; white-space: nowrap;
+  color: var(--ink-2); text-decoration: none; }
+.tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
+.tab-ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: var(--r-pill); }
+.tab[aria-current="page"] .tab-ic { background: var(--primary); color: var(--on-primary); }
+.tab .ic { width: 24px; height: 24px; }
+/* At 320 px the bold «Estadísticas» measures 60 px: with the 4 px at each side of the list its tab gives it 58.8. */
+@media (max-width: 359px) { .tabbar ul { padding-inline: 0; } .tab { font-size: 11px; } .tab-ic { width: 44px; } }
 
 /* Generic styling for the existing pages (forms, cards, tables) */
 .page .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }

@@ -204,7 +204,9 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .c-head span { font-size: 12px; color: var(--ink-2); }
 
 /* Charts */
-.chart { position: relative; }
+.chart { position: relative; margin-left: -11px; padding-left: 11px; } /* Reaches under the marks of the axis, for the ring: 11 + 2 + 3 px, the padding of the panel. */
+.chart:has(svg:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); } /* On the svg it crossed the first digit of «15.000». */
+.chart:has(svg:focus-visible) svg { outline: none; }
 /* It scales whole, its text too: 320 units wide, so 420 px leave 13,8 px and a height of 223. Wider, a mark of its axis would be larger than the title of its card. */
 .chart svg { display: block; width: 100%; max-width: 420px; margin-inline: auto; height: auto; touch-action: pan-y; overflow: visible; } /* A mark of 6 characters starts before x=0: the panel's padding holds it. */
 .chart svg:focus:not(:focus-visible) { outline: none; } /* A tap or a click: the browser's own sheet paints a focused svg all the same, blue or white. */

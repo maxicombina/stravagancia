@@ -357,6 +357,17 @@ class ChartTests(SimpleTestCase):
         # :focus-visible does not match it, but the browser's own sheet paints any focused svg: `auto 5px`, blue or white, until it loses the focus.
         self.assertEqual(contrast.declared(stylesheet(), ".chart svg:focus:not(:focus-visible)").get("outline"), "none")
 
+    def test_the_ring_of_a_chart_goes_around_the_marks_of_its_axis(self):
+        # «15.000» starts before the svg, and a ring on the svg crossed its first digit. So it goes on what holds the svg, which reaches under the marks.
+        css = stylesheet()
+        wrap = contrast.declared(css, ".chart")
+        self.assertEqual((wrap.get("margin-left"), wrap.get("padding-left")), ("-11px", "11px"), "no change to where the svg sits")
+        ring = contrast.declared(css, ".chart:has(svg:focus-visible)")
+        self.assertEqual((ring.get("outline"), ring.get("outline-offset")), ("3px solid var(--focus)", "2px"))
+        # 11 + 2 + 3 = 16 px, the padding of the panel: no further.
+        self.assertEqual(contrast.declared(css, ".chart:has(svg:focus-visible) svg").get("outline"), "none")
+        self.assertNotIn(".chart svg:focus-visible", css, "a browser without :has() keeps the ring of every focused element")
+
     def test_the_arrow_keys_bring_the_bubble_into_view(self):
         # At 844x390, with the chart of a bike just focused, 7 of 12 bubbles stood above the top of the screen, 2 of them entirely. Only the keys: not a scroll under a finger.
         with open(finders.find("garage/garage.js"), encoding="utf-8") as script:

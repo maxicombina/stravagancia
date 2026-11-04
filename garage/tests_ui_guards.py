@@ -481,6 +481,19 @@ class TimelineTests(SimpleTestCase):
         self.assertNotIn("font-size", contrast.declared(css, ".num"), "16 px, as the body")
 
 
+class ShareBarTests(SimpleTestCase):
+    def test_the_radii_of_a_shape_are_lengths_every_browser_takes(self):
+        # In CSS, unlike in the attribute, rx and ry are lengths: Chrome takes a bare number, Firefox drops the whole declaration.
+        radii = re.findall(r"(?<![\w-])(?:rx|ry)\s*:\s*([^;}]+)", stylesheet())
+        self.assertTrue(radii)
+        for value in radii:
+            self.assertRegex(value.strip(), r"^(?:0|[\d.]+px)$")
+
+    def test_a_share_bar_keeps_its_ends_round_at_any_width(self):
+        rules = [dict(contrast.declarations(rule.body)) for rule in contrast.rules(stylesheet()) if rule.selector == ".bar.share rect"]
+        self.assertEqual(rules, [{"rx": "1px", "ry": "2.5px"}])
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.

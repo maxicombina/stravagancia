@@ -497,7 +497,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .chips .chip-link { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
 .chips .chip-link.on { background: var(--primary); color: var(--on-primary); font-weight: 700; }
 .bar.share { margin-top: 6px; height: 10px; }
-@media (min-width: 560px) { .bar.share rect { rx: 1; ry: 2.5; } } /* The svg stretches, its corners with it: at 760 px its ends tapered over 14 px. These keep them round up to the width of the page. */
+@media (min-width: 560px) { .bar.share rect { rx: 1px; ry: 2.5px; } } /* The svg stretches, its corners with it: at 760 px its ends tapered over 14 px. These keep them round up to the width of the page. In px, 1 px being 1 unit of the svg: Firefox drops a bare number. */
 .page form.filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .page form.filters > button { min-height: 50px; }
 .page .field > .link-btn { justify-self: start; padding-left: 0; }

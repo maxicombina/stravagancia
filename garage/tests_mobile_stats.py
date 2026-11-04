@@ -15,7 +15,7 @@ from .services.ownership import InventoryWriteError, create_inventory
 from .services.rides import create_manual_ride
 from .services.statistics import statistics
 from .statistics_views import period_bounds
-from .test_html import parse, visible_text
+from .test_html import Node, find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 UTC = dt_timezone.utc
@@ -132,6 +132,97 @@ class TestPage:
         client.force_login(garage.owner)
         html, _ = get(client, period="nope")
         assert 'href="?period=12m" aria-current="page"' in html
+
+
+class TestAnillos:
+    """Spec garage-050 F3e-2: the figures as tiles and the sections in cards. The words, the figures and their order stay."""
+
+    @staticmethod
+    def figures(html):
+        boxes = find_all(parse(html), "div", cls="stats")
+        assert len(boxes) == 1, boxes
+        return boxes[0], [child for child in boxes[0].children if isinstance(child, Node)]
+
+    @staticmethod
+    def read(tile):
+        return visible_text(find_all(tile, "b")[0]), visible_text(find_all(tile, "span")[0])
+
+    def test_each_figure_is_a_tile_of_its_own(self, garage, client):
+        client.force_login(garage.owner)
+        html, _ = get(client, period="all")
+        box, tiles = self.figures(html)
+        assert box.attrs["class"] == "stats", "no ride has elevation: three figures"
+        assert [tile.attrs["class"] for tile in tiles] == ["card"] * 3
+        assert [self.read(tile) for tile in tiles] == [("543", "km"), ("18,5", "h en movimiento"), ("7", "salidas")]
+
+    def test_the_tile_keeps_the_figure_before_its_caption(self, garage, client):
+        client.force_login(garage.owner)
+        _, tiles = self.figures(get(client, period="all")[0])
+        for tile in tiles:
+            assert [child.tag for child in tile.children if isinstance(child, Node)] == ["b", "span"], tile
+
+    def test_elevation_is_a_fourth_tile(self, garage, client):
+        create_manual_ride(garage.owner, started_at=at(2), bike=garage.road, name="Con desnivel", distance_m=Decimal(1000), elevation_gain_m=Decimal(1200))
+        client.force_login(garage.owner)
+        box, tiles = self.figures(get(client, period="all")[0])
+        assert box.attrs["class"] == "stats four"
+        assert [tile.attrs["class"] for tile in tiles] == ["card"] * 4
+        assert self.read(tiles[3]) == ("↑ 1.200", "m de desnivel")
+
+    def test_only_this_screen_has_figures_in_cards(self, garage, client):
+        """On Bici the figures already sit in a card: a card in each would be a card in a card."""
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()
+        boxes = find_all(parse(html), "div", cls="stats")
+        assert boxes
+        assert not [box for box in boxes if find_all(box, cls="card")]
+
+    @pytest.mark.parametrize("title", ["bikes-title", "items-title", "spending-title"])
+    def test_each_section_is_a_card(self, garage, client, title):
+        client.force_login(garage.owner)
+        html, _ = get(client, period="all")
+        sections = find_all(parse(html), "section", aria_labelledby=title)
+        assert len(sections) == 1 and {"sec", "card"} <= set(sections[0].attrs["class"].split())
+        assert find_all(sections[0], "h2", id=title), "its own title, inside it"
+
+    def test_the_chart_keeps_its_panel_and_gets_no_second_card(self, garage, client):
+        client.force_login(garage.owner)
+        html, _ = get(client, period="all")
+        panel = find_all(parse(html), "section", aria_labelledby="chart-title")[0]
+        assert panel.attrs["class"] == "panel"
+
+    def test_share_of_a_bike_takes_no_state(self, garage, client):
+        """Spec §3.1: no st-* above it, so the bar falls back to --primary. «Sin bici» is to be reviewed, and says so with its color."""
+        client.force_login(garage.owner)
+        rows = find_all(parse(get(client, period="all")[0]), "section", aria_labelledby="bikes-title")[0]
+        entries = find_all(rows, "a", cls="entry")
+        names = [visible_text(find_all(entry, cls="entry-name")[0]) for entry in entries]
+        assert names == ["Carretera", "Gravel", "Sin bici"]
+        assert all(find_all(entry, "svg", cls="bar share") for entry in entries)
+        assert [[name for name in entry.attrs["class"].split() if name.startswith("st-")] for entry in entries] == [[], [], ["st-review"]]
+
+    def test_an_empty_section_stays_a_card_with_its_message(self, django_user_model, client):
+        client.force_login(django_user_model.objects.create_user("sin-datos", password="x"))
+        page = parse(get(client, period="all")[0])
+        for title, message in (("bikes-title", "Sin salidas en este período."), ("spending-title", "Sin importes declarados en este período.")):
+            section = find_all(page, "section", aria_labelledby=title)[0]
+            assert "card" in section.attrs["class"].split() and message in visible_text(section)
+
+    def test_without_a_report_there_are_no_tiles_and_no_cards(self, garage, client, monkeypatch):
+        monkeypatch.setattr("django.utils.timezone.now", lambda: datetime(2026, 1, 1, tzinfo=MADRID).astimezone(UTC))
+        client.force_login(garage.owner)
+        page = parse(get(client, period="year")[0])
+        assert not find_all(page, "div", cls="stats") and not find_all(page, "section", cls="sec")
+
+    def test_the_detailed_report_keeps_its_figures(self, garage, client):
+        """Spec §5, `statistics_metrics.html`: generic treatment, its structure and its words do not change."""
+        client.force_login(garage.owner)
+        page = parse(get(client, period="all")[0])
+        report = find_all(page, "details", cls="more")[0]
+        grid = find_all(report, "div", cls="grid")[0]
+        metrics = [child for child in grid.children if isinstance(child, Node)]
+        assert metrics and all(find_all(metric, "strong") for metric in metrics)
+        assert "Km:" in visible_text(metrics[0])
 
 
 class TestBoundariesAndConsistency:

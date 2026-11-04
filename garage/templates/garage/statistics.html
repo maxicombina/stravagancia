@@ -13,10 +13,10 @@
 <p class="lede">{% if period == "last" %}Año {{ last_year }}{% elif period == "custom" %}{% if report.start %}Del {% local_bound report.start %} {% else %}Desde el principio {% endif %}{% if open_end %}hasta hoy{% else %}hasta el {% local_bound report.end %} (sin incluir){% endif %}{% elif report.start %}Del {% local_date report.start %} a hoy{% else %}Todo lo registrado{% endif %} · salidas con inicio conocido.</p>
 {% with km=report.overall.0 h=report.overall.1 n=report.overall.2 e=report.overall.3 %}
 <div class="stats{% if e.value is not None %} four{% endif %}">
-  <div><b>{{ km.value|km }}</b><span>km</span></div>
-  <div><b>{{ h.value|hours }}</b><span>h en movimiento</span></div>
-  <div><b>{{ n.value|num }}</b><span>salidas</span></div>
-  {% if e.value is not None %}<div><b>↑ {{ e.value|num }}</b><span>m de desnivel</span></div>{% endif %}
+  <div class="card"><b>{{ km.value|km }}</b><span>km</span></div>
+  <div class="card"><b>{{ h.value|hours }}</b><span>h en movimiento</span></div>
+  <div class="card"><b>{{ n.value|num }}</b><span>salidas</span></div>
+  {% if e.value is not None %}<div class="card"><b>↑ {{ e.value|num }}</b><span>m de desnivel</span></div>{% endif %}
 </div>
 <p class="note">Registrado en Garage.{% if km.missing_values %} {{ km.missing_values }} sin distancia: los km son un mínimo.{% endif %}{% if h.missing_values %} {{ h.missing_values }} sin tiempo en movimiento: las horas son un mínimo.{% endif %}{% if e.value is not None and e.missing_values %} {{ e.missing_values }} sin desnivel: el desnivel es un mínimo. {% include "garage/_elevation_hint.html" %}{% endif %}{% if report.pending_started_rides %} {{ report.pending_started_rides }} sin inicio no cuentan en ningún período.{% endif %}</p>
 {% endwith %}
@@ -30,7 +30,7 @@
 </section>
 {% endif %}
 
-<section class="sec" aria-labelledby="bikes-title">
+<section class="sec card" aria-labelledby="bikes-title">
   <div class="sec-h"><h2 id="bikes-title">Por bici</h2></div>
   <ul class="rows">{% for entry in bikes %}{% with row=entry.row %}
     <li><a class="entry compact" href="{% url 'garage:bike-detail' row.target.pk %}"><span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span>
@@ -48,7 +48,7 @@
   </ul>
 </section>
 
-<section class="sec" aria-labelledby="items-title">
+<section class="sec card" aria-labelledby="items-title">
   <div class="sec-h"><h2 id="items-title">Material más usado</h2></div>
   {% if not report.materialization_current %}<p class="empty">Uso del material pendiente de calcular: reconstruye el uso desde el histórico.</p>{% else %}
   <ul class="rows">{% for row in items %}
@@ -59,7 +59,7 @@
   </ul>{% endif %}
 </section>
 
-<section class="sec" aria-labelledby="spending-title">
+<section class="sec card" aria-labelledby="spending-title">
   <div class="sec-h"><h2 id="spending-title">Gasto en mantenimiento</h2></div>
   <ul class="rows">{% for row in spending %}
     <li class="entry compact"><span class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></span>

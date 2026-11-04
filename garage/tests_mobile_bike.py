@@ -281,6 +281,33 @@ class TestRidesByBike:
         assert client.get(url, {"bike": "not-a-uuid"}).status_code == 404
         assert "Pista" not in client.get(url, {"bike": garage.gravel.pk, "pending": "1"}).content.decode()
 
+    def pills(self, client, **query):
+        """The filters of Salidas, in order: (classes, href, what it says)."""
+        html = client.get(reverse("garage:usage-ride-list"), query).content.decode()
+        navs = find_all(parse(html), "nav", cls="chips")
+        assert len(navs) == 1 and navs[0].attrs["aria-label"]
+        return [(classes(pill), pill.attrs["href"], visible_text(pill)) for pill in find_all(navs[0], "a")]
+
+    def test_the_filters_are_pills_and_say_the_same(self, garage, client):
+        client.force_login(garage.owner)
+        all_rides = reverse("garage:usage-ride-list")
+        assert self.pills(client) == [(["chip-link"], "?pending=1", "Sólo las que están por revisar")]
+        assert self.pills(client, pending="1") == [(["chip-link"], all_rides, "Ver todas")]
+
+    def test_the_filter_of_a_bike_is_the_chosen_pill_and_takes_itself_off(self, garage, client):
+        client.force_login(garage.owner)
+        all_rides = reverse("garage:usage-ride-list")
+        chosen, other = self.pills(client, bike=garage.gravel.pk)
+        assert chosen == (["chip-link", "on"], all_rides, "Gravel")
+        assert (other[0], other[2]) == (["chip-link"], "Sólo las que están por revisar")
+        chosen, other = self.pills(client, bike=garage.gravel.pk, pending="1")
+        assert chosen == (["chip-link", "on"], f"{all_rides}?pending=1", "Gravel")
+        assert (other[0], other[2]) == (["chip-link"], "Ver todas")
+        chip = find_all(parse(client.get(all_rides, {"bike": garage.gravel.pk}).content.decode()), "a", cls="chip-link on")[0]
+        assert chip.attrs["aria-label"] == "Quitar el filtro de Gravel"
+        assert "aria-current" not in chip.attrs, "it goes to another list: it does not name the page we are on"
+        assert uses(chip) == ["#i-bike", "#i-x"]
+
     def test_pagination_keeps_the_bike(self, garage, client):
         for number in range(21):
             create_manual_ride(garage.owner, started_at=at(30 + number), bike=garage.gravel, name=f"G{number}", distance_m=Decimal(1000))

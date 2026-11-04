@@ -8,9 +8,10 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .assets import asset_version
-from .models import Bike, Category, Item
+from .models import Bike, Category, Item, Ride
 from .services.ownership import create_inventory
 from .templatetags.garage_ui import tab_for
+from .test_html import accessible_text, find_all, parse, visible_text
 from .timezones import DEFAULT_ZONE, parse_zone
 
 ANDROID = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36"
@@ -215,6 +216,53 @@ class TimeZoneCookieTests(TestCase):
             self.assertIn("lun 12 oct 2026", html, value)
         self.client.cookies["garage_tz"] = "..%2Fetc%2Fpasswd"
         self.assertIn("mar 13 oct 2026", self.client.get(reverse("garage:index")).content.decode())
+
+    def ride_row(self, name):
+        rows = [row for row in find_all(parse(self.client.get(reverse("garage:usage-ride-list")).content.decode()), "a", cls="entry")
+                if name in visible_text(row)]
+        self.assertEqual(len(rows), 1, name)
+        return rows[0]
+
+    def date_on_tile(self, row):
+        """Its day and its month. `visible_text` of the tile itself reads nothing: it is `aria-hidden`."""
+        tiles = find_all(row, "span", cls="ride-date")
+        self.assertEqual(len(tiles), 1)
+        return visible_text(find_all(tiles[0], "b")[0]), "".join(part for part in tiles[0].children if isinstance(part, str)).strip()
+
+    def test_the_tile_of_a_ride_shows_the_day_in_the_zone_of_the_user(self):
+        # The screen reader gets only the line of text, which could be right while the eye reads the day in UTC.
+        self.client.force_login(self.user)
+        for zone, day, whole in (("Europe/Madrid", "13", "mar 13 oct 2026"), ("America/Argentina/Buenos_Aires", "12", "lun 12 oct 2026")):
+            with self.subTest(zone=zone):
+                self.client.cookies["garage_tz"] = zone
+                row = self.ride_row("Nocturna")
+                self.assertEqual(self.date_on_tile(row), (day, "oct"))
+                self.assertIn(whole, accessible_text(row))
+                self.assertEqual(find_all(row, cls="glyph"), [])  # The tile stands where the route's was.
+
+    def test_the_tile_of_a_ride_is_for_the_eye_only(self):
+        self.client.force_login(self.user)
+        row = self.ride_row("Nocturna")
+        self.assertEqual(len(find_all(row, "span", cls="ride-date", aria_hidden="true")), 1)
+        self.assertTrue(accessible_text(row).startswith("Nocturna mar 13 oct 2026 · "), accessible_text(row))
+
+    def test_the_tile_of_a_ride_takes_the_month_of_the_zone_too(self):
+        from datetime import datetime, timezone
+        from .services.rides import create_manual_ride
+        # 01:30 UTC on 1 Nov: 1 Nov in Madrid, still 31 Oct in Buenos Aires.
+        create_manual_ride(self.user, started_at=datetime(2026, 11, 1, 1, 30, tzinfo=timezone.utc), name="Cambio de mes")
+        self.client.force_login(self.user)
+        self.assertEqual(self.date_on_tile(self.ride_row("Cambio de mes")), ("1", "nov"))
+        self.client.cookies["garage_tz"] = "America/Argentina/Buenos_Aires"
+        self.assertEqual(self.date_on_tile(self.ride_row("Cambio de mes")), ("31", "oct"))
+
+    def test_a_ride_without_a_start_has_no_date_to_paint_and_keeps_the_route(self):
+        Ride.objects.filter(owner=self.user, name="Nocturna").update(started_at=None)
+        self.client.force_login(self.user)
+        row = self.ride_row("Nocturna")
+        self.assertEqual(find_all(row, cls="ride-date"), [])
+        self.assertEqual([use.attrs["href"] for glyph in find_all(row, "span", cls="glyph") for use in find_all(glyph, "use")], ["#i-route"])
+        self.assertIn("Inicio desconocido", visible_text(row))
 
 
 class TimeZoneTests(TestCase):

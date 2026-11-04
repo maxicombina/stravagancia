@@ -204,10 +204,14 @@ def _local(context, value):
 
 @register.simple_tag(takes_context=True)
 def local_date(context, value, style="short"):
-    """'11 oct 2026'; style 'weekday' adds 'sáb'. Empty for unknown instants. Plain dates stay as they are."""
+    """'11 oct 2026'; style 'weekday' adds 'sáb'; 'day' and 'month' give '11' and 'oct' alone. Empty for unknown instants. Plain dates stay as they are."""
     if value is None or value == "":
         return ""
     local = _local(context, value) if isinstance(value, datetime) else value
+    if style == "day":
+        return str(local.day)
+    if style == "month":
+        return MONTHS[local.month - 1]
     text = f"{local.day} {MONTHS[local.month - 1]} {local.year}"
     if isinstance(local, datetime) and local.tzinfo is dt_timezone.utc:
         text += " (UTC)"  # overflow fallback

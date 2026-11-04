@@ -36,6 +36,17 @@ class TestLocalDatetime:
         assert render("{% local_date value %}", value=date(2026, 3, 1)) == "1 mar 2026"
         assert render("{% local_datetime value %}", value=None) == ""
 
+    def test_the_day_and_the_month_alone_for_the_tile_of_a_ride(self):
+        def tile(value):
+            return render('{% local_date value "day" %}', value=value), render('{% local_date value "month" %}', value=value)
+
+        assert tile(datetime(2026, 12, 31, 23, 30, tzinfo=UTC)) == ("1", "ene")  # Already next year in Madrid.
+        assert tile(datetime(2026, 3, 5, 8, 0, tzinfo=UTC)) == ("5", "mar")  # As in the line of text: no leading zero.
+        assert tile(date(2026, 9, 30)) == ("30", "sep")
+        assert tile(None) == ("", "") and tile("") == ("", "")
+        # Year 9999 ahead of UTC falls back to UTC: the line of text says so, and the tile has no room for it.
+        assert tile(datetime(9999, 12, 31, 23, 30, tzinfo=UTC)) == ("31", "dic")
+
     def test_no_raw_utc_formats_left(self):
         # Only a bare year may still use Django's date filter; instants go through local_date/local_datetime.
         uses = [(path.name, fmt) for path in TEMPLATES.glob("*.html") for fmt in re.findall(r"\|date(?::(\S+?))?[ }|]", path.read_text())]

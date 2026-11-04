@@ -336,6 +336,23 @@ class ChartTests(SimpleTestCase):
         # The marks end at x=28, and at 10,5 px «15.000» measures 35: the svg cut what passed x=0, and the axis read 5.000, 0.000, 5.000 and 0.
         self.assertEqual(contrast.declared(stylesheet(), ".chart svg").get("overflow"), "visible")
 
+    def test_the_text_of_a_chart_stays_readable_at_any_width(self):
+        # The svg scales whole, its text with it: 8,3 px at 320 px, 9,6 at 360 and 22,8 from 768, larger than the title of its card (20 px).
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".chart svg").get("max-width"), "420px")  # Of 320 units: 13,8 px and 223 px high.
+        self.assertEqual(contrast.declared(css, ".chart svg").get("margin-inline"), "auto")
+        grown = {rule.selector: dict(contrast.declarations(rule.body)) for rule in contrast.rules(css)
+                 if rule.selector in (".chart text", ".chart .val") and rule.conditions == ("@media (max-width: 389px)",)}
+        self.assertEqual(set(grown), {".chart text", ".chart .val"}, "the figures too: they are the most specific")
+        for selector, rule in grown.items():
+            with self.subTest(selector=selector):
+                self.assertIn("(390px - 100vw)", rule["font-size"])
+
+    def test_on_a_low_view_the_chart_is_no_taller_than_what_the_bars_leave(self):
+        # At 844x390 the bars of a bike leave 167 px: 223 would not fit, 170 of the 320 x 170 units almost do.
+        low = [rule for rule in contrast.rules(stylesheet()) if rule.selector == ".chart svg" and any("max-height" in condition for condition in rule.conditions)]
+        self.assertEqual([dict(contrast.declarations(rule.body)).get("max-width") for rule in low], ["320px"])
+
     def test_the_arrow_keys_bring_the_bubble_into_view(self):
         # At 844x390, with the chart of a bike just focused, 7 of 12 bubbles stood above the top of the screen, 2 of them entirely. Only the keys: not a scroll under a finger.
         with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
@@ -345,7 +362,7 @@ class ChartTests(SimpleTestCase):
         self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };", source)
 
     def test_the_bubble_goes_over_the_bars_only_where_the_chart_does_not_fit_between_them(self):
-        # At 844x390 the chart measures 369 px and the bars leave 140: of «junio 2026: 417 km» only the lower edge showed under the top bar.
+        # At 844x390 the bars leave 140 px, less than the chart measures even at its smallest: of «junio 2026: 417 km» only the lower edge showed under the top bar.
         css = stylesheet()
         low = [rule for rule in contrast.rules(css) if rule.selector == ".tip" and any("max-height" in condition for condition in rule.conditions)]
         self.assertEqual(len(low), 1)

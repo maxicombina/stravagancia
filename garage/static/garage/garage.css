@@ -205,7 +205,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 
 /* Charts */
 .chart { position: relative; }
-.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; overflow: visible; } /* A mark of 6 characters starts before x=0: the panel's padding holds it. */
+/* It scales whole, its text too: 320 units wide, so 420 px leave 13,8 px and a height of 223. Wider, a mark of its axis would be larger than the title of its card. */
+.chart svg { display: block; width: 100%; max-width: 420px; margin-inline: auto; height: auto; touch-action: pan-y; overflow: visible; } /* A mark of 6 characters starts before x=0: the panel's padding holds it. */
 .chart .grid line { stroke: var(--line); stroke-width: 1; }
 .chart .grid .base { stroke: var(--ink-2); stroke-opacity: .5; }
 .chart text { font: 10.5px var(--font-body); fill: var(--ink-2); }
@@ -222,8 +223,16 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chart .hl { stroke: var(--ink-2); stroke-width: 1; opacity: 0; }
 .tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--ink); border: 1px solid var(--field); box-shadow: var(--shadow);
   font-size: 13px; font-weight: 600; padding: 5px 9px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
-/* The chart measures 369 px at its widest and the bars take 250: below that it does not fit between them. On a taller view, a bubble left open by a tap would sit on the tab bar while scrolling. */
-@media (max-height: 620px) { .tip { z-index: 6; } }
+/* Below 390 px the svg gets narrower than its 320 units, and its text with it: 8,3 px at 320 px. This keeps it at 10,3 to 10,7. */
+@media (max-width: 389px) {
+  .chart text { font-size: calc(10.5px + (390px - 100vw) / 28); }
+  .chart .val { font-size: calc(11px + (390px - 100vw) / 28); }
+}
+/* The bars of a bike take 223 px and the chart 223 more, plus what the bubble rises above it: below this it does not fit between them. On a taller view, a bubble left open by a tap would sit on the tab bar while scrolling. */
+@media (max-height: 460px) {
+  .chart svg { max-width: 320px; }
+  .tip { z-index: 6; }
+}
 
 /* Timeline */
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; }

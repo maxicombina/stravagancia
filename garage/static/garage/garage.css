@@ -497,6 +497,10 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .chips .chip-link { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
 .chips .chip-link.on { background: var(--primary); color: var(--on-primary); font-weight: 700; }
 .bar.share { margin-top: 6px; height: 10px; }
+/* The columns of the whole list, as in .trio: the widest figure sets them, so that a full bar ends at the same place in every row and the shares can be compared by eye. Without subgrid, each row its own. */
+.rows:has(.bar.share) { grid-template-columns: 48px minmax(0, 1fr) auto; column-gap: var(--s3); }
+.rows:has(.bar.share) > li { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; }
+.rows:has(.bar.share) > li > .entry { grid-column: 1 / -1; grid-template-columns: subgrid; }
 @media (min-width: 560px) { .bar.share rect { rx: 1px; ry: 2.5px; } } /* The svg stretches, its corners with it: at 760 px its ends tapered over 14 px. These keep them round up to the width of the page. In px, 1 px being 1 unit of the svg: Firefox drops a bare number. */
 .page form.filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .page form.filters > button { min-height: 50px; }

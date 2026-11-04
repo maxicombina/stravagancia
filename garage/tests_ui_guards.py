@@ -494,6 +494,14 @@ class ShareBarTests(SimpleTestCase):
         rules = [dict(contrast.declarations(rule.body)) for rule in contrast.rules(stylesheet()) if rule.selector == ".bar.share rect"]
         self.assertEqual(rules, [{"rx": "1px", "ry": "2.5px"}])
 
+    def test_the_share_bars_of_a_list_end_at_the_same_place(self):
+        # They are read against each other: with the width of each figure taken from its own row, a full bar ended short of the track of the next.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".rows:has(.bar.share)").get("grid-template-columns"), "48px minmax(0, 1fr) auto")
+        for selector in (".rows:has(.bar.share) > li", ".rows:has(.bar.share) > li > .entry"):
+            declared = contrast.declared(css, selector)
+            self.assertEqual((declared.get("grid-column"), declared.get("grid-template-columns")), ("1 / -1", "subgrid"), selector)
+
 
 class FoldTests(SimpleTestCase):
     def test_what_unfolds_takes_a_finger(self):

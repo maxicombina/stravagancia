@@ -39,7 +39,7 @@
     <li><a class="entry compact{% if row.nested %} nested{% endif %}" href="{% url 'garage:item-detail' m.item_id %}"><span class="glyph"><svg class="ic"><use href="#i-{{ m.item|item_icon }}"/></svg></span>
       <span><span class="entry-name">{{ m.item.name }}</span>
         <span class="entry-sub">{% if row.nested %}Sobre {{ m.parent_item.name }} · {% elif m.slot %}{{ m.slot }} · {% endif %}desde el {% local_date m.started_at %}</span></span>
-      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
+      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
     </a></li>{% endwith %}
     {% empty %}<li class="empty">Nada montado. Monta componentes desde su ficha (Material).</li>{% endfor %}
   </ul>

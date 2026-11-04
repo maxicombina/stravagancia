@@ -1,11 +1,14 @@
 """garage-050 F2a: the ring shows the piece, the chip says the state and its percent (spec §4.1, §4.2, D9, D21)."""
+import re
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from django.conf import settings
 from django.db import connection
 from django.template.loader import render_to_string
 from django.test.utils import CaptureQueriesContext
@@ -428,6 +431,43 @@ class TestOtherChipsOfARule:
         html = client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()
         rows = find_all(parse(html), "a", cls="entry compact", href=item_url(item))
         assert len(rows) == 1 and classes(chip_of(rows[0])) == {"chip", "st-snoozed"}
+
+
+class TestStateIconsAreHidden:
+    """§4.2: the word in the chip says it; to a screen reader the icon beside it is only noise."""
+
+    def assert_hidden(self, root):
+        chips = find_all(root, "span", cls="chip") + find_all(root, "span", cls="trio-state")
+        assert chips
+        for chip in chips:
+            assert len(find_all(chip, "svg", aria_hidden="true")) == len(find_all(chip, "svg")), chip
+
+    def test_on_the_screen_of_a_piece(self, garage, client):
+        item, _ = rule_at(garage, 230, ride_count=500)  # Two metrics: each says its own state.
+        create_installation(garage.owner, item=garage.helmet, bike=None, parent_item=item, started_at=at(5), ended_at=None, slot=None)
+        kind = save_maintenance(garage.owner, ServiceType, name="Tipo casco")
+        save_maintenance(garage.owner, MaintenanceRule, item=garage.helmet, service_type=kind, calendar_days=1, anchor_at=at(30))
+        client.force_login(garage.owner)
+        root = parse(client.get(item_url(item)).content.decode())
+        assert find_all(root, "span", cls="trio-state") and find_all(root, "a", cls="entry compact", href=item_url(garage.helmet))
+        self.assert_hidden(root)
+
+    def test_on_the_screen_of_a_bike(self, garage, client):
+        rule_at(garage, 230, mounted=True)
+        client.force_login(garage.owner)
+        self.assert_hidden(parse(client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()))
+
+    def test_on_the_postpone_screen(self, garage, client):
+        _, rule = rule_at(garage, 230)
+        client.force_login(garage.owner)
+        self.assert_hidden(parse(client.get(reverse("garage:maintenance-rule-snooze", args=[rule.pk])).content.decode()))
+
+    def test_in_every_template(self):
+        """Also what no fixture reaches: a chip or a state with an icon, in the source of each template."""
+        chip = re.compile(r'class="(?:chip st-|trio-state)[^>]*>\s*(<svg [^>]*>)')
+        found = [(path.name, tag) for path in Path(settings.BASE_DIR, "garage/templates/garage").glob("*.html")
+                 for tag in chip.findall(path.read_text(encoding="utf-8"))]
+        assert found and [one for one in found if 'aria-hidden="true"' not in one[1]] == []
 
 
 class TestQueryCount:

@@ -281,6 +281,27 @@ class TestRidesByBike:
         assert client.get(url, {"bike": "not-a-uuid"}).status_code == 404
         assert "Pista" not in client.get(url, {"bike": garage.gravel.pk, "pending": "1"}).content.decode()
 
+    def rides(self, client, **query):
+        """The rows of the list of Salidas."""
+        html = client.get(reverse("garage:usage-ride-list"), query).content.decode()
+        lists = find_all(parse(html), "ul", cls="ride-list")
+        assert len(lists) == 1
+        return [row for row in lists[0].children if not isinstance(row, str)]
+
+    def test_each_ride_is_a_card_of_its_own(self, garage, client):
+        """Spec §4.3 and the #salidas of the mockup. With the link as the whole of it: a margin around a link would be a card that does not answer to a finger."""
+        client.force_login(garage.owner)
+        rows = self.rides(client)
+        assert rows
+        for row in rows:
+            assert classes(row) == ["card"]
+            assert [classes(child) for child in row.children if not isinstance(child, str)] == [["entry"]]
+
+    def test_with_no_rides_what_it_says_is_a_card_too(self, garage, client):
+        client.force_login(garage.owner)
+        rows = self.rides(client, q="no hay ninguna con este nombre")
+        assert [(classes(row), visible_text(row).startswith("No hay salidas")) for row in rows] == [(["card", "empty"], True)]
+
     def pills(self, client, **query):
         """The filters of Salidas, in order: (classes, href, what it says)."""
         html = client.get(reverse("garage:usage-ride-list"), query).content.decode()

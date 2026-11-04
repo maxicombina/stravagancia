@@ -482,6 +482,14 @@ class TimelineTests(SimpleTestCase):
         self.assertNotIn("font-size", contrast.declared(css, ".num"), "16 px, as the body")
 
 
+class RideCardTests(SimpleTestCase):
+    def test_the_link_of_a_ride_fills_its_card(self):
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".page .ride-list > .card:not(.empty)").get("padding"), "0")
+        row = contrast.declared(css, ".ride-list .entry")
+        self.assertEqual((row.get("padding"), row.get("border-bottom"), row.get("border-radius")), ("var(--s4)", "0", "inherit"))
+
+
 class ShareBarTests(SimpleTestCase):
     def test_the_radii_of_a_shape_are_lengths_every_browser_takes(self):
         # In CSS, unlike in the attribute, rx and ry are lengths: Chrome takes a bare number, Firefox drops the whole declaration.

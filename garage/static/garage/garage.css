@@ -182,7 +182,9 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 /* The date of a ride, 52 px as the column of an .entry. At the top of its row, with the name and the figure, as in the mockup: a ride may take five lines. */
 .ride-date { display: grid; place-items: center; width: 52px; height: 56px; border-radius: var(--r-md); background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1; }
 .ride-date b { font: 700 22px/1 var(--font-display); color: var(--ink); }
-.ride-list .entry { align-items: start; }
+/* As in the mockup, each ride a card of its own, with its link as the whole of it: a margin around a link would be a card that does not answer to a finger. */
+.page .ride-list > .card:not(.empty) { padding: 0; grid-template-columns: minmax(0, 1fr); }
+.ride-list .entry { align-items: start; padding: var(--s4); border-bottom: 0; border-radius: inherit; }
 .odo { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
 
 /* Install hint */

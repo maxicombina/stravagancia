@@ -206,7 +206,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 
 /* Charts */
 .chart { position: relative; }
-.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; overflow: visible; } /* A mark of 6 characters starts before x=0: the panel's padding holds it. */
 .chart .grid line { stroke: var(--line); stroke-width: 1; }
 .chart .grid .base { stroke: var(--ink-2); stroke-opacity: .5; }
 .chart text { font: 10.5px var(--font-body); fill: var(--ink-2); }

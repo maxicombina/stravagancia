@@ -305,6 +305,12 @@ class TightRoomTests(SimpleTestCase):
 
 
 
+class ChartTests(SimpleTestCase):
+    def test_a_long_mark_of_the_axis_keeps_its_first_digit(self):
+        # The marks end at x=28, and at 10,5 px «15.000» measures 35: the svg cut what passed x=0, and the axis read 5.000, 0.000, 5.000 and 0.
+        self.assertEqual(contrast.declared(stylesheet(), ".chart svg").get("overflow"), "visible")
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.

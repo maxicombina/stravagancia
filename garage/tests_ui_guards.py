@@ -544,6 +544,31 @@ class TextLinkTests(SimpleTestCase):
         self.assertIsNone(self.ALONE.search('<p><a class="link" href="#">Registrar</a> después.</p>'))
 
 
+class ActionBarOverACardTests(SimpleTestCase):
+    def test_nothing_shows_between_the_action_bar_and_the_tab_bar(self):
+        # §4.5 leaves 8 px between them: with cards under them, a row cut by the bar showed through. Fixed, and not under the bar:
+        # where the bar stays in the flow, at the end of its parent, it would paint over what comes after it, and that could no longer be reached.
+        fill = contrast.declared(stylesheet(), ".actionbar::after")
+        self.assertEqual((fill.get("position"), fill.get("bottom"), fill.get("background")), ("fixed", "0", "var(--bg)"))
+        self.assertEqual(fill.get("height"), "calc(var(--nav-space) + 9px)")  # 1 px under the bar: no hairline where the two meet.
+        self.assertEqual(fill.get("z-index"), "-1")  # Over the page, as all of the bar, and behind its own buttons.
+
+    def test_the_band_covers_the_shadow_of_the_card_too(self):
+        # As wide as a card, its shadow stayed at each side of the band, two thin lines down to the tab bar. The buttons stay where they were.
+        bar = contrast.declared(stylesheet(), ".actionbar")
+        self.assertEqual((bar.get("margin-inline"), bar.get("padding")), ("calc(-1 * var(--s4))", "14px var(--s4) 12px"))
+
+    def test_it_stays_under_the_tab_bar(self):
+        css = stylesheet()
+        # It belongs to the action bar's stacking context: below it the page, above it what is above the bar.
+        self.assertEqual(contrast.declared(css, ".actionbar").get("z-index"), "2")
+        self.assertEqual(contrast.declared(css, ".tabbar").get("z-index"), "5")
+
+    def test_on_a_very_low_view_it_goes_with_the_sticky_bar(self):
+        low = [rule for rule in contrast.rules(stylesheet()) if any("max-height" in condition for condition in rule.conditions)]
+        self.assertEqual([dict(contrast.declarations(rule.body)).get("display") for rule in low if rule.selector == ".actionbar::after"], ["none"])
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.

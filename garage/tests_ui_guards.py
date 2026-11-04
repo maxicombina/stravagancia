@@ -374,7 +374,21 @@ class ChartTests(SimpleTestCase):
             source = script.read()
         keys = source[source.index("svg.addEventListener('keydown'"):]
         self.assertEqual(keys[:keys.index("});")].count("step("), 2)
-        self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };", source)
+        self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' });", source)
+
+    def test_who_follows_the_arrow_keys_hears_each_month(self):
+        # The chart says «Usa las flechas para ver cada mes» only to who may not see the bubble, and nothing announced it.
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            source = script.read()
+        self.assertIn("live.setAttribute('aria-live', 'polite')", source)
+        self.assertIn("live.className = 'sr-only'", source)
+        step = source[source.index("const step = index =>"):source.index("svg.addEventListener('pointermove'")]
+        self.assertIn("live.textContent = tip.hidden ? '' : tip.textContent", step)
+        # Only the keys: a pointer moving over the chart would talk over everything.
+        pick = source[source.index("const pick = index =>"):source.index("const at = clientX =>")]
+        self.assertNotIn("live", pick)
+        hide = source[source.index("const hide = () =>"):source.index("const pick = index =>")]
+        self.assertIn("live.textContent = ''", hide)
 
     def test_a_bubble_that_would_stay_under_the_top_bar_opens_below_its_point(self):
         # On a tall view a tap does not scroll: with the point just under the bar, none of «septiembre 2026: 393 km» showed. Not over the bar: it would stay there while scrolling.

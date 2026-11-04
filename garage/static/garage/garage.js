@@ -115,9 +115,15 @@
     const left = Number(svg.dataset.left), band = Number(svg.dataset.band);
     const box = svg.viewBox.baseVal;
     let current = -1;
+    // «Usa las flechas» is said only to who may not see the bubble. Here and not in the template, as the keys are: without this script no key works.
+    const live = document.createElement('span');
+    live.className = 'sr-only';
+    live.setAttribute('aria-live', 'polite');
+    wrap.append(live);
     const hide = () => {
       current = -1;
       tip.hidden = true;
+      live.textContent = '';
       points.forEach(p => p.classList.remove('on'));
       if (hl) hl.style.opacity = 0;
     };
@@ -143,8 +149,8 @@
       const r = svg.getBoundingClientRect();
       return Math.floor(((clientX - r.left) * box.width / r.width - left) / band);
     };
-    // On a low view the chart is taller than the room between the bars. Only the keys: no scroll under a finger.
-    const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };
+    // Only the keys. On a low view the chart is taller than the room between the bars, and no scroll under a finger; and a pointer moving over the chart would talk over everything.
+    const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); live.textContent = tip.hidden ? '' : tip.textContent; };
     svg.addEventListener('pointermove', e => pick(at(e.clientX)));
     svg.addEventListener('pointerdown', e => pick(at(e.clientX)));
     svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });

@@ -324,13 +324,17 @@ class ChartTests(SimpleTestCase):
         self.assertEqual(keys[:keys.index("});")].count("step("), 2)
         self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };", source)
 
-    def test_the_bubble_stays_over_every_bar(self):
-        # At 844x390 the chart measures 369 px and the bars leave 167: of «junio 2026: 417 km» only the lower edge showed under the top bar.
+    def test_the_bubble_goes_over_the_bars_only_where_the_chart_does_not_fit_between_them(self):
+        # At 844x390 the chart measures 369 px and the bars leave 140: of «junio 2026: 417 km» only the lower edge showed under the top bar.
         css = stylesheet()
-        bubble = int(contrast.declared(css, ".tip").get("z-index", 0))
+        low = [rule for rule in contrast.rules(css) if rule.selector == ".tip" and any("max-height" in condition for condition in rule.conditions)]
+        self.assertEqual(len(low), 1)
+        bubble = int(dict(contrast.declarations(low[0].body))["z-index"])
         for bar in (".appbar", ".actionbar", ".fab", ".tabbar"):
             with self.subTest(bar=bar):
                 self.assertGreater(bubble, int(contrast.declared(css, bar)["z-index"]))
+        # On a taller view there is no need, and a bubble left open by a tap sat on the tab bar, over «Taller», while scrolling.
+        self.assertNotIn("z-index", contrast.declared(css, ".tip"))
 
 
 class FocusClearOfTheBarTests(SimpleTestCase):

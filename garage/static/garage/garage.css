@@ -220,8 +220,10 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chart .pt { fill: var(--primary); stroke: var(--surface); stroke-width: 2; opacity: 0; }
 .chart .pt.on { opacity: 1; }
 .chart .hl { stroke: var(--ink-2); stroke-width: 1; opacity: 0; }
-.tip { position: absolute; z-index: 6; /* Over every bar: on a low view the chart is taller than the room between them. */ transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--ink); border: 1px solid var(--field); box-shadow: var(--shadow);
+.tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--ink); border: 1px solid var(--field); box-shadow: var(--shadow);
   font-size: 13px; font-weight: 600; padding: 5px 9px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+/* The chart measures 369 px at its widest and the bars take 250: below that it does not fit between them. On a taller view, a bubble left open by a tap would sit on the tab bar while scrolling. */
+@media (max-height: 620px) { .tip { z-index: 6; } }
 
 /* Timeline */
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; }

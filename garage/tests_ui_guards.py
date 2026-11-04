@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles import finders
+from django.template.loader import get_template
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -226,6 +227,20 @@ class PageGuardTests(TestCase):
     def test_the_service_worker_leaves_photos_to_the_network(self):
         body = self.client.get(reverse("garage:service-worker")).content.decode()
         self.assertIn("url.pathname.startsWith('/garage/photos/')", body)
+
+
+class WayBackTests(SimpleTestCase):
+    def test_a_long_name_stays_in_the_bar(self):
+        # A name takes up to 150 characters: 5 lines at 320 px, from 33 px above the screen to 33 below the bar of 56. Two take 49,3.
+        back = contrast.declared(stylesheet(), ".back > span")
+        self.assertEqual(back.get("-webkit-line-clamp"), "2")
+        self.assertEqual((back.get("display"), back.get("-webkit-box-orient"), back.get("overflow")), ("-webkit-box", "vertical", "hidden"))
+        self.assertEqual(back.get("overflow-wrap"), "anywhere", "150 characters with no space widened the page by 930 px")
+
+    def test_what_is_cut_off_is_still_heard(self):
+        template = get_template("garage/_back.html").render({"href": "/x/", "label": "Un nombre largo"})
+        link = find_all(parse(template), "a", cls="back")[0]
+        self.assertEqual(link.attrs["aria-label"], "Volver a Un nombre largo")
 
 
 class OneSkinTests(SimpleTestCase):

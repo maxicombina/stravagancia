@@ -376,6 +376,17 @@ class ChartTests(SimpleTestCase):
         self.assertEqual(keys[:keys.index("});")].count("step("), 2)
         self.assertIn("const step = index => { pick(index); tip.scrollIntoView({ block: 'nearest' }); };", source)
 
+    def test_a_bubble_that_would_stay_under_the_top_bar_opens_below_its_point(self):
+        # On a tall view a tap does not scroll: with the point just under the bar, none of «septiembre 2026: 393 km» showed. Not over the bar: it would stay there while scrolling.
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            source = script.read()
+        pick = source[source.index("const pick = index =>"):source.index("const at = clientX =>")]
+        self.assertLess(pick.index("tip.style.top"), pick.index("tip.classList.toggle('below'"), "it needs to know where the bubble landed")
+        self.assertIn("tip.classList.remove('below')", pick[:pick.index("tip.style.top")])
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".tip.below").get("transform"), "translate(-50%, 10px)")
+        self.assertEqual(contrast.declared(css, ".tip").get("transform"), "translate(-50%, calc(-100% - 10px))")
+
     def test_the_bubble_goes_over_the_bars_only_where_the_chart_does_not_fit_between_them(self):
         # At 844x390 the bars leave 140 px, less than the chart measures even at its smallest: of «junio 2026: 417 km» only the lower edge showed under the top bar.
         css = stylesheet()

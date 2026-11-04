@@ -129,9 +129,13 @@
       const x = Number(point.getAttribute('cx')), y = Number(point.dataset.y || box.height - 30);
       tip.textContent = point.dataset.tip;
       tip.hidden = false;
+      tip.classList.remove('below');
       const half = tip.offsetWidth / 2 + 2;
       tip.style.left = Math.max(half, Math.min(w.width - half, (r.left - w.left) + x * r.width / box.width)) + 'px';
       tip.style.top = ((r.top - w.top) + y * r.height / box.height) + 'px';
+      // A tap does not scroll: with the point just under the top bar, the bubble would stay hidden behind it.
+      const bar = document.querySelector('.appbar');
+      tip.classList.toggle('below', tip.getBoundingClientRect().top < (bar ? bar.getBoundingClientRect().bottom : 0));
       points.forEach(p => p.classList.toggle('on', p === point && point.dataset.y !== undefined));
       if (hl) { hl.setAttribute('x1', x); hl.setAttribute('x2', x); hl.style.opacity = 1; }
     };

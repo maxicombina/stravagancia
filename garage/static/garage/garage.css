@@ -226,6 +226,7 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .chart .hl { stroke: var(--ink-2); stroke-width: 1; opacity: 0; }
 .tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--ink); border: 1px solid var(--field); box-shadow: var(--shadow);
   font-size: 13px; font-weight: 600; padding: 5px 9px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.tip.below { transform: translate(-50%, 10px); }
 /* Below 390 px the svg gets narrower than its 320 units, and its text with it: 8,3 px at 320 px. This keeps it at 10,3 to 10,7. */
 @media (max-width: 389px) {
   .chart text { font-size: calc(10.5px + (390px - 100vw) / 28); }

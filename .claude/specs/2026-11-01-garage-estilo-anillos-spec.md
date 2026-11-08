@@ -17,7 +17,7 @@ La comparación entre las tres opciones está en `design/README.md`.
 
 Esta fase es sólo de análisis: no se ha tocado código, plantillas, CSS, pruebas,
 Beads ni git, y no se ha arrancado ningún servidor. Las cifras de contraste de §3 se han
-**recalculado** con la fórmula WCAG 2.x (36 pares, 0 fallos) y las afirmaciones
+**recalculado** con la fórmula WCAG 2.x (36 pares, 0 fallos; más los 8 de D21, añadidos el 3 nov) y las afirmaciones
 sobre el código se han comprobado leyéndolo.
 
 **Rutas.** Las que llevan carpeta son relativas a la raíz del repositorio. Las
@@ -348,6 +348,23 @@ hasta que el usuario lo pida.** Por defecto (§8.1, punto 7).
 - *Alternativa descartada:* agrupar Material en tarjetas por estado con filtros
   hechos en CSS, como la maqueta. Contradice la spec 042 §2.
 
+**D21 · Pasado el 100 %, el vencido se intensifica (pedido del usuario, 3 nov).**
+- Literal: «cuando un anillo pasa del 100 %, ¿no se puede hacer color más intenso?
+  tipo bordeaux al 150 % y negro 200 % o más … o violeta». La maqueta no lo tiene.
+- Tres escalones de `st-due`, según el **porcentaje que se muestra** (el de
+  `percent`, redondeado hacia abajo), para que el color y la cifra nunca discrepen:
+  100–149 % `--due`; 150–199 % `--due-150` (burdeos); ≥ 200 % `--due-200` (negro).
+- **En oscuro** el burdeos y el negro no se verían sobre `#1D1A23`: el mismo escalón
+  es frambuesa y casi blanco, es decir, el máximo contraste con el fondo.
+- **Sólo cambia el color.** La palabra sigue siendo «Vencido»; el dominio, los
+  estados y `SEVERITY` no cambian. El porcentaje ya está en el chip, así que el
+  color no aporta información que sólo se vea con color.
+- Sólo vencidos: Pospuesto, Revisar y los demás no se intensifican. Con «≥» se
+  aplica, porque el real es al menos ese; con «≈», también, y el «≈» sigue visible.
+- *Alternativa descartada:* violeta para ≥ 200 %, la otra opción que dio el usuario.
+  En «Anillos» el violeta es la marca y «En curso» (`--primary`), de modo que la
+  pieza más pasada se confundiría con una en curso. Cambiarlo es cambiar un token.
+
 **D20 · El orden de las fases lo fija esta spec (§6); cuándo empieza y cómo se
 aprueba, el usuario.**
 - Cada fase la implementa un agente Opus con pruebas primero, sin commits.
@@ -388,6 +405,8 @@ más los propios de la app, marcados con ★.
 | `--primary-soft` | tesela sin foto, mensajes, aviso de instalación, pista de «En curso», «Sin estrenar» | `#ECE6FD` | `#2D2550` | `--accent-soft` |
 | `--focus` | anillo de foco de 3 px | `#C2410C` | `#FF9A5C` | `--focus` |
 | `--due` / `--due-soft` | Vencido: arco e icono / fondo del chip y pista | `#D2312F` / `#FCE4E2` | `#FF7B72` / `#3D1F22` | `--due`, `--due-i` / `color-mix` |
+| ★ `--due-150` / `--due-150-soft` | Vencido de 150 a 199 % (D21): burdeos, frambuesa en oscuro | `#7A1730` / `#F6E0E5` | `#F0476F` / `#3F1826` | — |
+| ★ `--due-200` / `--due-200-soft` | Vencido desde 200 % (D21): negro, casi blanco en oscuro | `#1C1A21` / `#E2DFE5` | `#F3F1F6` / `#3A3741` | — |
 | `--soon` / `--soon-soft` | Próximo y Revisar | `#B86200` / `#FFEFD2` | `#F2B13B` / `#3A2B12` | `--soon`, `--soon-i` |
 | `--ok` / `--ok-soft` | Al día | `#1E8449` / `#DDF3E5` | `#4FCB83` / `#15301F` | `--ok`, `--ok-i` |
 | `--nodata` / `--nodata-soft` | Sin datos y Pospuesto | `#7A7482` / `#EEEBF0` | `#A29CAB` / `#2A2730` | `--ink2` en estados |
@@ -409,6 +428,8 @@ estado ya llega a 3:1 como icono. Queda así:
 
 ```css
 .st-due { --c: var(--due); --soft: var(--due-soft); }
+.st-due.over-150 { --c: var(--due-150); --soft: var(--due-150-soft); } /* D21 */
+.st-due.over-200 { --c: var(--due-200); --soft: var(--due-200-soft); } /* D21 */
 .st-soon, .st-review { --c: var(--soon); --soft: var(--soon-soft); }
 .st-progress { --c: var(--primary); --soft: var(--primary-soft); }
 .st-current, .st-ok { --c: var(--ok); --soft: var(--ok-soft); }
@@ -469,6 +490,10 @@ oscuro. Todos se han recalculado y no falla ninguno.
 | ★31–34 | due · soon · ok · nodata / bg | anillos y chips en filas fuera de tarjeta (listas, formularios) | 3 | 4,49 / 7,43 · 3,96 / 9,93 · 4,26 / 9,10 · 4,08 / 7,03 |
 | ★35 | ink-2 / primary-soft | texto secundario en mensajes y aviso de instalación | 4,5 | 5,67 / 6,45 |
 | ★36 | knob / field | botón apagado del interruptor sobre su carril | 3 | 3,53 / 4,24 |
+| ★37–39 | due-150 / surface · bg · due-150-soft | arco e icono de 150 a 199 % (D21) | 3 | 10,54 / 4,77 · 9,51 / 5,21 · 8,39 / 4,26 |
+| ★40 | ink / due-150-soft | texto de su chip | 4,5 | 13,71 / 13,67 |
+| ★41–43 | due-200 / surface · bg · due-200-soft | arco e icono desde 200 % (D21) | 3 | 17,23 / 15,29 · 15,54 / 16,70 · 13,06 / 10,39 |
+| ★44 | ink / due-200-soft | texto de su chip | 4,5 | 13,06 / 10,39 |
 
 Los pares 1–28 son los de la maqueta (README:92-121). Los ★29–36 son propios de
 la app, porque la app tiene filas sobre `--bg`, formularios con errores,
@@ -487,24 +512,24 @@ encendido contra la tarjeta, y botón apagado y encendido contra su carril.
    - lee `garage/static/garage/garage.css`;
    - extrae los tres bloques de tokens;
    - calcula la luminancia relativa WCAG;
-   - comprueba los 36 pares anteriores;
+   - comprueba los 44 pares anteriores;
    - imprime la tabla cuando se ejecuta como
      `python -m test_support.contrast garage/static/garage/garage.css`.
 2. **Prueba nueva `garage/tests_theme_tokens.py`**, que lo usa dentro de la
    suite:
-   - `test_pairs_meet_wcag`: 36 pares × 2 temas = **72 comprobaciones**, como
+   - `test_pairs_meet_wcag`: 44 pares × 2 temas = **88 comprobaciones**, como
      subcasos;
    - `test_dark_blocks_are_identical`: compara el `@media` oscuro con
-     `[data-theme="dark"]`, token a token (≥ 21 tokens de color, 1 aserción con
+     `[data-theme="dark"]`, token a token (≥ 25 tokens de color, 1 aserción con
      la diferencia). Llega en F1c;
    - `test_no_literal_colors_outside_tokens`: busca `#hex`, `rgb(`, `rgba(` y
      `hsl(` fuera de los bloques de tokens. La lista resultante debe estar vacía
      (1 aserción). Es la garantía de D12;
-   - `test_state_classes`: las 7 clases `st-*` fijan `--c` y `--soft` **con
-     los tokens cuyos pares se comprueban** (por ejemplo, `.st-due` con
-     `--due`/`--due-soft`; 7 subcasos × 2 aserciones). No refleja la
+   - `test_state_classes`: las 7 clases `st-*` y las 2 de exceso (D21) fijan `--c`
+     y `--soft` **con los tokens cuyos pares se comprueban** (por ejemplo,
+     `.st-due` con `--due`/`--due-soft`; 9 subcasos × 2 aserciones). No refleja la
      implementación por gusto: es lo que une la tabla de contraste con lo que
-     se pinta. Si `.st-due` usara otro token, los 72 pares no dirían nada;
+     se pinta. Si `.st-due` usara otro token, los 88 pares no dirían nada;
    - `test_state_vars_have_fallback`: en `garage.css` no hay ningún
      `var(--c)` ni `var(--soft)` sin respaldo (1 aserción con la lista; R8);
    - `test_theme_color_matches_bg`: las `meta theme-color` de `shell.html` y los
@@ -570,7 +595,9 @@ w=alert.wear metric=alert.wear.headline %}` (Taller, F3d) o con
 | Caso | Clase | Arco | Pista | Centro | Chip (icono, palabra y %) | `.big` |
 |---|---|---|---|---|---|---|
 | Vencido | `st-due` | `--due`, lleno al 100 % | `--due-soft` | icono de la pieza en `--ink` | octágono «Vencido · 108 %» | «+32» «días de más» |
-| **Exceso por encima del 100 %** | `st-due` | lleno (`ring()` tiene tope) | — | pieza | «Vencido · 116 %»: el exceso **sí** se ve | «+8» «h de más» |
+| **Exceso de 100 a 149 %** | `st-due` | lleno (`ring()` tiene tope), `--due` | — | pieza | «Vencido · 116 %»: el exceso **sí** se ve | «+8» «h de más» |
+| **Exceso de 150 a 199 %** (D21) | `st-due over-150` | lleno, `--due-150` (burdeos; frambuesa en oscuro) | — | pieza | octágono «Vencido · 165 %» | «+…» «de más» |
+| **Exceso desde 200 %** (D21) | `st-due over-200` | lleno, `--due-200` (negro; casi blanco en oscuro) | — | pieza | octágono «Vencido · 230 %» | «+…» «de más» |
 | Revisar | `st-review` | `--soon` | `--soon-soft` | pieza | lupa (D8) «Revisar · ≥ 95 %» | «150» «km como máx.» |
 | Próximo | `st-soon` | `--soon` | `--soon-soft` | pieza | triángulo «Próximo · 95 %» | «150» «km quedan» |
 | En curso | `st-progress` | `--primary` | `--primary-soft` | pieza | medidor «En curso · ≥ 62 %» | «… km como máx.» |
@@ -962,10 +989,11 @@ principal no se tocan hasta que el usuario apruebe.
 
    - Usa el mismo PostgreSQL 55434. `run` no lee el archivo de estado, pero sólo
      puede correr **una suite a la vez** en 55434.
-   - **Referencia de partida:** se mide en la copia **antes de F0** y se anota. La
-     última cifra acreditada es 2801 + 45 (garage-048), con
-     `tests_local_strava*.py`, que ya está en la rama. Si la copia da otra, se
-     averigua por qué antes de F0.
+   - **Referencia de partida (medida el 3 nov sobre `28df904`, con `main` ya
+     fusionada):** 2843 passed, 1 failed y 45 subtests en la copia. El fallo es
+     esperado y sólo ocurre en la copia:
+     `tests_local_strava.py::test_helper_check_runs_manage_check_with_local_settings`
+     (el helper fija la ruta al árbol principal). En `garage` son 2844 + 45.
    - Desde F1a, además, `cd /Users/maxicombina/src/learning/django/stravagancia-garage-050
      && $GARAGE_TEST_PYTHON -m test_support.contrast garage/static/garage/garage.css`.
 5. **Antes de capturar, reiniciar 8768.** `asset_version()` se calcula una vez
@@ -1047,7 +1075,7 @@ principal no se tocan hasta que el usuario apruebe.
 
 - **Alcance:**
   - el bloque de tokens de §3.1, claro y `@media` oscuro;
-  - las clases `st-*` con `--c` y `--soft`;
+  - las clases `st-*` con `--c` y `--soft`, y las dos de exceso de D21;
   - la sustitución de `--tile`, `--ink2`, `--accent*`, `--bar`, `--ci` y `--*-i`
     en todo el CSS;
   - `color-mix` sustituido por `--soft`, siempre con respaldo (§3.1);
@@ -1063,10 +1091,10 @@ principal no se tocan hasta que el usuario apruebe.
   - `garage/app_views.py:32-33`;
   - nuevos `test_support/contrast.py` y `garage/tests_theme_tokens.py`.
 - **Pruebas primero** (las de §3.3, salvo la de paridad):
-  - **contraste, 72 comprobaciones.** Hoy falla: por ejemplo, `--soon`
+  - **contraste, 88 comprobaciones.** Hoy falla: por ejemplo, `--soon`
     `#fab219` sobre `--surface` da 1,83:1, y los tokens nuevos no existen;
   - **sin literales, 1 aserción.** Hoy falla por `#ffffff` en `garage.css:218`;
-  - **clases de estado, 7 subcasos × 2 aserciones.** Hoy falla porque no existe
+  - **clases de estado, 9 subcasos × 2 aserciones.** Hoy falla porque no existe
     `--soft`;
   - **`var()` con respaldo, 1 aserción.** Hoy pasa (es una guarda); falla en
     cuanto se escriba un `var(--soft)` sin respaldo;
@@ -1074,7 +1102,7 @@ principal no se tocan hasta que el usuario apruebe.
   - Además se mantienen literalmente `tests_mobile_shell.py:74` y
     `tests_categories.py:322-328`.
 - **Aceptación:**
-  - 36 pares sin ningún fallo, y la salida del script se adjunta;
+  - 44 pares sin ningún fallo, y la salida del script se adjunta;
   - la suite en verde;
   - el único HTML que cambia son las `meta` de `shell.html`.
 - **Verificación visual:** el juego completo, en claro y oscuro, en los 6 tamaños
@@ -1183,7 +1211,9 @@ principal no se tocan hasta que el usuario apruebe.
 
 ### F2a · Anillo con el icono de la pieza (D9)
 
-- **Alcance:** §4.1 y el chip con porcentaje de las filas de regla.
+- **Alcance:** §4.1 y el chip con porcentaje de las filas de regla, incluido el
+  exceso de D21 allí donde se pinta el estado de una métrica vencida: filas, chip y
+  medidor grande de la ficha de pieza. La insignia «N avisos» (D17) no cambia.
 - **Depende de §8.1, punto 3.** Con esta fase, el icono que deduce
   `icons.item_icon_key` pasa a verse en cada fila, y el usuario aún no ha
   confirmado el «cambio visible» de esa deducción (spec 041 §7.7–§8).
@@ -1195,6 +1225,16 @@ principal no se tocan hasta que el usuario apruebe.
   - `garage.css:107-112` (`.ring-ic`, `:113`, sigue para la fila de salidas).
   - `item_detail.html` **no se toca**: su `aria-label` no cambia (§4.1).
 - **Pruebas primero:**
+  - **exceso (D21), lógica pura.** Una propiedad nueva en `presentation.py` da la
+    clase de exceso a partir del estado y de `percent`, con estos casos:
+    - vencido al 100 % y al 149 %, y con proporción 1,4999 (se muestra 149): sin clase;
+    - vencido al 150 % y al 199 %: `over-150`;
+    - vencido al 200 % y al 350 %: `over-200`;
+    - Pospuesto, Revisar y Próximo con un 200 %: sin clase;
+    - sin proporción: sin clase;
+    - «≥ 160 %» y «≈ 160 %»: `over-150`.
+  - **exceso (D21), pantallas.** Una fila y un chip vencidos al 165 % y al 230 % llevan
+    su clase; la palabra sigue siendo «Vencido» y el porcentaje sigue en el chip.
   - **lógica pura**, sin base de datos y con `SimpleNamespace`. `piece_icon`
     devuelve:
     - el icono de la categoría (`bottle`);

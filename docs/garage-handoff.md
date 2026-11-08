@@ -17,6 +17,23 @@ Metabase, ya ignorada pero rastreada) y `.serena/` (caché de herramienta). Los
 dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
 (sección «Siguiente paso», punto 7).
 
+## 8 nov: el trabajo sigue en el VPS; el portátil queda congelado
+
+- Decisión del usuario (8 nov): «congelamos en el portátil, seguimos todo en el VPS».
+  **El VPS (`maxi@agent-vps-maxi:/home/maxi/src/learning/django/stravagancia`) es la copia
+  de trabajo**: ahí otro Claude retoma garage-050 «Anillos» (ver
+  `docs/garage-vps-handoff.md`).
+- **En el portátil (macOS) no se modifica nada**: ni código, ni docs, ni Beads, ni ramas,
+  ni commits ni push, salvo petición expresa del usuario. Una sesión de Claude en el
+  portátil sólo responde preguntas. Si se toca algo allí, las dos copias divergen.
+- **En el VPS sí se trabaja**, con las reglas de CLAUDE.md y del handoff del VPS (sin push,
+  sin commit salvo petición, sin despliegue, sin `.env`).
+- Estado en el momento del congelado, idéntico en ambas máquinas: `garage` `28df904`,
+  `garage-050-anillos` `66ea10b`, `origin/garage` `e09bfb0`; Beads con 63 tareas (hash del
+  export `fa4c8e1d…944c`); mismos cambios sin commitear. El `.env` del VPS quedó en 600.
+- Lo que se haga en el VPS no vuelve al portátil solo: traerlo (bundle, o push que pida el
+  usuario) es decisión del usuario.
+
 ## 3 nov (Opus 5.5 con el usuario): estado real de garage-050 y commits
 
 - **Corrección de lo anterior.** Este archivo decía que la crítica de la spec
@@ -55,6 +72,48 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
   haz todo anilos, merges, etc». Se entiende: adoptar en `garage` la fusión de `main`
   (garage-045), **no** fusionar `garage` en `main`, que sería desplegar; §8.1 con las
   opciones recomendadas; sin parar por bloques; sin decidir el bucket (garage-010).
+
+## 3 nov: alcance antes de prod (el usuario lo olvidará y lo preguntará)
+
+- **Antes de prod, decidido:** garage-050 completa, con D21 (burdeos desde 150 %, negro
+  desde 200 %); después garage-051: velocidad media, % de subida por km, metros de subida
+  por hora, promedio y máximo por salida y vista semanal (sin migración); velocidad
+  máxima, cadencia, temperatura y pulsaciones (migración 0013 y nueva descarga); energía
+  y potencia como estimación «≈», sólo en estadísticas; en Estadísticas y en la ficha de
+  bici y de pieza. Detalle en `bd show garage-051`.
+- **Después de prod:** calorías (una llamada a Strava por salida).
+- **garage-047, fricciones:** el usuario pidió arreglarlas («apenas puedas, el orden me
+  da igual. anotalas cuando las arregles, que repasaremos antes de ir a prod»). Van
+  después de garage-050, porque tocan los mismos formularios y hay un solo escritor. Cada
+  una se anota en las notas de garage-047 con su commit.
+- **garage-052:** repaso con el usuario antes de prod; lo cierra él.
+- **Sin decidir:** bucket de fotos (garage-010), objetivo y tendencia de Grafana.
+
+## 4 nov: Anillos a un agente por vez, y garage-053
+
+- Workflow de Anillos `wf_e92e9968-3fe` en marcha en la copia `../stravagancia-garage-050`
+  (rama `garage-050-anillos`, sin fusionar). El 3 nov el usuario pidió un solo agente cada
+  vez y mantener las 3 rondas: los revisores van en serie. Solo la ronda 1 de F1 conserva
+  `parallel()` en el script, para que la reanudación encuentre su caché.
+- A las 07:40 del 4 nov: 15 de 19 fases hechas, suite de la copia 3329 passed más el fallo
+  esperado (dato de los agentes, sin verificar por mí todavía). Las revisiones de F1 y F2
+  llegaron al tope de 3 rondas, con hallazgos medios en la última, corregidos pero sin otra
+  ronda que lo confirme. Sin hallazgos de gravedad alta.
+- Parciales para el repaso: tema en Safari (solo Chrome) y nombres muy largos a 320 px.
+- garage-053 nueva, decidida por el usuario el 4 nov: posponer bici o componente entero.
+  Sin decidir: qué más de docs/garage-vs-probikegarage.md entra antes de prod.
+- Orden al terminar Anillos: verificar, fusionar en `garage` sin push, y seguir con 047,
+  053 y 051, de uno en uno. Después el repaso garage-052, que cierra el usuario.
+
+**4 nov, 09:21: PAUSADO a petición del usuario («pausa apenas puedas, que comienzo a trabajar»).**
+No lanzar nada hasta que lo pida. Sin agentes en marcha; copia limpia en `66ea10b`, 72 commits
+sobre `28df904`; 16 de 19 fases hechas; suite de la copia 3382 passed más el fallo esperado
+(dato del corrector). Quedan: revisor visual de F3 ronda 2 (parado a los 3 min, se repite),
+corrector y ronda 3 de F3, F4a–c con su revisión y la revisión final: hasta 26 agentes.
+Reanudar cuando lo pida, con `Workflow({scriptPath, resumeFromRunId: "wf_e92e9968-3fe"})`; el
+script está en `~/.claude/projects/-Users-maxicombina-src-learning-django-stravagancia/276b1f3f-d1b9-4a12-a522-884416c9ae3b/workflows/scripts/garage-050-anillos-wf_e92e9968-3fe.js`,
+y solo sirve desde esta misma sesión. Lanzar antes `caffeinate`, parado también. Si la sesión ya
+no existe, seguir a mano desde esa fase: cada fase hecha es un commit de la rama `garage-050-anillos`.
 
 ## 1 nov ~21:25 UTC: tras el reinicio, todo levantado de nuevo
 

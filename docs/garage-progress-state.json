@@ -1,11 +1,17 @@
 {
- "updated_at": "2026-11-03T17:09:16+00:00",
- "focus": "garage-050 «Anillos» en implementación antes de prod (decisión del usuario, 3 nov), §8.1 con las opciones recomendadas. Copia aparte ../stravagancia-garage-050, servidor 8768. garage-045 adoptándose. Bucket de fotos sin decidir.",
+ "updated_at": "2026-11-04T08:22:15+00:00",
+ "focus": "garage-050 «Anillos» en implementación antes de prod, un agente cada vez y hasta 3 rondas de revisión por bloque (usuario, 3 nov). Copia aparte ../stravagancia-garage-050, servidor 8768. Workflow wf_e92e9968-3fe. Después: garage-047, garage-051 y el repaso garage-052. Bucket de fotos sin decidir.",
  "agents": [
   {
    "name": "Claude Opus 5.5 (sesión principal)",
    "role": "orquestación, documentación, Beads y verificación",
-   "status": "en curso con el usuario (3 nov)",
+   "status": "en espera del usuario (4 nov)",
+   "task": "garage-050"
+  },
+  {
+   "name": "Workflow Opus de «Anillos» (un agente cada vez, wf_e92e9968-3fe)",
+   "role": "implementa F0–F4 en la copia; revisor de código, revisor visual y corrector, hasta 3 rondas por bloque",
+   "status": "pausado 4 nov 08:21 UTC a petición del usuario: 16 de 19 fases, revisión de F3 en la ronda 2; suite de la copia 3382 passed y sólo el fallo esperado. Sin agentes en marcha",
    "task": "garage-050"
   },
   {

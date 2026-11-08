@@ -185,6 +185,20 @@ pensar»). Se implementa en el worktree
 `../stravagancia-garage-050` (rama `garage-050-anillos`, sin push) con servidor 8768;
 la demo 8766 no cambia hasta que el usuario apruebe. Spec §6.0.1.
 
+**3 nov, alcance antes de prod acordado con el usuario** (lo olvidará y lo preguntará;
+responder desde `bd show garage-051`): garage-050 completa, incluido D21 (anillo más
+intenso pasado el 100 %) y después garage-051 (más estadísticas). Calorías, después de
+prod. Sin decidir: bucket de fotos (garage-010), y objetivo y tendencia. Las fricciones
+de garage-047 ya no son «sin decidir»: **el usuario pidió arreglarlas** («apenas
+puedas, el orden me da igual») y anotar cada una al arreglarla; se repasan con él en
+**garage-052** antes de prod.
+
+**4 nov, el usuario amplía el alcance:** posponer una bici o un componente entero
+(**garage-053**), «lo mismo que probikegarage y mejor, ese es el plan». Va después de
+garage-050. Qué más de la lista de docs/garage-vs-probikegarage.md entra antes de prod,
+sin decidir todavía. Los agentes van **de uno en uno**, con hasta 3 rondas de revisión
+por bloque («prefiero 3 rondas, pero mas lento»).
+
 **Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
 `0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker
 Compose `web` las aplicaría en producción. La siguiente migración es la

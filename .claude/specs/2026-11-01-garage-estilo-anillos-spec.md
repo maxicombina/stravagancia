@@ -682,7 +682,8 @@ w=alert.wear metric=alert.wear.headline %}` (Taller, F3d) o con
 - **`.entry.nested`**: mantiene el `padding-left`. No se añade el icono de
   anidado de la maqueta: `i-nest` no está en el sprite ni en ninguna fase.
 - Las filas que no navegan siguen sin chevron. Las que sí, llevan `.ic` en
-  `--ink-2`.
+  `--ink-2`, salvo las que tienen columna `.big` (D9), que ocupa el sitio del
+  chevron: navegan sin él, como «Montado ahora» (F3b).
 
 ### 4.5 Barra de pestañas flotante
 

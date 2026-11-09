@@ -20,7 +20,7 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
 ## 8 nov: el trabajo sigue en el VPS; el portátil queda congelado
 
 - Decisión del usuario (8 nov): «congelamos en el portátil, seguimos todo en el VPS».
-  **El VPS (`maxi@agent-vps-maxi:/home/maxi/src/learning/django/stravagancia`) es la copia
+  **El VPS (`~/src/learning/django/stravagancia`) es la copia
   de trabajo**: ahí otro Claude retoma garage-050 «Anillos» (ver
   `docs/garage-vps-handoff.md`).
 - **En el portátil (macOS) no se modifica nada**: ni código, ni docs, ni Beads, ni ramas,
@@ -33,6 +33,74 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
   export `fa4c8e1d…944c`); mismos cambios sin commitear. El `.env` del VPS quedó en 600.
 - Lo que se haga en el VPS no vuelve al portátil solo: traerlo (bundle, o push que pida el
   usuario) es decisión del usuario.
+
+## 9 nov: Anillos terminada y subida a su rama, sin fusionar
+
+- **Hecho.** Workflow `wf_9527df31-077`: 22 agentes Opus en serie, 0 errores, unas 8 h.
+  F3 rondas 2 y 3, F4a–c, 3 rondas de F4 y revisión final. 44 hallazgos, 34 corregidos.
+  F4d no se ha hecho: es opcional y sólo si el usuario la pide.
+- **Estado.** Rama `garage-050-anillos` (`../stravagancia-garage-050`), HEAD `9a2b2a1`.
+  `b10c875` es Anillos; `67b8ad6`, la ruta fija del helper de Strava; `9a2b2a1`, el filtro
+  de Salidas. Sin migración. Python de producción tocado: `auto_id` en
+  `garage/history_views.py` y los enlaces de filtro en `garage/usage_views.py`.
+- **Arreglos tras la revisión final.** Workflow `wf_88406334-65d`: 9 agentes Opus en serie,
+  0 errores. El helper deduce su repo de la ubicación del archivo; en un worktree usa su
+  propio `.venv` y `.env`, y su estado por defecto sigue siendo una ruta de macOS
+  (`GARAGE_DEMO_STATE` fuera del Mac). En Salidas, cada enlace cambia un filtro y conserva
+  los demás, sin arrastrar la página.
+- **Verificado por la sesión principal sobre `9a2b2a1`:** `3556 passed, 464 subtests`,
+  0 fallos (482 s). `check` y `makemigrations --check` limpios.
+- **Verificado antes de los dos arreglos, sobre `b10c875`:** contraste 44 pares y 88
+  comprobaciones sin fallos; capturas 144 de 144 válidas, 0 desbordes, 0 consola, 0 red.
+- **Sin verificar:** Safari, iPhone real, PWA instalada, teclado iOS. La demo no tiene
+  fotos ni vencidos por encima del 150 %: esos estados se vieron inyectando el marcado.
+- **Por decidir con el usuario:** en Salidas, con una bici elegida, «Sólo las que están
+  por revisar» da siempre lista vacía (`pending_rides` exige bici nula);
+  Material marca Garaje y la maqueta pide Más; claves crudas de posición (`rear_tire`);
+  gráfico de 420 px centrado en tarjetas anchas; formatos heredados como «Km: 2795.000»;
+  `h1` de Bici en 26 px en móvil (la maqueta pide 30, y 30 incumple F3b); «Guardar foto» y
+  «Continuar importación» de FIT en ghost; orden de teclado de la barra lateral (va tras
+  el contenido); 60 de 113 pruebas de `tests_ui_guards.py` comparan el texto del CSS o JS
+  y no la cascada. Sin medir: «Corregir lectura» en `item_detail.html:101`.
+- **Git.** Push de `garage` y `garage-050-anillos` el 9 nov, sin fusionar: el usuario pidió
+  «aun NO merge de nada». `garage` no tiene Anillos ni estos arreglos, así que en el VPS
+  sigue con los 33 fallos de `tests_local_strava*.py`. No fusionar ni llevar commits de
+  una rama a otra hasta que lo pida.
+- **Siguiente.** El usuario prueba por el túnel y decide cuándo fusionar en `garage`.
+  Después garage-047, garage-053, garage-051 y el repaso garage-052.
+
+## 8 nov: Anillos retomada en el VPS (Linux), sin el Mac
+
+El usuario pidió seguir con garage-050 en el VPS, con agentes Opus en serie, hasta 3
+rondas por bloque y **sin commits** de los agentes. Ver también `docs/garage-vps-handoff.md`.
+
+- **Git.** Commit `227a72d` (documentación y estado) y push autorizado por el usuario:
+  `origin/garage` en `227a72d` y `origin/garage-050-anillos` en `66ea10b` (`main` intacto;
+  fuera, la base de Metabase y `.serena/`). El portátil se puso al día en `227a72d` el
+  mismo día (`git merge --ff-only`).
+- **Entorno, fuera del repo, en `~/.cache/garage-vps/`:** `venv/` (`uv sync --frozen
+  --group dev`), `garage-test` (pruebas, 55434), `garage-demo` (demo ficticia, 55433),
+  `demo-restart` (servidor de la copia en 127.0.0.1:8768), `garage-050/snap`
+  (instantáneas, porque no hay commits), `garage-050/suite-gate` (suite comparada con la
+  referencia). PostgreSQL 17.11 de Debian, sin clúster del sistema. Clúster 55434 en el
+  scratchpad de la sesión; demo 55433 en `~/.cache/garage-vps/pg-demo`, con el seed.
+  Sin `maxi` ni datos reales, a propósito.
+- **Referencia de la suite en `66ea10b`, ejecutada aquí el 8 nov:** 3350 passed y 33
+  failed, todos en `tests_local_strava*.py`, porque `garage_local_strava.py:19` fija `REPO`
+  a una ruta del Mac y `subprocess.run(cwd=REPO)` da `FileNotFoundError` (comprobado). El
+  mensaje «No se pudo ejecutar … GARAGE_TEST_PYTHON» es engañoso. Ajenos a Anillos, sin
+  arreglar. El helper no sirve en Linux tal cual. `check`, `makemigrations --check` y
+  contraste (88 comprobaciones), limpios.
+- **Workflow `wf_9527df31-077`** (Opus, en serie): herramienta de capturas nueva
+  (`garage-050/capture.mjs`), F3 rondas 2 y 3, F4a–c, hasta 3 rondas de F4, revisión final;
+  se para ante cualquier fallo nuevo. La revisión de código de F3 ronda 2 se rehace porque
+  sus hallazgos se quedaron en el workflow del Mac. Sus cambios quedan **sin commit** en
+  `../stravagancia-garage-050`. Si esta sesión muere: `snap --list` y el `log` del worktree
+  dicen hasta dónde llegó.
+- **Probar desde el Mac:** túnel SSH del puerto local 18768 al 8768 de la copia (el 8768 del
+  Mac está ocupado) y `http://localhost:18768/garage/`, `demo` / `garage-demo`.
+- **Salidas reales nuevas:** las sincroniza el usuario en el Mac (TESTING.md «garage-044»,
+  `GARAGE_STRAVA_USER=maxi`, «Sincronizar ahora» pide 7 días). No se hace en el VPS.
 
 ## 3 nov (Opus 5.5 con el usuario): estado real de garage-050 y commits
 

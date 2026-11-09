@@ -1,11 +1,23 @@
 {
- "updated_at": "2026-11-04T08:22:15+00:00",
- "focus": "garage-050 «Anillos» en implementación antes de prod, un agente cada vez y hasta 3 rondas de revisión por bloque (usuario, 3 nov). Copia aparte ../stravagancia-garage-050, servidor 8768. Workflow wf_e92e9968-3fe. Después: garage-047, garage-051 y el repaso garage-052. Bucket de fotos sin decidir.",
+ "updated_at": "2026-11-09T09:01:47+00:00",
+ "focus": "garage-050 «Anillos» terminada y subida a la rama garage-050-anillos, sin fusionar (servidor 8768, VPS): falta que el usuario la pruebe y decida cuándo fusionarla en garage. Después: garage-047, garage-053, garage-051 y el repaso garage-052. Bucket de fotos sin decidir.",
  "agents": [
   {
    "name": "Claude Opus 5.5 (sesión principal)",
    "role": "orquestación, documentación, Beads y verificación",
-   "status": "en espera del usuario (4 nov)",
+   "status": "en espera del usuario (9 nov)",
+   "task": "garage-050"
+  },
+  {
+   "name": "Workflow Opus de los dos arreglos de Anillos (9 agentes en serie, wf_88406334-65d)",
+   "role": "ruta fija del helper de Strava (3 rondas de revisión) y filtro de Salidas (1 ronda, sin defectos); pruebas primero",
+   "status": "terminado 9 nov 2026: 0 errores; sin commits de los agentes",
+   "task": "garage-050"
+  },
+  {
+   "name": "Workflow Opus de «Anillos» en el VPS (22 agentes en serie, wf_9527df31-077)",
+   "role": "herramienta de capturas, F3 rondas 2-3, F4a-c, 3 rondas de F4 y revisión final",
+   "status": "terminado 8 nov ~22:55 UTC: 0 errores, 44 hallazgos, 34 corregidos. Sin agentes en marcha",
    "task": "garage-050"
   },
   {
@@ -70,14 +82,14 @@
   }
  ],
  "validation": {
-  "tests": 2801,
-  "passed": 2801,
+  "tests": 3556,
+  "passed": 3556,
   "failed": 0,
   "skipped": 0,
-  "subtests": 45,
-  "postgres": "18.6 · local desechable (55434)",
-  "checked_at": "2026-11-03T15:52:32+00:00",
-  "report": "docs/validation/garage-048.json"
+  "subtests": 464,
+  "postgres": "17.11 · local desechable (55434, VPS)",
+  "checked_at": "2026-11-09T09:00:41+00:00",
+  "report": "log de la suite en el VPS, fuera del repo; rama garage-050-anillos en 9a2b2a1"
  },
  "not_applicable": [
   "garage-013",

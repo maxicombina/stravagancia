@@ -8,9 +8,11 @@ helper sets GARAGE_LOCAL_ENV_FILE to a synthetic or missing file inside tmp_path
 """
 from collections.abc import Mapping
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -472,8 +474,8 @@ def helper_launch_refusal(args):
 
     Only a launch that names the helper matters. The environment it gets (its env argument, else
     this process's) must set GARAGE_LOCAL_ENV_FILE to an absolute path that, with symlinks and «..»
-    resolved, lies inside the temporary directory (where tmp_path is): otherwise the helper reads
-    <repo>/.env (garage-048).
+    resolved, lies inside the temporary directory (where tmp_path is) and, if this checkout lives
+    there too, outside the checkout: otherwise the helper reads <repo>/.env (garage-048).
     """
     words, env = [], None
     for arg in args:
@@ -487,8 +489,10 @@ def helper_launch_refusal(args):
         return None
     value = (os.environ if env is None else env).get("GARAGE_LOCAL_ENV_FILE")
     path = Path(os.fsdecode(value)) if isinstance(value, (str, bytes)) and value else None
+    temporary = Path(tempfile.gettempdir()).resolve()
     if (path is None or not path.is_absolute()
-            or not path.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve())):
+            or not path.resolve().is_relative_to(temporary)
+            or (ROOT.is_relative_to(temporary) and path.resolve().is_relative_to(ROOT))):
         return "the helper would read the real .env: set GARAGE_LOCAL_ENV_FILE to an absolute path inside tmp_path"
     return None
 
@@ -544,7 +548,7 @@ print("FAKE " + json.dumps({"keys": sorted(os.environ), "argv": sys.argv[1:], "c
                   TEST_DB_PORT="1", TEST_DB_NAME="stravagancia_test_other", STRAVA_WEBHOOK_VERIFY_TOKEN="fake-4719",
                   GARAGE_LOCAL_DEBUG="1", DEBUG="true")
 
-    def run(*args, **overrides):
+    def run(*args, script=HELPER, cwd=tmp_path, **overrides):
         env = dict(inherited, **unsafe, **SYNTHETIC, GARAGE_STRAVA_USER="demo")
         for key, value in overrides.items():
             if value is None:
@@ -552,7 +556,7 @@ print("FAKE " + json.dumps({"keys": sorted(os.environ), "argv": sys.argv[1:], "c
             else:
                 env[key] = value
         require_synthetic_env_file(env, tmp_path)
-        result = subprocess.run([sys.executable, str(HELPER), *args], cwd=tmp_path, env=env,
+        result = subprocess.run([sys.executable, str(script), *args], cwd=cwd, env=env,
                                 capture_output=True, text=True, timeout=60)
         fake_lines = [line[5:] for line in result.stdout.splitlines() if line.startswith("FAKE ")]
         result.fake = json.loads(fake_lines[0]) if fake_lines else None
@@ -649,6 +653,107 @@ def test_helper_requires_the_demo_state(helper, tmp_path):
     assert result.returncode == 2 and result.fake is None
 
 
+# 6a. The helper belongs to the checkout that holds it, wherever that is: no path of one machine.
+
+def copy_of_helper(checkout):
+    """The helper copied into checkout/tools/handoff, as in a clone that lives anywhere else."""
+    copy = checkout / "tools" / "handoff" / HELPER.name
+    copy.parent.mkdir(parents=True)
+    shutil.copy2(HELPER, copy)
+    return copy
+
+
+@pytest.mark.parametrize("launch", ["absolute-path", "from-its-root", "symlink-elsewhere"])
+def test_helper_runs_the_child_in_the_checkout_that_holds_it(helper, tmp_path, launch):
+    """A fixed repository path passes every other test on the machine it names: here the checkout is somewhere new."""
+    checkout = tmp_path / "another checkout"
+    copy = copy_of_helper(checkout)
+    if launch == "absolute-path":
+        script, cwd = copy, tmp_path
+    elif launch == "from-its-root":  # as the recipe in TESTING.md: python3 tools/handoff/...
+        script, cwd = copy.relative_to(checkout), checkout
+    else:
+        script, cwd = tmp_path / "elsewhere" / HELPER.name, tmp_path
+        script.parent.mkdir()
+        script.symlink_to(copy)
+    result = helper("check", script=script, cwd=cwd)
+    assert result.returncode == 0, result.stderr
+    assert result.fake["cwd"] == str(checkout.resolve())
+    assert result.fake["argv"] == ["manage.py", "check", "--settings=strava_app.settings_local"]
+
+
+@pytest.mark.parametrize("copied", [False, True], ids=["this-checkout", "another-checkout"])
+def test_helper_defaults_are_those_of_the_checkout_that_holds_it(tmp_path, monkeypatch, copied):
+    """Its own Python and its own .env, when nothing overrides them.
+
+    The module is only loaded and the paths compared: launching it without GARAGE_LOCAL_ENV_FILE, or
+    calling what opens ENV_FILE, could read a real .env if the path ever became fixed again (D4'.7).
+    """
+    for name in ("GARAGE_TEST_PYTHON", "GARAGE_LOCAL_ENV_FILE"):
+        monkeypatch.delenv(name, raising=False)
+    checkout = tmp_path / "another checkout" if copied else ROOT
+    script = copy_of_helper(checkout) if copied else HELPER
+    spec = importlib.util.spec_from_file_location("garage_local_strava_defaults", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # __name__ is not «__main__»: main() does not run
+    assert module.PYTHON == checkout / ".venv" / "bin" / "python"
+    assert module.ENV_FILE == checkout / ".env"
+
+
+@pytest.mark.parametrize("python", ["no-venv", "missing", "directory", "not-executable", "built-for-another-system"])
+def test_helper_that_cannot_start_python_says_what_to_do_on_any_system(helper, tmp_path, python):
+    """One line with the way out, valid on every operating system: a checkout without .venv is a normal case."""
+    checkout = tmp_path / "another checkout"
+    copy = copy_of_helper(checkout)
+    unusable = checkout / ".venv" / "bin" / "python" if python == "no-venv" else tmp_path / "unusable-python"
+    if python == "directory":
+        unusable.mkdir()
+    elif python == "not-executable":
+        unusable.write_text("#!/bin/sh\n")
+    elif python == "built-for-another-system":  # what a .venv rebuilt by a container looks like from the host
+        unusable.write_bytes(b"\x00\x01 not a program of this machine")
+        unusable.chmod(0o700)
+    result = helper("check", script=copy, GARAGE_TEST_PYTHON=None if python == "no-venv" else str(unusable))
+    assert result.returncode == 2 and result.fake is None
+    assert "Traceback" not in result.stderr
+    assert str(unusable) in result.stderr and "GARAGE_TEST_PYTHON" in result.stderr
+    advice = result.stderr.replace(str(unusable), "").lower()  # the path may hold anything; the advice may not
+    assert not any(system in advice for system in ("macos", "darwin", "linux", "windows"))
+    assert not any(secret in result.stdout + result.stderr for secret in SECRETS)
+
+
+def helpers_with_a_fixed_repository():
+    """Each helper that defines REPO, and whether it names one machine's path instead of finding its checkout."""
+    found = {}
+    for path in HELPER.parent.glob("*.py"):
+        repo = [line for line in path.read_text(encoding="utf-8").splitlines() if line.startswith("REPO=")]
+        if repo:
+            found[path.name] = repo[0].startswith(("REPO=Path('/", 'REPO=Path("/'))
+    return found
+
+
+def readme_portability_note():
+    """The README paragraph on what to adjust before using the helpers elsewhere, on one line."""
+    readme = (HELPER.parent / "README.md").read_text(encoding="utf-8")
+    notes = [" ".join(block.split()) for block in readme.split("\n\n") if "ajustar" in block]
+    assert len(notes) == 1, notes
+    return notes[0]
+
+
+def test_the_readme_asks_to_adjust_the_repository_only_of_the_helpers_that_fix_it():
+    """Whoever follows the README would pin REPO by hand in a helper that already finds its own checkout."""
+    adjust = next(sentence for sentence in readme_portability_note().split(". ") if "ajustar" in sentence)
+    helpers = helpers_with_a_fixed_repository()
+    assert HELPER.name in helpers
+    assert {name for name in helpers if name in adjust} == {name for name, fixed in helpers.items() if fixed}
+
+
+def test_the_readme_does_not_promise_that_the_helper_finds_its_state_on_any_system():
+    """The repository follows the file, the demo state does not: its default is still a path of macOS."""
+    note = readme_portability_note()
+    assert HELPER.name in note and "GARAGE_DEMO_STATE" in note
+
+
 # 6b. garage-048: the helper also takes the three Strava variables from .env (spec §7, D4'.1–D4'.7).
 # Synthetic files are never called .env: this pytest process may not open such a file (isolation).
 
@@ -726,6 +831,39 @@ def test_a_direct_launch_of_the_helper_must_pin_a_synthetic_env_file(tmp_path, m
     allowed = subprocess.run(argv, cwd=tmp_path, env=dict(base, GARAGE_LOCAL_ENV_FILE=str(tmp_path / "missing.env")),
                              capture_output=True, text=True, timeout=60)
     assert allowed.returncode == 2 and "Uso:" in allowed.stderr
+
+
+def helper_launch(env_file):
+    """The arguments of the subprocess.Popen audit event for a launch of the helper with that env file."""
+    return sys.executable, [sys.executable, str(HELPER), "check"], None, {"GARAGE_LOCAL_ENV_FILE": str(env_file)}
+
+
+@pytest.mark.parametrize("temporary, env_file, refused", [
+    (ROOT.parent, ROOT / ".env", True),
+    (ROOT.parent, ROOT / "tools" / ".." / ".env", True),
+    (ROOT.parent, ROOT / "no-such-directory-4841" / "strava.env", True),
+    (ROOT.parent, ROOT.parent / "synthetic" / "strava.env", False),
+    (ROOT.parent, ROOT.parent / (ROOT.name + "-synthetic") / "strava.env", False),
+    (ROOT / "scratch-4842", ROOT / "scratch-4842" / "strava.env", False),
+    (ROOT / "scratch-4842", ROOT / ".env", True),
+    (ROOT / "scratch-4842", ROOT / "strava.env", True),
+], ids=["checkout-under-temp-env", "checkout-under-temp-dotdot", "checkout-under-temp-other-file",
+        "checkout-under-temp-beside-it", "checkout-under-temp-same-prefix",
+        "temp-under-checkout-inside-temp", "temp-under-checkout-env", "temp-under-checkout-outside-temp"])
+def test_the_launch_guard_does_not_depend_on_where_the_checkout_lives(monkeypatch, temporary, env_file, refused):
+    """The guard's verdict is simulated, nothing is launched: this checkout may live under the temporary directory,
+    as a review copy in a scratchpad, and the temporary directory under it. Its .env is never a synthetic file."""
+    monkeypatch.setattr(tempfile, "tempdir", str(temporary))
+    refusal = helper_launch_refusal(helper_launch(env_file))
+    assert (refusal is not None) == refused
+    assert refusal is None or "real .env" in refusal
+
+
+def test_the_launch_guard_follows_a_link_into_a_checkout_under_the_temporary_directory(monkeypatch, tmp_path):
+    monkeypatch.setattr(tempfile, "tempdir", str(ROOT.parent))
+    link = tmp_path / "link.env"
+    link.symlink_to(ROOT / "no-such-directory-4841" / "strava.env")
+    assert "real .env" in helper_launch_refusal(helper_launch(link))
 
 
 def test_every_test_module_that_runs_the_helper_sets_its_env_file():

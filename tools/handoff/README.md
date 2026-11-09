@@ -56,5 +56,9 @@ No ejecutar suites simultáneas en la misma base, pytest/coverage en la demo,
 Docker Django ni gestión Django con settings de producción.
 La opción coverage heredada del helper de demo no es autorización para usarla.
 
-No son portables sin ajustar rutas de repo, PostgreSQL y coverage; los comandos
-generales alternativos están en TESTING.md. No añadir credenciales reales aquí.
+garage_test_pg.py y garage_demo_pg.py no son portables sin ajustar rutas de repo,
+PostgreSQL y coverage. garage_local_strava.py deduce su repo de la ubicación del
+propio archivo (no fijar REPO a mano); su estado por defecto sigue siendo una ruta
+fija de macOS, así que en otro sistema no encuentra la demo sin `GARAGE_DEMO_STATE`.
+Los comandos generales alternativos están en TESTING.md. No añadir credenciales
+reales aquí.

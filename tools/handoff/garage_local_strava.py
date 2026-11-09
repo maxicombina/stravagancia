@@ -16,7 +16,7 @@ import re
 import subprocess
 import sys
 
-REPO=Path('/Users/maxicombina/src/learning/django/stravagancia')
+REPO=Path(__file__).resolve().parents[2]  # the checkout that holds this file (<repo>/tools/handoff/), wherever it lives
 PYTHON=Path(os.environ.get('GARAGE_TEST_PYTHON', REPO/'.venv/bin/python'))  # override when .venv belongs to the Docker image
 STATE=Path(os.environ.get('GARAGE_DEMO_STATE', '/private/tmp/garage_demo_pg_state.json'))  # override only to test this helper
 ENV_FILE=Path(os.environ.get('GARAGE_LOCAL_ENV_FILE', REPO/'.env'))  # override only to test this helper; not for the child
@@ -144,7 +144,7 @@ def launch(command,timeout,env):
     try:
         return subprocess.run([str(x) for x in argv],cwd=REPO,env=env,timeout=timeout).returncode
     except OSError:
-        return fail(f'No se pudo ejecutar {PYTHON}: exporta GARAGE_TEST_PYTHON con el Python de macOS.')
+        return fail(f'No se pudo ejecutar {PYTHON}: exporta GARAGE_TEST_PYTHON con un Python que tenga las dependencias.')
     except KeyboardInterrupt:
         return 130
 

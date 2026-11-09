@@ -1,7 +1,10 @@
 """garage-032.2: the mobile bike screen and the ride list filtered by bike."""
 import re
 from decimal import Decimal
+from itertools import product
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
+import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -363,7 +366,7 @@ class TestRidesByBike:
     def test_with_no_rides_what_it_says_is_a_card_too(self, garage, client):
         client.force_login(garage.owner)
         rows = self.rides(client, q="no hay ninguna con este nombre")
-        assert [(classes(row), visible_text(row).startswith("No hay salidas")) for row in rows] == [(["card", "empty"], True)]
+        assert [(classes(row), visible_text(row).startswith("Ninguna salida")) for row in rows] == [(["card", "empty"], True)]
 
     def pills(self, client, **query):
         """The filters of Salidas, in order: (classes, href, what it says)."""
@@ -398,3 +401,291 @@ class TestRidesByBike:
         client.force_login(garage.owner)
         html = client.get(reverse("garage:usage-ride-list"), {"bike": garage.gravel.pk}).content.decode()
         assert f"bike={garage.gravel.pk}&amp;page=2" in html and "Página 1 de 2" in html
+
+
+NO_MATCH = "Ninguna salida coincide con estos filtros."
+NO_RIDES = "No hay salidas propias. Las importaciones y las entradas manuales aportarán salidas a esta lista."
+ALL_RIDES = "Ver todas"
+ONLY_PENDING = "Sólo las que están por revisar"
+
+
+class Salidas:
+    """The list of Salidas as a browser gets to it: its address, what it shows and where its filters lead."""
+
+    def __init__(self, client, url):
+        self.client, self.url = client, url
+        response = client.get(url)
+        assert response.status_code == 200, url
+        self.html = response.content.decode()
+        self.root = parse(self.html)
+
+    def link(self, text=None):
+        """The address of the pill that says `text`; with no `text`, of the chip that takes the bike off."""
+        nav = find_all(self.root, "nav", cls="chips")[0]
+        found = find_all(nav, "a", cls="chip-link on") if text is None else [pill for pill in find_all(nav, "a") if visible_text(pill) == text]
+        assert len(found) == 1, (text, self.url, found)
+        return found[0].attrs["href"]
+
+    def asks(self, text=None):
+        """What that link asks for, an empty parameter included."""
+        return parse_qs(urlsplit(self.link(text)).query, keep_blank_values=True)
+
+    def follow(self, text=None):
+        return Salidas(self.client, urljoin(self.url, self.link(text)))
+
+    def paginate(self):
+        hrefs = [link.attrs["href"] for link in find_all(find_all(self.root, "nav", cls="pagination")[0], "a")]
+        assert len(hrefs) == 1, hrefs
+        return Salidas(self.client, urljoin(self.url, hrefs[0]))
+
+    @property
+    def filters(self):
+        return parse_qs(urlsplit(self.url).query)
+
+    @property
+    def names(self):
+        return [visible_text(name) for name in find_all(self.root, "span", cls="entry-name")]
+
+    @property
+    def message(self):
+        """What the list says instead of rows."""
+        found = find_all(self.root, "li", cls="card empty")
+        assert len(found) == 1, self.names
+        return visible_text(found[0])
+
+    @property
+    def search(self):
+        return find_all(self.root, "input", id="q")[0].attrs.get("value", "")
+
+
+def rides_address(*suffix):
+    return reverse("garage:usage-ride-list") + "".join(suffix)
+
+
+def salidas(client, **query):
+    return Salidas(client, rides_address("?", urlencode(query)))
+
+
+def without(filters, name):
+    return {key: value for key, value in filters.items() if key != name}
+
+
+def batch(garage, **values):
+    """One ride more than a page holds, all named «Lote»."""
+    for number in range(21):
+        create_manual_ride(garage.owner, started_at=at(30 + number), name=f"Lote {number}", distance_m=Decimal(1000), **values)
+
+
+class TestFiltersKeepEachOther:
+    """Each filter of Salidas changes itself, keeps the others and goes back to the first page."""
+
+    @pytest.mark.parametrize("with_bike,pending,q", product((False, True), (False, True), ("", "Pista")))
+    def test_each_link_changes_one_filter_and_keeps_the_rest(self, garage, client, with_bike, pending, q):
+        client.force_login(garage.owner)
+        asked = {**({"bike": [str(garage.gravel.pk)]} if with_bike else {}), **({"pending": ["1"]} if pending else {}), **({"q": [q]} if q else {})}
+        page = salidas(client, **{name: values[0] for name, values in asked.items()})
+        if pending:
+            assert page.asks(ALL_RIDES) == without(asked, "pending")
+        else:
+            assert page.asks(ONLY_PENDING) == {**asked, "pending": ["1"]}
+        if with_bike:
+            assert page.asks() == without(asked, "bike")
+        else:
+            assert not find_all(page.root, "a", cls="chip-link on")
+
+    def test_only_pending_keeps_the_search(self, garage, client):
+        client.force_login(garage.owner)
+        target = salidas(client, q="bici").follow(ONLY_PENDING)
+        assert target.filters == {"q": ["bici"], "pending": ["1"]}
+        assert target.names == ["Sin bici"] and target.search == "bici"
+
+    def test_only_pending_keeps_the_bike_and_the_search(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, q="Pista")
+        assert page.names == ["Pista"]
+        target = page.follow(ONLY_PENDING)
+        assert target.filters == {"bike": [str(garage.gravel.pk)], "q": ["Pista"], "pending": ["1"]}
+        assert target.names == [] and target.message == NO_MATCH and target.search == "Pista"
+
+    def test_see_all_drops_pending_and_keeps_the_bike_and_the_search(self, garage, client):
+        client.force_login(garage.owner)
+        target = salidas(client, bike=garage.gravel.pk, pending="1", q="Pista").follow(ALL_RIDES)
+        assert target.filters == {"bike": [str(garage.gravel.pk)], "q": ["Pista"]}
+        assert target.names == ["Pista"] and target.search == "Pista"
+
+    def test_see_all_keeps_the_search_with_no_bike(self, garage, client):
+        client.force_login(garage.owner)
+        target = salidas(client, pending="1", q="Pista").follow(ALL_RIDES)
+        assert target.filters == {"q": ["Pista"]} and target.names == ["Pista"]
+
+    def test_the_chip_drops_the_bike_and_keeps_the_search(self, garage, client):
+        create_manual_ride(garage.owner, started_at=at(5), bike=garage.gravel, name="Ruta de grava", distance_m=Decimal(1000))
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, q="Ruta")
+        assert page.names == ["Ruta de grava"]
+        target = page.follow()
+        assert target.filters == {"q": ["Ruta"]} and target.search == "Ruta"
+        assert set(target.names) == {"Ruta de grava", "Ruta 10", "Ruta 50", "Ruta 100", "Ruta 150"}
+
+    def test_the_chip_keeps_pending_and_the_search(self, garage, client):
+        client.force_login(garage.owner)
+        target = salidas(client, bike=garage.gravel.pk, pending="1", q="bici").follow()
+        assert target.filters == {"pending": ["1"], "q": ["bici"]} and target.names == ["Sin bici"]
+
+    def test_from_the_bike_to_pending_and_back(self, garage, client):
+        client.force_login(garage.owner)
+        rides_of_the_bike = salidas(client, bike=garage.gravel.pk)
+        assert rides_of_the_bike.names == ["Pista"]
+        pending = rides_of_the_bike.follow(ONLY_PENDING)
+        assert pending.filters == {"bike": [str(garage.gravel.pk)], "pending": ["1"]}
+        assert pending.names == [] and pending.message == NO_MATCH
+        everything_of_the_bike = pending.follow(ALL_RIDES)
+        assert everything_of_the_bike.url == rides_address("?bike=", str(garage.gravel.pk)) and everything_of_the_bike.names == ["Pista"]
+        everything = everything_of_the_bike.follow()
+        assert everything.url == rides_address()
+        assert {"Pista", "Ruta 10", "Sin bici"} <= set(everything.names)
+
+    @pytest.mark.parametrize("address", ["", "?q=", "?q=%20%20", "?page=1", "?pending=0"])
+    def test_with_no_bike_and_no_search_they_are_the_plain_links(self, garage, client, address):
+        client.force_login(garage.owner)
+        assert Salidas(client, rides_address(address)).link(ONLY_PENDING) == "?pending=1"
+
+    @pytest.mark.parametrize("address", ["?pending=1", "?pending=1&q=", "?pending=1&q=%20", "?pending=1&page=1"])
+    def test_with_no_bike_and_no_search_see_all_is_the_bare_list(self, garage, client, address):
+        client.force_login(garage.owner)
+        assert Salidas(client, rides_address(address)).link(ALL_RIDES) == rides_address()
+
+    @pytest.mark.parametrize("search", ["", "&q=", "&q=%20%20"])
+    def test_the_chip_of_the_only_filter_is_the_bare_list(self, garage, client, search):
+        client.force_login(garage.owner)
+        assert Salidas(client, rides_address(f"?bike={garage.gravel.pk}", search)).link() == rides_address()
+
+
+class TestFiltersGoBackToTheFirstPage:
+    def test_only_pending_and_the_chip_leave_the_page_behind(self, garage, client):
+        batch(garage, bike=garage.gravel)
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, q="Lote", page="2")
+        assert "Página 2 de 2" in page.html
+        assert "page" not in page.asks(ONLY_PENDING) and "page" not in page.asks()
+        first = page.follow()
+        assert first.filters == {"q": ["Lote"]} and "Página 1 de 2" in first.html
+
+    def test_see_all_leaves_the_page_behind(self, garage, client):
+        batch(garage)
+        client.force_login(garage.owner)
+        page = salidas(client, pending="1", q="Lote", page="2")
+        assert "Página 2 de 2" in page.html and "page" not in page.asks(ALL_RIDES)
+        first = page.follow(ALL_RIDES)
+        assert first.filters == {"q": ["Lote"]} and "Página 1 de 2" in first.html
+
+    def test_a_page_past_the_end_is_not_carried_either(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, page="99")
+        assert "page" not in page.asks(ONLY_PENDING) and page.link() == rides_address()
+
+    @pytest.mark.parametrize("on_bike,pending", [(True, False), (False, True)])
+    def test_pagination_keeps_every_filter(self, garage, client, on_bike, pending):
+        batch(garage, **({"bike": garage.gravel} if on_bike else {}))
+        client.force_login(garage.owner)
+        asked = {"q": "Lote", **({"bike": str(garage.gravel.pk)} if on_bike else {}), **({"pending": "1"} if pending else {})}
+        next_page = salidas(client, **asked).paginate()
+        assert next_page.filters == {**{name: [value] for name, value in asked.items()}, "page": ["2"]}
+        assert "Página 2 de 2" in next_page.html and next_page.search == "Lote"
+        assert next_page.paginate().filters["page"] == ["1"]
+
+
+class TestFiltersAndAwkwardSearches:
+    @pytest.mark.parametrize("search", ["Café & cañas", "a&b=c", "#1", "1+1", "dos  espacios", "ñandú", 'dijo "hola"', "d'Aro", "a%20b", "<b>", "100%", "a&amp;b", "0"])
+    def test_a_search_reaches_every_link_intact(self, garage, client, search):
+        name = f"Antes {search} después"
+        create_manual_ride(garage.owner, started_at=at(2), name=name, distance_m=Decimal(1000))
+        name = " ".join(name.split())  # the rows are read as the page shows them: runs of spaces collapse
+        create_manual_ride(garage.owner, started_at=at(5), bike=garage.gravel, name=f"Grava {search}", distance_m=Decimal(1000))
+        client.force_login(garage.owner)
+        pending = salidas(client, q=search).follow(ONLY_PENDING)
+        assert pending.search == search and pending.names == [name] and pending.filters["q"] == [search]
+        everything = pending.follow(ALL_RIDES)
+        assert everything.search == search and name in everything.names and everything.filters == {"q": [search]}
+        other_bikes = salidas(client, bike=garage.gravel.pk, q=search).follow()
+        assert other_bikes.search == search and name in other_bikes.names and other_bikes.filters == {"q": [search]}
+
+    @pytest.mark.parametrize("search", ["", " ", "  \t  "])
+    def test_an_empty_search_is_no_parameter(self, garage, client, search):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, q=search)
+        assert "q" not in page.asks(ONLY_PENDING) and "q" not in page.asks()
+        assert "q" not in salidas(client, bike=garage.gravel.pk, pending="1", q=search).asks(ALL_RIDES)
+
+    def test_a_search_is_read_as_the_list_reads_it(self, garage, client):
+        client.force_login(garage.owner)
+        assert salidas(client, q="  Pista  ").asks(ONLY_PENDING)["q"] == ["Pista"]
+        assert salidas(client, q="x" * 250).asks(ONLY_PENDING)["q"] == ["x" * 200]
+
+    def test_the_ampersands_of_a_link_are_escaped_in_the_page(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk, pending="1", q='a&b" onmouseover="x')
+        nav = re.search(r'<nav class="chips".*?</nav>', page.html, re.DOTALL).group()
+        hrefs = re.findall(r'<a [^>]*?href="([^"]*)"', nav)
+        assert len(hrefs) == 2
+        assert all("&amp;" in href and not re.search(r"&(?!amp;)", href) for href in hrefs), hrefs
+        links = find_all(find_all(page.root, "nav", cls="chips")[0], "a")
+        assert not any("onmouseover" in link.attrs for link in links)
+        assert page.asks()["q"] == ['a&b" onmouseover="x']
+
+    @pytest.mark.parametrize("extra", [{}, {"pending": "1"}, {"q": "Pista"}, {"pending": "1", "q": "Pista"}])
+    def test_a_bike_that_is_not_yours_or_no_bike_at_all_is_still_a_404(self, garage, client, extra):
+        client.force_login(garage.owner)
+        foreign = Bike.objects.get(name="SECRET bike").pk
+        for bike in (foreign, "not-a-uuid", ""):
+            assert client.get(rides_address(), {"bike": bike, **extra}).status_code == 404, bike
+
+
+class TestApplyingAFilterAgain:
+    def test_going_there_and_back_leaves_the_same_address(self, garage, client):
+        client.force_login(garage.owner)
+        start = salidas(client, bike=garage.gravel.pk, q="Pista")
+        pending = start.follow(ONLY_PENDING)
+        back = pending.follow(ALL_RIDES)
+        again = back.follow(ONLY_PENDING)
+        assert again.url == pending.url
+        assert back.follow(ONLY_PENDING).follow(ALL_RIDES).url == back.url
+
+    def test_a_parameter_given_twice_comes_out_once(self, garage, client):
+        client.force_login(garage.owner)
+        bike = str(garage.gravel.pk)
+        page = Salidas(client, rides_address(f"?bike={bike}&bike={bike}&q=Pista&q=Pista"))
+        assert page.asks(ONLY_PENDING) == {"bike": [bike], "q": ["Pista"], "pending": ["1"]}
+        assert page.asks() == {"q": ["Pista"]}
+        pending = Salidas(client, rides_address(f"?pending=1&pending=1&bike={bike}"))
+        assert pending.asks(ALL_RIDES) == {"bike": [bike]}
+        assert pending.asks() == {"pending": ["1"]}
+
+
+class TestAListWithNoRows:
+    @pytest.mark.parametrize("filters", [{"q": "nada"}, {"pending": "1"}, {"q": "nada", "pending": "1"}])
+    def test_with_a_filter_it_says_nothing_matches(self, garage, client, filters):
+        client.force_login(garage.other)
+        page = salidas(client, **filters)
+        assert page.names == [] and page.message == NO_MATCH and NO_RIDES not in page.html
+
+    def test_a_bike_with_no_rides_is_a_filter_too(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.retired.pk)
+        assert page.names == [] and page.message == NO_MATCH and NO_RIDES not in page.html
+
+    def test_a_bike_and_pending_can_never_match_and_it_says_so(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.road.pk, pending="1")
+        assert page.names == [] and page.message == NO_MATCH
+
+    @pytest.mark.parametrize("address", ["", "?q=", "?q=%20", "?pending=0", "?page=5"])
+    def test_without_a_filter_it_says_what_it_always_said(self, garage, client, address):
+        client.force_login(garage.other)
+        page = Salidas(client, rides_address(address))
+        assert page.names == [] and page.message == NO_RIDES and NO_MATCH not in page.html
+
+    def test_with_rows_it_says_neither(self, garage, client):
+        client.force_login(garage.owner)
+        page = salidas(client, bike=garage.gravel.pk)
+        assert page.names == ["Pista"] and NO_MATCH not in page.html and NO_RIDES not in page.html

@@ -66,6 +66,16 @@ def resolved_context(request, ride):
     return resolution, items
 
 
+def ride_filters(q, pending, bike):
+    """The filters of Salidas as query parameters; an empty search is no filter."""
+    return {**({'q': q} if q else {}), **({'pending': '1'} if pending else {}), **({'bike': bike.pk} if bike else {})}
+
+
+def ride_list_url(filters):
+    url = reverse('garage:usage-ride-list')
+    return f'{url}?{urlencode(filters)}' if filters else url
+
+
 @login_required
 @require_http_methods(['GET'])
 def ride_list(request):
@@ -98,7 +108,11 @@ def ride_list(request):
             for ride in page]
     return render(request, 'garage/usage_rides.html', {'title': 'Salidas', 'tab': 'rides', 'rows': rows, 'pending': pending, 'bike': bike,
                    'has_strava': any('Strava' in row['origin'] for row in rows),
-                   'page': page, 'q': q, 'query': urlencode({'q': q, **({'pending': '1'} if pending else {}), **({'bike': bike.pk} if bike else {})})})
+                   'page': page, 'q': q, 'query': urlencode({'q': q, **ride_filters(q, pending, bike)}),
+                   # Each link changes one filter and keeps the others; without «page», it goes back to the first one.
+                   'only_pending_url': f'?{urlencode(ride_filters(q, True, bike))}',
+                   'all_rides_url': ride_list_url(ride_filters(q, False, bike)),
+                   'without_bike_url': ride_list_url(ride_filters(q, pending, None))})
 
 
 @login_required

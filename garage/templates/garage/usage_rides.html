@@ -3,7 +3,7 @@
 {% block garage_content %}
 <h1>Salidas</h1>
 <p class="lede">Revisa con qué bici y con qué material hiciste cada salida. Una salida sin inicio confirmado queda pendiente, sin contador.</p>
-<nav class="chips" aria-label="Filtros de salidas">{% if bike %}<a class="chip-link on" href="{% url 'garage:usage-ride-list' %}{% if pending %}?pending=1{% endif %}" aria-label="Quitar el filtro de {{ bike.name }}"><svg class="ic xs"><use href="#i-bike"/></svg>{{ bike.name }}<svg class="ic xs"><use href="#i-x"/></svg></a>{% endif %}{% if pending %}<a class="chip-link" href="{% url 'garage:usage-ride-list' %}">Ver todas</a>{% else %}<a class="chip-link" href="?pending=1">Sólo las que están por revisar</a>{% endif %}</nav>
+<nav class="chips" aria-label="Filtros de salidas">{% if bike %}<a class="chip-link on" href="{{ without_bike_url }}" aria-label="Quitar el filtro de {{ bike.name }}"><svg class="ic xs"><use href="#i-bike"/></svg>{{ bike.name }}<svg class="ic xs"><use href="#i-x"/></svg></a>{% endif %}{% if pending %}<a class="chip-link" href="{{ all_rides_url }}">Ver todas</a>{% else %}<a class="chip-link" href="{{ only_pending_url }}">Sólo las que están por revisar</a>{% endif %}</nav>
 <form method="get" class="filters" role="search">{% if pending %}<input type="hidden" name="pending" value="1">{% endif %}{% if bike %}<input type="hidden" name="bike" value="{{ bike.pk }}">{% endif %}<label for="q" class="sr-only">Buscar nombre o modalidad</label><input name="q" id="q" maxlength="200" value="{{ q }}" placeholder="Nombre o modalidad"><button type="submit" class="btn ghost">Buscar</button></form>
 <ul class="rows ride-list">
 {% for row in rows %}
@@ -15,7 +15,7 @@
     <span class="big"><b>{{ row.ride.distance_m|km }}</b><small>km</small></span>
   </a></li>
 {% empty %}
-  <li class="card empty">No hay salidas propias. Las importaciones y las entradas manuales aportarán salidas a esta lista.</li>
+  <li class="card empty">{% if bike or pending or q %}Ninguna salida coincide con estos filtros.{% else %}No hay salidas propias. Las importaciones y las entradas manuales aportarán salidas a esta lista.{% endif %}</li>
 {% endfor %}
 </ul>
 {% if has_strava %}<p class="note">Powered by Strava</p>{% endif %}

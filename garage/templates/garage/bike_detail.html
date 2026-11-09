@@ -1,6 +1,8 @@
 {% extends "garage/base.html" %}{% load garage_ui %}
 {% block appbar_actions %}<a class="icon-btn" href="{% url 'garage:bike-edit' object.pk %}" aria-label="Editar {{ object.name }}"><svg class="ic"><use href="#i-edit"/></svg></a>{% endblock %}
 {% block garage_content %}
+<div class="split">
+<div class="aside">
 <header class="hero bike-hero card">
   {% if cover %}<img class="cover" src="{% url 'garage:photo-content' cover.pk %}" alt="Foto de {{ object.name }}" width="{{ cover.storage_object.width }}" height="{{ cover.storage_object.height }}" referrerpolicy="no-referrer" decoding="async">
   {% else %}<span class="cover cover-empty" aria-hidden="true"><svg class="ic"><use href="#i-bike"/></svg></span>{% endif %}
@@ -9,6 +11,8 @@
     {% if not cover %}<a class="link solo" href="{% url 'garage:bike-photo-create' object.pk %}"><svg class="ic sm"><use href="#i-camera"/></svg>Añadir foto</a>{% endif %}
     {% if attention %}{% with worst=attention.0.wear %}<span class="chip st-{{ worst.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ worst.icon }}"/></svg>{% if attention|length == 1 %}1 aviso<span class="sr-only">: {{ worst.word }}</span>{% else %}{{ attention|length }} avisos<span class="sr-only">, el más grave: {{ worst.word }}</span>{% endif %}</span>{% endwith %}{% else %}<span class="chip">Sin avisos</span>{% endif %}</div>
 </header>
+</div>
+<div class="main-col">
 
 <section class="sec card" aria-labelledby="usage-title">
   <div class="sec-h"><h2 id="usage-title">Registrado en Garage</h2></div>
@@ -42,7 +46,7 @@
     <li><a class="entry compact{% if row.nested %} nested{% endif %}{% if row.wear %} st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}{% endif %}" href="{% url 'garage:item-detail' m.item_id %}">{% if row.wear %}{% include "garage/_ring.html" with w=row.wear metric=row.wear.headline %}{% else %}<span class="glyph"><svg class="ic"><use href="#i-{{ m.item|item_icon }}"/></svg></span>{% endif %}
       <span><span class="entry-name">{{ m.item.name }}</span>
         <span class="entry-sub">{% if row.nested %}Sobre {{ m.parent_item.name }} · {% elif m.slot %}{{ m.slot }} · {% endif %}desde el {% local_date m.started_at %}</span></span>
-      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
+      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}{% if row.wear.over_class %} · <span>{{ row.wear.headline.percent_text }}</span>{% endif %}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
     </a></li>{% endwith %}
     {% empty %}<li class="empty">Nada montado. Monta componentes desde su ficha (Material).</li>{% endfor %}
   </ul>
@@ -52,7 +56,7 @@
 <section class="sec card" aria-labelledby="rides-title">
   <div class="sec-h"><h2 id="rides-title">Últimas salidas</h2><a class="link" href="{% url 'garage:usage-ride-list' %}?bike={{ object.pk }}">Ver todas</a></div>
   <ul class="rows">{% for ride in recent %}
-    <li><a class="entry compact" href="{% url 'garage:ride-review' ride.pk %}?next={{ request.get_full_path|urlencode }}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
+    <li><a class="entry compact" href="{% url 'garage:ride-review' ride.pk %}?next={{ request.get_full_path|urlencode }}"><span class="ride-date" aria-hidden="true"><b>{% local_date ride.started_at "day" %}</b>{% local_date ride.started_at "month" %}</span>
       <span><span class="entry-name">{{ ride.name|default:"Salida sin nombre" }}</span><span class="entry-sub">{% local_date ride.started_at "weekday" %}{% if ride.elevation_gain_m is not None %} · <span class="nowrap">↑ {{ ride.elevation_gain_m|metric_m }}</span>{% endif %}</span></span>
       <span class="big"><b>{{ ride.distance_m|km }}</b><small>km</small></span></a></li>
     {% empty %}<li class="empty">Sin salidas con esta bici.</li>{% endfor %}
@@ -73,11 +77,13 @@
 
 <details class="more">
   <summary>Detalles e historial de montajes</summary>
-  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:bike-reactivate' object.pk %}">{% csrf_token %}<button>Reactivar</button></form>{% else %}<a href="{% url 'garage:bike-retire' object.pk %}">Retirar</a>{% endif %}</div>
+  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:bike-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:bike-retire' object.pk %}">Retirar</a>{% endif %}</div>
   <p class="notes">{{ object.notes }}</p>
   <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if object.retired_at %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% endif %}</dd></dl>
   <h2>Historial de montajes directos en la bici</h2><p class="muted">Lo montado sobre otros componentes figura en la ficha de cada uno.</p>{% include 'garage/periods.html' %}
 </details>
+</div>
+</div>
 
 <div class="actionbar">
   <a class="btn" href="{% url 'garage:service-event-create' %}?bike={{ object.pk }}"><svg class="ic sm"><use href="#i-wrench"/></svg>Registrar mantenimiento</a>

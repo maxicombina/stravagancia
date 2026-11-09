@@ -1,12 +1,12 @@
 {% extends "garage/base.html" %}{% load garage_ui %}
 {% block garage_content %}
 <h1>Histórico propio</h1>
-<ul class="menu">
+<div class="card"><ul class="menu">
   <li><a href="{% url 'garage:history-preview' %}"><span class="glyph"><svg class="ic"><use href="#i-upload"/></svg></span><span>Subir / previsualizar FIT<small>Archivos originales de tu Garmin u otro dispositivo</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
   <li><a href="{% url 'garage:strava' %}"><span class="glyph"><svg class="ic"><use href="#i-swap"/></svg></span><span>Sincronizar con Strava<small>Salidas en bici y bicis, con el token de Stravagancia</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
   <li><a href="{% url 'garage:history-manual-create' %}"><span class="glyph"><svg class="ic"><use href="#i-plus"/></svg></span><span>Añadir salida manual</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
   <li><a href="{% url 'garage:history-bike-batch' %}"><span class="glyph"><svg class="ic"><use href="#i-bike"/></svg></span><span>Asignar bicis por lote</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
-</ul>
+</ul></div>
 
 {% if coverage %}<section class="panel" aria-labelledby="coverage-title">
   <h2 id="coverage-title">Cobertura observada</h2>
@@ -20,10 +20,10 @@
 </section>{% endif %}
 
 <details class="more"{% if form.errors %} open{% endif %}><summary>Filtrar por período</summary>
-  <form method="get" class="card">{{ form.as_p }}<button>Consultar período</button></form>
+  <form method="get" class="card form">{% include "garage/_form_fields.html" %}<button class="btn ghost">Consultar período</button></form>
 </details>
 
-<section class="sec" aria-labelledby="rides-title">
+<section class="sec card" aria-labelledby="rides-title">
   <div class="sec-h"><h2 id="rides-title">Salidas observadas</h2></div>
   <ul class="rows">{% for ride in page %}
     <li><a class="entry compact" href="{% url 'garage:usage-ride-detail' ride.pk %}"><span class="glyph"><svg class="ic"><use href="#i-route"/></svg></span>
@@ -35,7 +35,7 @@
   {% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas del histórico">{% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 </section>
 
-<section class="sec" aria-labelledby="runs-title">
+<section class="sec card" aria-labelledby="runs-title">
   <div class="sec-h"><h2 id="runs-title">Trabajos recientes</h2></div>
   <ul class="rows">{% for run in runs %}
     <li><a class="entry compact" href="{% url 'garage:history-run' run.pk %}"><span class="glyph"><svg class="ic"><use href="#i-file"/></svg></span>

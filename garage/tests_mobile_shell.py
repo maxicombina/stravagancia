@@ -294,6 +294,12 @@ class TimeZoneCookieTests(TestCase):
         self.assertEqual(len(find_all(row, "span", cls="ride-date", aria_hidden="true")), 1)
         self.assertTrue(accessible_text(row).startswith("Nocturna mar 13 oct 2026 · "), accessible_text(row))
 
+    def test_the_name_of_a_ride_is_written_as_a_title(self):
+        self.client.force_login(self.user)
+        names = find_all(self.ride_row("Nocturna"), cls="entry-name")
+        self.assertEqual(len(names), 1)
+        self.assertIn("ride-name", names[0].attrs["class"].split())
+
     def test_the_tile_of_a_ride_takes_the_month_of_the_zone_too(self):
         from datetime import datetime, timezone
         from .services.rides import create_manual_ride

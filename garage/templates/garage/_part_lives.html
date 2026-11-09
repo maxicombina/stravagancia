@@ -1,4 +1,4 @@
-{% load garage_ui %}<section class="sec" aria-labelledby="lives-title">
+{% load garage_ui %}<section class="sec card" aria-labelledby="lives-title">
   <div class="sec-h"><h2 id="lives-title">Cuánto dura cada uno</h2><span class="count">{{ lives|length }}</span></div>
   <ul class="rows">{% for part in lives %}
     <li><a class="entry compact" href="{% url 'garage:item-detail' part.item.pk %}"><span class="glyph"><svg class="ic" aria-hidden="true"><use href="#i-{{ part.item|item_icon }}"/></svg></span>

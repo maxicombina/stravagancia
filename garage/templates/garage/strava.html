@@ -24,7 +24,7 @@
     <div><b>{{ strava_rides }}</b><span>salidas con datos de Strava</span></div>
     <div><b>{{ duplicates }}</b><span>posibles duplicados</span></div>
   </div>
-  {% if state.is_owner %}<form method="post" action="{% url 'garage:strava-sync' %}">{% csrf_token %}<button type="submit" class="btn">Sincronizar ahora</button></form>
+  {% if state.is_owner %}<form method="post" action="{% url 'garage:strava-sync' %}">{% csrf_token %}<button type="submit" class="btn"><svg class="ic sm" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</button></form>
   <p class="note">Pide los últimos 7 días y confirma los avisos pendientes del webhook. Si una salida ya existe por un FIT (inicio a ±90 s y distancia a ±2 %), se une a ella; si hay dudas, queda aparte como «posible duplicado».</p>{% endif %}
 </section>
 {% endif %}
@@ -35,7 +35,7 @@
   <form method="post" action="{% url 'garage:strava-import' %}" novalidate class="form">{% csrf_token %}
     {% if import_form.non_field_errors %}<div role="alert">{{ import_form.non_field_errors }}</div>{% endif %}
     {% for field in import_form %}{% include "garage/_field.html" %}{% endfor %}
-    <button type="submit" class="btn">Importar histórico</button>
+    <button type="submit" class="btn ghost"><svg class="ic sm" aria-hidden="true"><use href="#i-download"/></svg>Importar histórico</button>
   </form>
   <p class="note">Se hace por pasos: si se corta o Strava pide esperar, el trabajo guarda las páginas confirmadas y puedes continuar.</p>
   {% if runs %}<ul class="rows">{% for run in runs %}

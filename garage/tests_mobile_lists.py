@@ -8,6 +8,8 @@ import pytest
 from django.template import Context, Template
 from django.urls import reverse
 
+from test_support import contrast
+
 from .models import Category, UsageProfile
 from .services.ownership import create_inventory
 from .test_html import find_all, parse, visible_text
@@ -71,6 +73,15 @@ class TestLists:
         assert "Carretera" in active and "Vieja" not in active and "Gravel" not in active
         assert 'href="?q=ca&amp;state=retired"' in active
 
+    def test_a_bike_is_named_as_a_title_and_a_piece_is_not(self, garage, client):
+        # §3.1: «títulos, nombres de bici» in the face of the titles; the other rows keep the face of a row (§4.4).
+        client.force_login(garage.owner)
+        names = find_all(parse(client.get(reverse("garage:bike-list")).content.decode()), cls="entry-name")
+        assert names and all("bike-name" in name.attrs["class"].split() for name in names)
+        for route in ("garage:item-list", "garage:category-list"):
+            names = find_all(parse(client.get(reverse(route)).content.decode()), cls="entry-name")
+            assert names and not [name for name in names if "bike-name" in name.attrs["class"].split()], route
+
     def test_item_and_category_lists(self, garage, client):
         client.force_login(garage.owner)
         items = client.get(reverse("garage:item-list")).content.decode()
@@ -99,6 +110,20 @@ class TestLists:
 
 
 LIST_ROUTES = ["garage:bike-list", "garage:item-list", "garage:category-list"]
+
+
+class TestSearchRows:
+    """Salidas and Material search the same way: one control, not a class-less button with a border and a width of its own."""
+
+    @pytest.mark.parametrize("route", ["garage:usage-ride-list", "garage:item-list"])
+    def test_the_button_of_a_search_is_the_quiet_button_of_the_app(self, garage, client, route):
+        client.force_login(garage.owner)
+        forms = find_all(parse(client.get(reverse(route)).content.decode()), "form", role="search")
+        assert len(forms) == 1
+        buttons = find_all(forms[0], "button")
+        assert len(buttons) == 1
+        assert buttons[0].attrs.get("class", "").split() == ["btn", "ghost"]
+        assert visible_text(buttons[0]) == "Buscar" and buttons[0].attrs.get("type", "submit") == "submit"
 
 
 class TestListsInACard:
@@ -168,6 +193,26 @@ class TestOtherScreens:
         assert "Historial de versiones" in detail and '<time datetime="' in detail and "versión seleccionada" in detail
         create = client.get(reverse("garage:usage-profile-create")).content.decode()
         assert 'name="time_zone" value="Europe/Madrid"' in create
+
+    def test_the_links_of_a_version_have_room_for_a_finger(self, garage, client):
+        # They measured 19 px (the name of a version, the only way between versions) and 17 px (its material, a row of links and not a sentence).
+        client.force_login(garage.owner)
+        profile = UsageProfile.objects.get(owner=garage.owner, name="Ruta")
+        page = parse(client.get(reverse("garage:usage-profile-detail", args=[profile.pk])).content.decode())
+        rows = find_all(find_all(page, "ul", cls="timeline")[0], "li")
+        assert rows
+        for row in rows:
+            body = [child for child in row.children if not isinstance(child, str)][0]
+            blocks = [child for child in body.children if not isinstance(child, str)]
+            assert body.tag == "span" and blocks[0].tag == "b" and [c.tag for c in blocks[0].children if not isinstance(c, str)] == ["a"]
+            assert blocks[-1].tag == "span" and {c.tag for c in blocks[-1].children if not isinstance(c, str)} == {"a"}
+        css = (Path(__file__).parent / "static" / "garage" / "garage.css").read_text(encoding="utf-8")
+        # The name keeps its line: padding over the 19 px of its text, since a taller box would leave the dot of its row behind and overlap a name that wraps.
+        name = contrast.declared(css, ".timeline b > a")
+        assert float(name.get("padding-block", "0px").removesuffix("px")) * 2 + 19 >= 44
+        assert name.get("position") == "relative"  # Without it the date below takes the lower edge of that padding: a tap there does nothing.
+        material = contrast.declared(css, ".timeline li > span > span > a")
+        assert (material.get("display"), material.get("min-height")) == ("inline-flex", "44px")
 
     def test_history_defaults_to_the_viewer_zone(self, garage, client):
         client.force_login(garage.owner)

@@ -8,6 +8,6 @@
 {% if not alert.materialization_current and alert.rule.item_id %}<p>Materialización pendiente: el uso observado no acredita vencimientos. Una lectura en el instante exacto conserva su valor explícito.</p>{% endif %}
 {% if alert.pending_started_rides or alert.unknown_bike_rides %}<p>Contexto del propietario: {{ alert.pending_started_rides }} salidas sin inicio conocido; {{ alert.unknown_bike_rides }} sin bici en el intervalo. No se asignan a este destino.</p>{% endif %}
 {% if alert.snooze %}<p>Aplazamiento desde el {% local_datetime alert.snooze.snooze.started_at %}: {{ alert.snooze.snooze|thresholds_or }} · {% if alert.snooze.status == 'active' %}activo{% elif alert.snooze.status == 'reached' %}agotado{% else %}uso desconocido: no oculta el aviso{% endif %}.</p>{% endif %}
-<a href="{% url 'garage:maintenance-rule-edit' alert.rule.pk %}">Editar regla</a> · <a href="{% url 'garage:maintenance-rule-snooze' alert.rule.pk %}">{% if alert.snooze %}Ver el aplazamiento{% else %}Posponer el aviso{% endif %}</a>
+<div class="actions"><a href="{% url 'garage:maintenance-rule-edit' alert.rule.pk %}">Editar regla</a><a href="{% url 'garage:maintenance-rule-snooze' alert.rule.pk %}">{% if alert.snooze %}Ver el aplazamiento{% else %}Posponer el aviso{% endif %}</a></div>
 </article>{% empty %}<p>No hay reglas configuradas. <a href="{% url 'garage:maintenance-rule-create' %}">Crear regla</a>.</p>{% endfor %}
 </section>

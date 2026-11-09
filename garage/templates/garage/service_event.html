@@ -16,7 +16,7 @@
 
 {% include "garage/_event_usage.html" %}
 
-<section class="sec" aria-labelledby="readings-title">
+<section class="sec card" aria-labelledby="readings-title">
   <div class="sec-h"><h2 id="readings-title">Lecturas desde aquí</h2>{% if event.item_id %}<a class="link" href="{% url 'garage:baseline-create' event.item_id %}">Registrar lectura</a>{% endif %}</div>
   <ul class="rows">{% for reading in readings %}
     <li><a class="entry compact" href="{% url 'garage:baseline-edit' reading.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
@@ -26,7 +26,7 @@
   </ul>
 </section>
 
-{% include 'garage/photo_list.html' %}
+{% include 'garage/photo_list.html' with in_card=True %}
 
 <div class="actionbar">
   <a class="btn" href="{% url 'garage:service-event-edit' event.pk %}"><svg class="ic sm"><use href="#i-edit"/></svg>Editar</a>

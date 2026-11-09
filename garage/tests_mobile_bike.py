@@ -1,4 +1,5 @@
 """garage-032.2: the mobile bike screen and the ride list filtered by bike."""
+import re
 from decimal import Decimal
 
 from django.db import connection
@@ -258,20 +259,79 @@ class TestSectionsInCards:
         headings = [visible_text(heading) for heading in find_all(parse(page(client, garage.road)[0]), "h2")]
         assert headings == [*self.TITLES, "Historial de montajes directos en la bici"]
 
-    def test_the_photos_of_an_intervention_stay_as_they_were(self, garage, client):
-        """Its screen is for F4c. The photos of a bike or a piece are cards, the sections around them too."""
+    def test_the_photos_of_an_intervention_are_a_card_too(self, garage, client):
+        """F4c, its screen: as those of a bike or a piece, and the other sections around them."""
         client.force_login(garage.owner)
         kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
         event = save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=at(2))
         html = client.get(reverse("garage:service-event-detail", args=[event.pk])).content.decode()
         section = find_all(parse(html), "section", aria_labelledby="photos-title")[0]
-        assert classes(section) == ["sec"]
+        assert classes(section) == ["sec", "card"]
 
     def test_the_action_bar_stays_outside_of_them(self, garage, client):
         """Sticky, it only stays in view within its parent: inside a card it would scroll away with it."""
         client.force_login(garage.owner)
         main = find_all(parse(page(client, garage.road)[0]), "main")[0]
         assert [child for child in main.children if not isinstance(child, str) and "actionbar" in classes(child)]
+
+
+class TestColumns:
+    """Spec F4b: from 1000 px the header stays on the left, beside the rest. Only wrappers are added: what is read, and in what order, does not change."""
+
+    def main(self, client, garage):
+        client.force_login(garage.owner)
+        return find_all(parse(page(client, garage.road)[0]), "main")[0]
+
+    def elements(self, node):
+        return [child for child in node.children if not isinstance(child, str)]
+
+    def split(self, client, garage):
+        splits = [child for child in self.elements(self.main(client, garage)) if "split" in classes(child)]
+        assert len(splits) == 1, splits
+        return splits[0]
+
+    def test_the_header_goes_first_on_its_own_and_the_rest_after_it(self, garage, client):
+        aside, column = self.elements(self.split(client, garage))
+        assert (classes(aside), classes(column)) == (["aside"], ["main-col"])
+        assert [element.tag for element in self.elements(aside)] == ["header"]
+        assert "bike-hero" in classes(self.elements(aside)[0]) and len(find_all(aside, "h1")) == 1
+        assert [visible_text(find_all(section, "h2")[0]) for section in find_all(column, "section", aria_labelledby=True)] == TestSectionsInCards.TITLES
+
+    def test_the_headings_are_read_in_the_same_order_as_before(self, garage, client):
+        headings = [(heading.tag, visible_text(heading)) for heading in find_all(self.split(client, garage)) if heading.tag in ("h1", "h2")]
+        assert headings == [("h1", "Carretera"), *(("h2", title) for title in TestSectionsInCards.TITLES), ("h2", "Historial de montajes directos en la bici")]
+
+    def test_the_details_close_the_main_column(self, garage, client):
+        column = self.elements(self.split(client, garage))[1]
+        assert "more" in classes(self.elements(column)[-1]) and self.elements(column)[-1].tag == "details"
+
+    def test_the_action_bar_comes_last_and_out_of_the_columns(self, garage, client):
+        """Sticky, it holds within its parent: inside a column it would end with the column, and not with the page."""
+        main = self.main(client, garage)
+        assert "actionbar" in classes(self.elements(main)[-1])
+        assert not find_all(self.split(client, garage), cls="actionbar")
+
+
+class TestLastRides:
+    """As in the mockup and in Salidas: the date of each ride on its tile, for the eye only; its text stays in the line under the name."""
+
+    def rows(self, garage, client):
+        client.force_login(garage.owner)
+        section = find_all(parse(page(client, garage.road)[0]), "section", aria_labelledby="rides-title")[0]
+        rows = find_all(section, "a", cls="entry")
+        assert rows
+        return rows
+
+    def test_each_ride_has_its_date_on_a_tile(self, garage, client):
+        for row in self.rows(garage, client):
+            tiles = find_all(row, "span", cls="ride-date", aria_hidden="true")
+            assert len(tiles) == 1, row.attrs["href"]
+            assert visible_text(find_all(tiles[0], "b")[0]).isdigit()
+            assert find_all(row, cls="glyph") == [] and [use for use in find_all(row, "use") if use.attrs["href"] == "#i-route"] == []
+
+    def test_the_date_is_still_heard_from_the_text(self, garage, client):
+        for row in self.rows(garage, client):
+            assert re.search(r"\b\d{1,2} [a-z]{3} \d{4}\b", accessible_text(row)), accessible_text(row)
 
 
 class TestRidesByBike:

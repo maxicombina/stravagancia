@@ -74,7 +74,7 @@
 <details class="more"{% if period == "custom" %} open{% endif %}>
   <summary>Informe detallado y filtros</summary>
   <p class="note">Kilómetros, horas en movimiento, salidas y desnivel. El temporizador no sustituye al movimiento. El desnivel no tiene lecturas previas: su total de vida es desconocido. La potencia media no se suma entre salidas y no se muestra aquí. Intervalos [desde, hasta); las fechas del filtro se interpretan en la zona IANA indicada.</p>
-  <form method="get" class="card">{{ form.as_p }}<button>Filtrar</button></form>
+  <form method="get" class="card form">{% include "garage/_form_fields.html" %}<button class="btn ghost">Filtrar</button></form>
   {% if report %}
   <p>Período observado: {% if report.start %}{% local_datetime report.start %}{% else %}Todo lo registrado{% endif %} → {% local_datetime report.end %}. Calcular el uso no acredita un histórico real completo.</p>
   {% if not report.materialization_current %}<p role="status">El uso del material aún no está calculado. Reconstruir el histórico antes de interpretarlo.</p>{% endif %}

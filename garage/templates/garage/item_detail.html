@@ -15,7 +15,7 @@
   <div class="gauge">
     <span class="gauge-title">{{ w.rule|rule_name }}</span>
     <svg viewBox="0 0 160 160" role="img" aria-label="{{ metric.title }}: {{ metric.value_text }} de {{ metric.threshold_label }}. {{ w.word }}.">
-      <circle class="trk" cx="80" cy="80" r="62"/>{% if metric.ratio %}<circle class="arc" cx="80" cy="80" r="62" stroke-dasharray="{{ metric.large_ring }}" transform="rotate(-90 80 80)"/>{% endif %}
+      <circle class="trk" cx="80" cy="80" r="62" pathLength="385"/>{% if metric.ratio %}<circle class="arc" cx="80" cy="80" r="62" stroke-dasharray="{{ metric.large_ring }}" transform="rotate(-90 80 80)"/>{% endif %}
       <text class="g-num{% if metric.big_class %} {{ metric.big_class }}{% endif %}" x="80" y="84">{{ metric.big }}</text>
       <text class="g-lbl" x="80" y="104">{% for line in metric.big_caption_lines %}<tspan x="80"{% if not forloop.first %} dy="14"{% endif %}>{{ line }}</tspan>{% endfor %}</text>
     </svg>
@@ -70,7 +70,7 @@
     <li><a class="entry compact" href="{% url 'garage:item-detail' m.item_id %}"><span class="glyph"><svg class="ic"><use href="#i-{{ m.item|item_icon }}"/></svg></span>
       <span><span class="entry-name">{{ m.item.name }}</span>
         <span class="entry-sub">{% if m.slot %}{{ m.slot }} · {% endif %}desde el {% local_date m.started_at %}</span></span>
-      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
+      {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}{% if row.wear.over_class %} · <span>{{ row.wear.headline.percent_text }}</span>{% endif %}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
     </a></li>{% endwith %}
     {% empty %}<li class="empty">Sin piezas montadas dentro{% if not object.retired_at %}: por ejemplo el casete o el disco de una rueda{% endif %}.</li>{% endfor %}
   </ul>
@@ -92,13 +92,13 @@
 
 <details class="more">
   <summary>Detalles, lecturas y montajes completos</summary>
-  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:item-reactivate' object.pk %}">{% csrf_token %}<button>Reactivar</button></form>{% else %}<a href="{% url 'garage:item-retire' object.pk %}">Retirar</a>{% endif %}</div>
+  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:item-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:item-retire' object.pk %}">Retirar</a>{% endif %}</div>
   <p class="notes">{{ object.notes }}</p>
   <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if lifecycle.state == 'retired' %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% if object.retired_at %} · se retira: {% local_datetime object.retired_at %}{% endif %}{% endif %}</dd></dl>
   <p>Categoría: <a href="{% url 'garage:category-detail' object.category_id %}">{{ object.category.name }}</a></p>
   <div class="actions"><a class="button" href="{% url 'garage:installation-create' object.pk %}">Montar / remontar</a><a href="{% url 'garage:baseline-create' object.pk %}">Registrar lectura</a></div>
   <h2>Lecturas de uso</h2><p class="muted">Lecturas independientes, con ámbito y referencia. No se suman entre sí. Sin lectura, el uso anterior de esa métrica es desconocido.</p>
-  {% for reading in readings %}<article class="card"><h3>{{ reading.get_metric_display }}</h3><p>{{ reading.value }} · {{ reading.get_scope_display }} · {% local_datetime reading.cut_at %}</p><p>Procedencia: {{ reading.source }}{% if reading.is_estimated %} · Estimada{% endif %}</p><p class="notes">{{ reading.notes }}</p><a href="{% url 'garage:baseline-edit' reading.pk %}">Corregir lectura</a></article>{% empty %}<p>Uso previo desconocido: no hay lecturas.</p>{% endfor %}
+  {% for reading in readings %}<article class="card"><h3>{{ reading.get_metric_display }}</h3><p>{{ reading.value }} · {{ reading.get_scope_display }} · {% local_datetime reading.cut_at %}</p><p>Procedencia: {{ reading.source }}{% if reading.is_estimated %} · Estimada{% endif %}</p><p class="notes">{{ reading.notes }}</p><div class="actions"><a href="{% url 'garage:baseline-edit' reading.pk %}">Corregir lectura</a></div></article>{% empty %}<p>Uso previo desconocido: no hay lecturas.</p>{% endfor %}
   <h2>Historial completo de montajes</h2>{% include 'garage/periods.html' %}
   <h2>Material montado sobre este objeto</h2>{% include 'garage/periods.html' with periods=children %}
 </details>

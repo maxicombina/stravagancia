@@ -283,7 +283,7 @@ class TestStarterScreens:
         html = logged.get(reverse("garage:" + route)).content.decode()
         assert "Cada objeto necesita una categoría." in html and f'name="next" value="{route}"' in html
         # Outside the item form: no nested forms.
-        assert html.index('action="' + reverse("garage:category-starter")) < html.index('<form method="post" novalidate class="form">')
+        assert html.index('action="' + reverse("garage:category-starter")) < html.index('<form method="post" novalidate class="card form">')
         response = logged.post(reverse("garage:category-starter"), {"next": route})
         assert response["Location"] == reverse("garage:" + route)
         html = logged.get(reverse("garage:" + route)).content.decode()

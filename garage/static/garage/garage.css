@@ -56,9 +56,13 @@
 .st-nodata, .st-snoozed { --c: var(--nodata); --soft: var(--nodata-soft); }
 
 *, *::before, *::after { box-sizing: border-box; }
-/* What takes the focus scrolls clear of the bars. Not with a scroll-margin too: the two would add up. Its 16 px from 1000 px (§4.5) come with the sidebar of F4a: until then the bar floats there too. */
+/* What takes the focus scrolls clear of the bars. Not with a scroll-margin too: the two would add up. */
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px)); scroll-padding-bottom: calc(var(--nav-space) + 24px); }
 html:has(.actionbar, .fab) { scroll-padding-bottom: calc(var(--nav-space) + 104px); } /* Both stand 72 to 84 px above the tab bar. */
+@media (min-width: 1000px) { /* The tab bar is a sidebar by now (§4.5). Here, and not with the sidebar's rules below: on a very low view the rule of the action bar, further down, has to win. */
+  html { scroll-padding-bottom: 16px; }
+  html:has(.actionbar, .fab) { scroll-padding-bottom: 96px; }
+}
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font-body); }
 h1, h2, h3 { font-family: var(--font-display); }
 body.has-tabbar { padding-bottom: calc(var(--nav-space) + 24px); }
@@ -96,13 +100,17 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: grid; gap: 24px; }
 .page > * { min-width: 0; }
+/* The columns of F4b, wrappers of what used to be children of the page: below their width they must not be noticed, so the same gaps as there. */
+.cols { display: grid; gap: 24px; }
+.split, .main-col { display: grid; gap: var(--s3); }
+.cols > *, .split > *, .main-col > * { min-width: 0; } /* Or a wide chart or a long word widens its column. */
 .page h1 { margin: 0; font-size: 30px; line-height: 1.12; letter-spacing: -.01em; text-wrap: balance; }
 .page h2 { margin: 0; font-size: 21px; line-height: 1.2; text-wrap: balance; }
 .page h3 { font-size: 17px; margin: 0; }
 .page p { margin: 0; }
 /* What can carry a name, up to 150 characters: a long word wraps instead of widening the page. Only here, not on .page: it also lowers an element's
    minimum width, and on the whole page it broke ordinary words where they have little room («desconocid/a» in .choice, the captions in .stats). */
-.page h1, .page h2, .page h3, .page h4, .page p, .page summary, .page .help, .page .field label, .checks label, .timeline, .gauge-title, .chip-link { overflow-wrap: anywhere; }
+.page h1, .page h2, .page h3, .page h4, .page p, .page dd, .page summary, .page .help, .page .field label, .checks label, .timeline, .gauge-title, .chip-link { overflow-wrap: anywhere; }
 .lede { color: var(--ink-2); font-size: 14.5px; }
 .messages { list-style: none; margin: 0; padding: 12px 14px; border-radius: var(--r-md); background: var(--primary-soft); display: grid; gap: 4px; }
 .messages p { margin: 0; }
@@ -143,6 +151,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .entry.compact { grid-template-columns: 48px minmax(0, 1fr) auto; min-height: 56px; }
 :is(.card, .panel) .rows > li:last-child > .entry, :is(.card, .panel) .rows > li.entry:last-child, :is(.card, .panel) .empty:last-child { border-bottom: 0; }
 .entry-name { display: block; font-size: 16.5px; line-height: 1.3; font-weight: 650; overflow-wrap: anywhere; }
+.entry-name.bike-name { font: 700 19px/1.2 var(--font-display); } /* §3.1 and the mockup: a bike and a ride are named in the face of the titles. */
+.entry-name.ride-name { font: 600 19px/1.25 var(--font-display); }
 .entry-sub { display: block; font-size: 14px; line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; }
 .entry > .ic { color: var(--ink-2); } /* The chevron of a row that navigates. */
 .big { display: grid; justify-items: end; line-height: 1.05; text-align: right; }
@@ -182,45 +192,49 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 /* The date of a ride, 52 px as the column of an .entry. At the top of its row, with the name and the figure, as in the mockup: a ride may take five lines. */
 .ride-date { display: grid; place-items: center; width: 52px; height: 56px; border-radius: var(--r-md); background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1; }
 .ride-date b { font: 700 22px/1 var(--font-display); color: var(--ink); }
+.entry.compact .ride-date { width: 48px; height: 52px; } /* In a row of 48 px, as «Últimas salidas» of a bike. */
 /* As in the mockup, each ride a card of its own, with its link as the whole of it: a margin around a link would be a card that does not answer to a finger. */
 .page .ride-list > .card:not(.empty) { padding: 0; grid-template-columns: minmax(0, 1fr); }
 .ride-list .entry { align-items: start; padding: var(--s4); border-bottom: 0; border-radius: inherit; }
 .odo { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
 
 /* Install hint */
-.install { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 6px 12px 14px; border-radius: var(--r-md); background: var(--primary-soft); font-size: 14px; }
+.install { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 2px 12px 14px; border-radius: var(--r-md); background: var(--primary-soft); font-size: 14px; }
 .install > .ic { color: var(--primary); margin-top: 2px; }
-.install .icon-btn { min-width: 36px; min-height: 36px; margin-top: -6px; color: var(--ink-2); }
+.install .icon-btn { margin-block: -10px; color: var(--ink-2); } /* Its 44 px for a finger reach into the hint's padding: the X stays where it was and the hint does not grow. */
+.install .link-btn { margin-block: -12px; } /* The same with «Instalar»: its 44 px made its line taller, and left the text 9 px under the icon and the X. */
+.install > p { margin-top: 3px; } /* What is left to center a line of text on the icon and the X. */
 
 /* Component detail */
 .hero { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; }
 .hero .glyph { width: 56px; height: 56px; }
 .hero .glyph .ic { width: 28px; height: 28px; }
-.hero h1 { font-size: 26px; }
+.hero h1 { font-size: 26px; } /* On a phone, not the mockup's 30: at 390×844 a first row of two lines of a bike went 0,9 px under the action bar (F3b), and at 320 px «Carretera» broke in two. From 640 px, the scale of the rest. */
 /* A bike's header, compact: the mockup's full-width art leaves no piece in sight at 390 px. If a photo does not arrive, its alt shows on the tile's background. */
 .bike-hero { grid-template-columns: minmax(112px, min(38%, 170px)) minmax(0, 1fr); align-items: start; }
 .page .bike-hero.card { border-radius: var(--r-xl); }
-.page:has(> .bike-hero) { gap: var(--s4); } /* The mockup's gap: with the 24 px of the other screens, the first alert falls under the action bar at 390×844. */
+.page:has(> .split) { gap: var(--s3); } /* 4 px under the mockup's: with its 16, a first alert with two lines of text falls under the action bar at 390×844. */
 .bike-hero > div, .piece-hero > div { display: grid; justify-items: start; min-width: 0; }
 .bike-hero .lede + .chip { margin-top: 8px; } /* With «Añadir foto» in between, its 44 px are the room. */
+.bike-hero .link.solo { margin-block: -6px; position: relative; } /* Its 44 px for a finger reach over the line above and the chip below: positioned, so that the chip does not take its lower edge. */
 .piece-hero { grid-template-columns: 64px minmax(0, 1fr); gap: var(--s4); align-items: start; padding-top: var(--s1); }
 .piece-hero .chip { margin-top: 8px; }
 .piece-hero .glyph { width: 64px; height: 64px; border-radius: 20px; }
 .piece-hero .glyph .ic { width: 32px; height: 32px; }
 .piece-hero h1 { font-size: 30px; }
 .piece-hero .lede { margin-top: 4px; }
-@media (min-width: 640px) { .piece-hero h1 { font-size: 34px; } }
+@media (min-width: 640px) { .page h1 { font-size: 34px; } } /* The mockup's step, for the title of every screen: after `.hero h1` and `.piece-hero h1`, as specific as it. */
 .cover { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--primary-soft); color: var(--primary); font-size: 13px; line-height: 1.25; overflow: hidden; overflow-wrap: anywhere; } /* Hidden: a long alt would stretch the tile past its 4:3. */
 .cover-empty { display: grid; place-items: center; } /* Not on the image: a grid would center an alt with a long word, cut at both sides. */
 .cover-empty .ic { width: 44px; height: 44px; }
 .panel, .page .card { background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: var(--s4); margin: 0; display: grid; gap: var(--s3); min-width: 0; }
-/* A legacy article holds bare text and inline links («Editar regla · Posponer el aviso»): a grid would put each on a line of its own. */
+/* A legacy article keeps the flow of its text and its `.actions` row: a grid would stretch a bare link across the card. */
 .page article.card { display: block; }
 .page article.card > * + * { margin-top: var(--s3); }
 .page .card + .card { margin-top: var(--s3); } /* In a <details> or a plain <section>, with their shadow and radius, they touched. */
-.page > .card + .card, .sec > .card + .card, .stats > .card + .card { margin-top: 0; }
-.page form.card:not(.form) > p { margin: 0; }
-.page .card > button:not([class]) { justify-self: start; }
+.page > .card + .card, .sec > .card + .card, .stats > .card + .card, .cols > .card + .card, .main-col > .card + .card { margin-top: 0; }
+.page form.card { gap: 4px; } /* The rhythm of every form: the fields keep their own margin. */
+.page form.card > .btn.ghost { justify-self: start; } /* A quiet action, as wide as its text. */
 .page .notes:empty { display: none; } /* It would add a gap of nothing. */
 .panel h2, .page .card h2 { font-size: 20px; line-height: 1.25; font-weight: 600; }
 .gauge { display: grid; justify-items: center; gap: 10px; }
@@ -284,9 +298,10 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 /* Below 390 px the svg gets narrower than its 320 units, and its text with it: 8,3 px at 320 px. This keeps it at 10,3 to 10,7. */
 @media (max-width: 389px) {
   .chart text { font-size: calc(10.5px + (390px - 100vw) / 28); }
+  .chart .months text { font-size: calc(10.5px + (390px - 100vw) / 56); } /* Twelve side by side: at the same size, at 320 px, «may» and «jun» touched. */
   .chart .val { font-size: calc(11px + (390px - 100vw) / 28); }
 }
-/* The bars of a bike take 223 px and the chart 223 more, plus what the bubble rises above it: below this it does not fit between them. On a taller view, a bubble left open by a tap would sit on the tab bar while scrolling. */
+/* Below this height the action bar stays in the flow, but the top bar and the tab bar still take 139 px, and the chart 223 more, plus what the bubble rises above it: it does not fit between them. On a taller view, a bubble left open by a tap would sit on the tab bar while scrolling. */
 @media (max-height: 460px) {
   .chart svg { max-width: 320px; }
   .tip { z-index: 6; }
@@ -300,12 +315,14 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .timeline li:not(:last-child)::after { content: ""; position: absolute; left: 9px; top: 25px; bottom: -5px; width: 2px; background: var(--line); }
 .timeline b { display: block; font-weight: 650; }
 .timeline li > span > span { font-size: 14px; color: var(--ink-2); } /* The date and the list under a name; not the name itself, nor the figure. */
+.timeline b > a { padding-block: 13px; position: relative; } /* Alone on its line in a profile, it is the only way between versions. Padding on an inline box: 44 px for a finger without moving a line, as a taller box would leave the dot of its row behind and a name that wraps would overlap. Positioned, so that the date below does not take its lower edge. */
 .num { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
 
 /* Buttons and sticky actions */
 .actionbar { position: sticky; bottom: calc(var(--nav-space) + 8px); z-index: 2; display: flex; gap: 10px;
-  padding: 14px 0 12px; background: linear-gradient(to bottom, transparent, var(--bg) 32%); }
+  padding: 14px 0 12px; background: linear-gradient(to bottom, transparent, var(--bar-bg, var(--bg)) 32%); }
+.card .actionbar { --bar-bg: var(--surface); } /* In a form that is a card, what scrolls under it fades into the card. */
 .page > .actionbar { margin-inline: calc(-1 * var(--s4)); padding-inline: var(--s4); } /* To the edge of the page, over the shadow of the cards above it. Not in a form: it would stick out of the form. */
 /* Under the bar, to the edge of the screen, nothing: on a card, a row cut by the bar showed in the 8 px above the tab bar and around it. Fixed, and not hanging from the bar:
    where the bar stays in the flow, at the end of its parent, it would cover what comes after it. Behind the bar's own buttons, should one come up from below this line. */
@@ -313,8 +330,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .actionbar > * { flex: 1; }
 .actionbar > .btn.ghost { flex: 0 0 auto; }
 .actionbar .btn { padding-inline: 14px; } /* Side by side on a phone; with the 20 px of a button alone, «Registrar mantenimiento» and «Mover» overflow at 320 px. */
-/* A view this low is the zoom of a desktop (1280×800 at 400 % is 320×200). With this bar over the other two, what takes the focus has nowhere left to be seen. */
-@media (max-height: 300px) {
+/* A view this low is a phone on its side (844×390) or the zoom of a desktop (1280×800 at 400 % is 320×200). With this bar over the other two, 167 px were left of the 390, and what takes the focus has nowhere left to be seen. */
+@media (max-height: 460px) {
   .actionbar { position: static; }
   .actionbar::after { display: none; }
   html, html:has(.actionbar, .fab) { scroll-padding-bottom: var(--nav-space); }
@@ -323,11 +340,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
   border: 0; border-radius: var(--r-md); min-height: 50px; padding: 0 20px; font-weight: 650; line-height: 1.2; text-align: center; cursor: pointer; display: inline-flex; align-items: center;
   justify-content: center; gap: 8px; background: var(--primary); color: var(--on-primary); text-decoration: none; }
 .btn.ghost { background: var(--surface-2); color: var(--ink); }
-/* Legacy class-less buttons (including destructive ones) stay neutral, never primary. */
-.page button:not([class]) { border: 1px solid var(--line); border-radius: var(--r-md); min-height: 44px; padding: 0 16px; font-weight: 600; cursor: pointer;
-  background: var(--surface-2); color: var(--ink); }
 html[data-os="android"] body:has(.fab) .page { padding-bottom: 96px; }
-.link-btn { border: 0; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; padding: 6px 2px; min-height: 36px; }
+.link-btn { border: 0; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; padding: 6px 2px; min-height: 44px; }
 .fab { position: fixed; z-index: 4; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-space) + 16px);
   height: 56px; padding: 0 20px 0 16px; border-radius: 16px; background: var(--primary); color: var(--on-primary); font-weight: 650; text-decoration: none;
   box-shadow: var(--shadow-float); align-items: center; gap: 8px; }
@@ -401,12 +415,63 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 .tab .ic { width: 24px; height: 24px; }
 /* At 320 px the bold «Estadísticas» measures 60 px: with the 4 px at each side of the list its tab gives it 58.8. */
 @media (max-width: 359px) { .tabbar ul { padding-inline: 0; } .tab { font-size: 11px; } .tab-ic { width: 44px; } }
+.brand { display: none; } /* A name, not a link (D13): it would be one more stop for the keyboard. */
+/* D13: from here the same bar is a sidebar, with nothing floating at the bottom edge any more. */
+@media (min-width: 1000px) {
+  :root { --nav-space: 0px; }
+  body.has-tabbar { padding-left: 248px; }
+  .tabbar { top: 0; right: auto; bottom: 0; left: 0; width: 248px; max-width: none; margin: 0; overflow-y: auto; /* On a low window the last tabs are reached by scrolling it. */
+    padding: max(20px, env(safe-area-inset-top, 0px)) 14px 20px max(14px, env(safe-area-inset-left, 0px)); border: 0; border-right: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 28px; font: 700 22px/1 var(--font-display); color: var(--ink); }
+  .brand svg { flex: none; width: 34px; height: 34px; }
+  .brand .trk, .brand .arc { fill: none; stroke-width: 5; }
+  .brand .trk { stroke: var(--primary-soft); }
+  .brand .arc { stroke: var(--primary); stroke-linecap: round; }
+  .tabbar ul { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 0; }
+  .tab { display: flex; justify-content: flex-start; align-items: center; gap: 10px; min-height: 50px; padding: 0 10px 0 6px; border-radius: var(--r-md); font-size: 16px; letter-spacing: 0; }
+  .tab[aria-current="page"] { background: var(--primary); color: var(--on-primary); }
+  .tab-ic { width: 36px; height: 36px; }
+  body.has-tabbar .page, .appbar-row { max-width: 1080px; padding-inline: 32px; } /* Not Entrar and Sin conexión, which have no bar: wider, a few lines would only shift to the left. */
+}
+
+/* F4b. Only where they fit: as columns of cards from 640 px, with the header of a bike set aside from 1000 px (§4.6, D13). The document keeps its order: the focus and a screen reader go through them as on a phone. */
+@media (min-width: 640px) {
+  .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--s4); }
+  .cols > * { container: col / inline-size; }
+  /* Three cards: the first down the left and the other two at its right, in the order they are read, with no hole beside the third. The 1fr so that a long first card does not part the other two. */
+  .cols:has(> :first-child:nth-last-child(3)) { grid-template-rows: auto 1fr; }
+  .cols > :first-child:nth-last-child(3) { grid-row: span 2; }
+}
+@media (min-width: 1000px) {
+  .cols { gap: var(--s5); }
+  .split { grid-template-columns: minmax(280px, min(380px, 38%)) minmax(0, 1fr); align-items: start; gap: var(--s5); } /* The mockup's 300 to 380 px left 292 for the rest at 1000 px, less than a phone. */
+  .main-col { gap: var(--s4); container: main / inline-size; }
+  .split .bike-hero { grid-template-columns: minmax(0, 1fr); }
+  .split .cover-empty .ic { width: 120px; height: 120px; } /* The 44 px of a tile of 170 are lost in one as wide as the column. */
+}
+/* A column gives a row the room of a phone: these are the widths of those rules less the 32 px of the page and the 34 of a card, and the same layout. */
+@container col (max-width: 373px) { :is(.card, .panel) .big small { max-width: 92px; text-wrap: balance; } }
+@container col (max-width: 323px) {
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) { row-gap: 0; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > span:not([class]) { display: contents; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > :first-child { grid-column: 1; grid-row: 1 / span 3; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-name { grid-column: 2; grid-row: 1; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-sub { grid-column: 2; grid-row: 2; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) .entry-sub:has(> .chip) { grid-column: 2 / -1; grid-row: 3; }
+  :is(.card, .panel) .entry:has(> .big):has(.entry-sub > .chip) > .big { grid-column: 3; grid-row: 1 / span 2; }
+}
+@container main (max-width: 447px) { .main-col .stats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } } /* As on a page under 480 px. */
+/* The header of a bike stays while the rest scrolls, under the bar. Not on a low window, where it would leave no room for what scrolls beside it. */
+@media (min-width: 1000px) and (min-height: 620px) {
+  .split > .aside { position: sticky; top: calc(69px + env(safe-area-inset-top, 0px)); } /* Where it starts: level with the first card at its side. */
+  .split > .aside > .bike-hero { max-height: calc(100vh - 168px - env(safe-area-inset-top, 0px)); overflow-y: auto; } /* A name of 150 characters: its end, below the action bar, stays within reach. */
+}
 
 /* Generic styling for the existing pages (forms, cards, tables) */
 .page .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .page .grid > div { padding: 10px 12px; min-width: 0; border-radius: var(--r-md); background: var(--surface-2); } /* The figures of the detailed report, as the other small boxes of figures. */
 .page h4 { margin: var(--s3) 0 var(--s2); font-size: 15px; line-height: 1.25; } /* With the browser's 21 px, the title of a set of figures stood as near the set before as its own. */
-details.more:has(> .note + form.card) > * + * { margin-top: var(--s3); } /* The detailed report of Estadísticas: the form and the cards touched the text around them. */
+details.more:has(> .note + form.card) > * + *, details.more:has(> .actions) > * + * { margin-top: var(--s3); } /* The detailed report of Estadísticas and the details of a bike or a piece: the blocks touched the text around them. */
 .page .actions, .page .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .page input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page select, .page textarea {
@@ -435,10 +500,14 @@ details.more:has(> .note + form.card) > * + * { margin-top: var(--s3); } /* The 
 .table-wrap { overflow-x: auto; }
 .page .pagination { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .page details > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+/* `display: flex` takes away the marker of a summary, and it read as a link, the same open and closed. As in the mockup, a chevron that turns; drawn with borders, in the color of its text. */
+.page details:not(.zone) > summary::before { content: ""; flex: none; width: 7px; height: 7px; margin: 0 10px 0 3px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(-45deg); }
+.page details:not(.zone)[open] > summary::before { transform: rotate(45deg); }
 .page ul:not([class]), .page ol:not([class]) { padding-left: 20px; }
 
 @media (prefers-reduced-motion: no-preference) {
   .sw::before { transition: transform .18s ease; }
+  .page details:not(.zone) > summary::before { transition: transform .15s ease; }
   .entry:active, .btn:active, .tab:active, .menu a:active { transform: scale(.985); }
 }
 @media (min-width: 900px) {
@@ -457,14 +526,14 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* garage-032: forms, workshop, photos */
 .stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.form { display: grid; gap: 4px; }
-.page .field { display: grid; gap: 6px; margin: 0 0 14px; }
+.form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; } /* Bounded, here and in the field: in an `auto` column a date and time with seconds asks for 306 px, and a card at 320 px has 254. */
+.page .field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0 0 14px; }
 .page .field.check { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 10px; }
 .page .field.check > label { grid-column: 2; grid-row: 1; }
 .page .field.check > input { grid-column: 1; grid-row: 1; }
 .page .field.check > .help, .page .field.check > .errorlist { grid-column: 1 / -1; }
 /* A control alone on its line: room for a finger. Only plain links: this would outweigh the 50 px of .btn and .button. */
-.page .pagination a, .page .actions > a:not([class]), .page h3 > a, .link.solo { display: inline-flex; align-items: center; min-height: 44px; }
+.page .pagination a, .page .actions > a:not([class]), .page h2 > a, .page h3 > a, .link.solo, .photo-actions .link, .timeline li > span > span > a { display: inline-flex; align-items: center; min-height: 44px; }
 .page .field.check > label, .page .field label:has(> :is(input[type="checkbox"], input[type="radio"])) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .page .field label > :is(input[type="checkbox"], input[type="radio"]) { flex: none; }
 .page .field.has-error input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page .field.has-error select, .page .field.has-error textarea { border-color: var(--danger-ink); }
@@ -478,6 +547,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .danger-zone { padding-top: 8px; border-top: 1px solid var(--line); }
 .danger-zone form { margin: 0; }
 .sec.card > .form + .form { padding-top: var(--s3); border-top: 1px solid var(--line); } /* The bikes of Strava: a form each, in one card. */
+.sec.card > .form > .btn.ghost { justify-self: start; } /* A quiet action, as wide as its text: in a grid it would weigh more than the main one. */
 .photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .photos li { display: grid; gap: 6px; min-width: 0; }
 .photos img.photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--surface-2); }
@@ -503,6 +573,7 @@ details.zone[open] > summary { margin-bottom: 4px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips .chip-link { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
 .chips .chip-link.on { background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.panel .chips .chip-link:not(.on) { background: var(--surface-2); box-shadow: none; } /* On a card, --surface on --surface: with a border that is transparent in light, it did not show. */
 .bar.share { margin-top: 6px; height: 10px; }
 /* The columns of the whole list, as in .trio: the widest figure sets them, so that a full bar ends at the same place in every row and the shares can be compared by eye. Without subgrid, each row its own. */
 .rows:has(.bar.share) { grid-template-columns: 48px minmax(0, 1fr) auto; column-gap: var(--s3); }

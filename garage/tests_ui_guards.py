@@ -1,4 +1,5 @@
 """garage-050 F0: what no restyle may break, and the helpers that read the rendered pages."""
+import math
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
@@ -184,6 +185,28 @@ class PageGuardTests(TestCase):
                 self.assertEqual(len(navigations), 1)
                 self.assertEqual(len(find_all(navigations[0], "a", cls="tab")), 5)
 
+    def test_the_brand_of_the_sidebar_is_a_name_and_not_a_link(self):
+        # D13: a link would be one more stop for the keyboard, and a sixth destination in a list of five.
+        for name in PAGES:
+            with self.subTest(name=name):
+                navigation = find_all(self.page(name), "nav", cls="tabbar")[0]
+                brands = find_all(navigation, cls="brand")
+                self.assertEqual([(brand.tag, visible_text(brand)) for brand in brands], [("span", "Garage")])
+                self.assertEqual(find_all(brands[0], "a"), [])
+                self.assertEqual(len(find_all(navigation, "a")), 5)
+
+    def test_the_sidebar_is_the_tab_bar_itself_and_not_a_second_navigation(self):
+        # D13, the alternative it rejects: a second <nav> repeats every section for a screen reader and leaves two tabs marked as the current one.
+        for name in PAGES:
+            with self.subTest(name=name):
+                root = self.page(name)
+                with_sections = [navigation for navigation in find_all(root, "nav") if find_all(navigation, "a", cls="tab")]
+                self.assertEqual(len(with_sections), 1)
+                self.assertEqual(len(find_all(root, "a", cls="tab")), 5)
+                self.assertEqual(len(find_all(root, "a", cls="tab", aria_current="page")), 1)
+                self.assertEqual(len(find_all(root, cls="brand")), 1)
+                self.assertEqual(find_all(with_sections[0])[0].attrs.get("class"), "brand", "the name goes above the tabs")
+
     def test_stylesheets_and_preconnects_stay_on_this_origin(self):
         def links_with(root, rel):
             return [link for link in find_all(root, "link") if rel in link.attrs.get("rel", "").lower().split()]
@@ -319,6 +342,10 @@ class TightRoomTests(SimpleTestCase):
         self.assertEqual((tile.get("overflow-wrap"), tile.get("width")), ("break-word", "min-content"))
         self.assertNotIn("overflow-wrap", contrast.declared(css, ".choice label"))
 
+    def test_a_long_serial_number_wraps(self):
+        # Up to 150 characters and no spaces, like a brand or a model: 40 of them widened the page by 89 px at 320 px, and 150 by 861 px at 1280 px in a bike's column.
+        self.assertEqual(contrast.declared(stylesheet(), ".page dd").get("overflow-wrap"), "anywhere")
+
 
 
 class FieldRowTests(SimpleTestCase):
@@ -406,8 +433,16 @@ class ChartTests(SimpleTestCase):
             with self.subTest(selector=selector):
                 self.assertIn("(390px - 100vw)", rule["font-size"])
 
+    def test_the_months_are_kept_apart_on_the_narrowest_phone(self):
+        # At 320 px «abr may» stood 0,8 px apart and «may jun» 0: read «abrmay jun». They grow at most half as much as the rest of the chart's text.
+        grown = {rule.selector: dict(contrast.declarations(rule.body))["font-size"] for rule in contrast.rules(stylesheet())
+                 if rule.selector in (".chart text", ".chart .months text") and rule.conditions == ("@media (max-width: 389px)",)}
+        self.assertEqual(set(grown), {".chart text", ".chart .months text"})
+        divisors = {selector: int(re.search(r"/\s*(\d+)\s*\)", value).group(1)) for selector, value in grown.items()}
+        self.assertGreaterEqual(divisors[".chart .months text"], 2 * divisors[".chart text"])
+
     def test_on_a_low_view_the_chart_is_no_taller_than_what_the_bars_leave(self):
-        # At 844x390 the bars of a bike leave 167 px: 223 would not fit, 170 of the 320 x 170 units almost do.
+        # At 844x390 the top bar and the tab bar leave 251 px: with its bubble, a chart 223 px high would not fit; 170, of the 320 x 170 units, does.
         low = [rule for rule in contrast.rules(stylesheet()) if rule.selector == ".chart svg" and any("max-height" in condition for condition in rule.conditions)]
         self.assertEqual([dict(contrast.declarations(rule.body)).get("max-width") for rule in low], ["320px"])
 
@@ -460,7 +495,7 @@ class ChartTests(SimpleTestCase):
         self.assertEqual(contrast.declared(css, ".tip").get("transform"), "translate(-50%, calc(-100% - 10px))")
 
     def test_the_bubble_goes_over_the_bars_only_where_the_chart_does_not_fit_between_them(self):
-        # At 844x390 the bars leave 140 px, less than the chart measures even at its smallest: of «junio 2026: 417 km» only the lower edge showed under the top bar.
+        # Lower than a phone on its side, at 568x320, the bars leave 181 px: 170 for the chart at its smallest, and no room for its bubble, of which only the lower edge would show under the top bar.
         css = stylesheet()
         low = [rule for rule in contrast.rules(css) if rule.selector == ".tip" and any("max-height" in condition for condition in rule.conditions)]
         self.assertEqual(len(low), 1)
@@ -572,6 +607,134 @@ class ActionBarOverACardTests(SimpleTestCase):
         self.assertEqual([dict(contrast.declarations(rule.body)).get("display") for rule in low if rule.selector == ".actionbar::after"], ["none"])
 
 
+class DeclaredRoomOfABikeHeaderTests(SimpleTestCase):
+    """The declarations that make room in a bike's header. Only those: it reads rules, not the cascade, so a padding added by another rule passes here.
+    F3b's acceptance, the first row of «Requiere atención» above the action bar at 390×844, is measured in a browser (spec F3b, `getBoundingClientRect` by CDP)."""
+
+    def test_the_photo_link_takes_a_finger_but_less_room_than_one(self):
+        # With 44 px of room, a row of 110,7 px (Gravel, 390×844) ended 16,4 px under the top of the bar.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".link.solo").get("min-height"), "44px")
+        link = contrast.declared(css, ".bike-hero .link.solo")
+        self.assertEqual(link.get("margin-block"), "-6px")
+        self.assertEqual(link.get("position"), "relative", "Over the chip after it: those 6 px stay the link's.")
+
+    def test_the_cards_of_a_bike_stand_as_near_as_a_card_and_the_next(self):
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".page:has(> .split)").get("gap"), "var(--s3)")
+        self.assertEqual(contrast.declared(css, ".page .card + .card").get("margin-top"), "var(--s3)")
+
+
+class ActionBarOnALowViewTests(SimpleTestCase):
+    def test_on_a_phone_on_its_side_the_action_bar_stays_in_the_flow(self):
+        # At 844x390 the three bars took 223 px of the 390, and left 167 of content: a bike showed its header and nothing else.
+        rules = [rule for rule in contrast.rules(stylesheet()) if rule.selector == ".actionbar" and dict(contrast.declarations(rule.body)).get("position") == "static"]
+        self.assertEqual(len(rules), 1)
+        heights = [int(found) for condition in rules[0].conditions for found in re.findall(r"max-height:\s*(\d+)px", condition)]
+        self.assertEqual(len(heights), 1, rules[0].conditions)
+        self.assertGreaterEqual(heights[0], 390)
+        self.assertLess(heights[0], 640, "a phone held upright keeps the bar at hand")
+
+
+class ControlsAtHandTests(SimpleTestCase):
+    def test_a_button_that_reads_as_a_link_takes_a_finger(self):
+        # «Eliminar foto» and «Vaciar» measured 36 px where every other control gives 44.
+        self.assertEqual(contrast.declared(stylesheet(), ".link-btn").get("min-height"), "44px")
+
+    def test_no_rule_makes_an_icon_button_smaller_than_a_finger(self):
+        # The X of the install hint measured 36×36, the only control under 44 px among those not inside a sentence.
+        small = [(rule.selector, prop, value) for rule in contrast.rules(stylesheet()) if ".icon-btn" in rule.selector
+                 for prop, value in contrast.declarations(rule.body) if prop in ("width", "height", "min-width", "min-height") and value.endswith("px") and float(value[:-2]) < 44]
+        self.assertEqual(small, [])
+
+
+class FiltersInsideACardTests(SimpleTestCase):
+    def test_a_filter_not_chosen_shows_inside_a_card(self):
+        # §4.2 made them for the page's background: --surface on a card's --surface is 1:1, and in light its border is transparent too.
+        css = stylesheet()
+        pill = contrast.declared(css, ".panel .chips .chip-link:not(.on)")
+        self.assertEqual((pill.get("background"), pill.get("box-shadow")), ("var(--surface-2)", "none"))
+        self.assertEqual(contrast.declared(css, ".chips .chip-link.on").get("background"), "var(--primary)")
+
+
+class WhatUnfoldsSaysSoTests(SimpleTestCase):
+    def test_a_chevron_says_that_it_opens_and_that_it_is_open(self):
+        # `display: flex` on a summary takes away its marker: «Informe detallado» read as a link, the same open and closed.
+        css = stylesheet()
+        chevron = contrast.declared(css, ".page details:not(.zone) > summary::before")
+        self.assertEqual((chevron.get("content"), chevron.get("flex")), ('""', "none"))
+        self.assertEqual((chevron.get("border-right"), chevron.get("border-bottom")), ("2px solid", "2px solid"))
+        closed, opened = chevron.get("transform"), contrast.declared(css, ".page details:not(.zone)[open] > summary::before").get("transform")
+        self.assertTrue(closed and opened)
+        self.assertNotEqual(closed, opened)
+
+    def test_inside_what_unfolds_the_blocks_keep_their_distance(self):
+        # In the detail of a piece, «Categoría», «Montar» and «Lecturas de uso» stood 0 px apart.
+        self.assertEqual(contrast.declared(stylesheet(), "details.more:has(> .actions) > * + *").get("margin-top"), "var(--s3)")
+
+
+class TitlesOfARowTests(SimpleTestCase):
+    NAMES = (".entry-name.bike-name", ".entry-name.ride-name")
+
+    @staticmethod
+    def face(css, selector):
+        """Weight, size, line height and family, written in one `font` or in its longhands: the same type either way."""
+        rule = contrast.declared(css, selector)
+        if "font" in rule:
+            weight, measure, family = rule["font"].split(None, 2)
+            return (weight, *measure.split("/"), family)
+        return tuple(rule.get(prop) for prop in ("font-weight", "font-size", "line-height", "font-family"))
+
+    def test_the_names_of_bikes_and_rides_go_in_the_face_of_the_titles(self):
+        # §3.1: --font-display for «títulos, nombres de bici»; the mockup, 19 px, in 700 for a bike and in 600 for a ride.
+        css = stylesheet()
+        self.assertEqual(self.face(css, self.NAMES[0]), ("700", "19px", "1.2", "var(--font-display)"))
+        self.assertEqual(self.face(css, self.NAMES[1]), ("600", "19px", "1.25", "var(--font-display)"))
+
+    def test_no_other_rule_decides_the_face_of_those_names(self):
+        # The check above reads one selector: a later rule naming them would change the type with the test still green.
+        type_properties = {"font", "font-family", "font-size", "font-weight", "line-height"}
+        others = [rule.selector for rule in contrast.rules(stylesheet()) if re.search(r"\.(bike|ride)-name\b", rule.selector)
+                  and rule.selector not in self.NAMES and type_properties & set(dict(contrast.declarations(rule.body)))]
+        self.assertEqual(others, [])
+
+
+class ScreenTitleScaleTests(SimpleTestCase):
+    def test_from_640_px_every_screen_title_takes_the_step_of_the_mockup(self):
+        # README, «Título de pantalla 30/33, 34/37 desde 640 px», on `.head h1`, `.hero-card h1` and `.piece-hero h1` alike.
+        sized = [rule for rule in contrast.rules(stylesheet()) if re.search(r"\bh1\b", rule.selector) and "font-size" in dict(contrast.declarations(rule.body))]
+        stepped = [rule for rule in sized if any("min-width: 640px" in condition for condition in rule.conditions)]
+        self.assertEqual([(rule.selector, dict(contrast.declarations(rule.body))["font-size"]) for rule in stepped], [(".page h1", "34px")])
+        # As specific as `.hero h1` and `.piece-hero h1`: it wins over them only by coming after them.
+        self.assertEqual(sized[-1], stepped[0])
+
+
+class DottedTrackTests(SimpleTestCase):
+    def assert_closes_on_whole_dashes(self, template, selector, radius):
+        # §4.1, «punteada»: if the length of the track is not a whole number of periods, two dashes meet at 3 o'clock (2π·22 / 8 = 17,28 periods).
+        source = (Path(finders.find("garage/garage.css")).parents[2] / "templates/garage" / template).read_text(encoding="utf-8")
+        track = re.search(r'<circle class="trk"[^>]*>', source).group(0)
+        declared = re.search(r'pathLength="(\d+)"', track)
+        self.assertIsNotNone(declared, track)
+        dash, gap = map(float, contrast.declared(stylesheet(), selector)["stroke-dasharray"].split())
+        length = float(declared.group(1))
+        self.assertEqual((length / (dash + gap)) % 1, 0, (length, dash, gap))
+        perimeter = 2 * math.pi * radius
+        self.assertLess(abs(length - perimeter) / perimeter, .03, "A rounding of the real length, or the dashes change size.")
+
+    def test_the_dotted_ring_of_a_row_has_no_seam(self):
+        self.assert_closes_on_whole_dashes("_ring.html", ".st-nodata .ring .trk", 22)
+
+    def test_the_dotted_gauge_of_a_piece_has_no_seam(self):
+        self.assert_closes_on_whole_dashes("item_detail.html", ".st-nodata .gauge .trk", 62)
+
+
+class StravaButtonsTests(SimpleTestCase):
+    def test_the_quiet_buttons_of_a_card_are_as_wide_as_their_text(self):
+        # In a grid, «Importar histórico» took the whole card and weighed more than «Sincronizar ahora».
+        self.assertEqual(contrast.declared(stylesheet(), ".sec.card > .form > .btn.ghost").get("justify-self"), "start")
+
+
 class FocusClearOfTheBarTests(SimpleTestCase):
     def test_the_room_for_the_tab_bar_goes_only_where_the_bar_goes(self):
         # Spec §4.5: 16 px from 1000 px, with the sidebar of F4a. With the bar still floating there, Tab left 89 of 379 elements under it at 1280x800.
@@ -586,6 +749,110 @@ class FocusClearOfTheBarTests(SimpleTestCase):
         self.assertEqual([dict(contrast.declarations(rule.body)).get("position") for rule in low if rule.selector == ".actionbar"], ["static"])
         # And what scrolls into view no longer leaves it room: 64 px above and 186 below are more than the 200 there are.
         self.assertEqual({rule.selector for rule in low if "scroll-padding-bottom" in dict(contrast.declarations(rule.body))}, {"html, html:has(.actionbar, .fab)"})
+
+
+class SidebarTests(SimpleTestCase):
+    def wide(self, selector):
+        """What the rules from the width of the sidebar declare for `selector`, alone or in a list."""
+        found = {}
+        for rule in contrast.rules(stylesheet()):
+            if rule.conditions == ("@media (min-width: 1000px)",) and selector in (" ".join(part.split()) for part in rule.selector.split(",")):
+                found.update(contrast.declarations(rule.body))
+        return found
+
+    def test_the_brand_shows_only_where_the_bar_is_a_sidebar(self):
+        # D13: on a phone the bar floats, with five tabs and no room for a name.
+        self.assertEqual(contrast.declared(stylesheet(), ".brand").get("display"), "none")
+        self.assertNotIn(self.wide(".brand").get("display", "none"), ("none", "contents"))
+
+    def test_the_page_starts_where_the_sidebar_ends(self):
+        # D13 and §4.9, 248 px. With any difference the start of every title goes under the bar, or a strip of nothing opens beside it.
+        self.assertEqual(self.wide(".tabbar").get("width"), "248px")
+        self.assertEqual(self.wide("body.has-tabbar").get("padding-left"), self.wide(".tabbar")["width"])
+
+
+class ColumnsTests(SimpleTestCase):
+    """Spec F4b: the Garage in two columns from 640 px and a bike from 1000 px; under that the wrappers must not be noticed.
+    What the columns look like is checked in a browser; here, what would break them without anyone seeing it in a single capture."""
+
+    def conditions(self, selector, prop):
+        """The media conditions of the rules that declare `prop` for exactly `selector`, alone or in a list."""
+        return [rule.conditions for rule in contrast.rules(stylesheet())
+                if selector in (" ".join(part.split()) for part in rule.selector.split(",")) and prop in dict(contrast.declarations(rule.body))]
+
+    def test_the_garage_is_in_two_columns_from_640_px(self):
+        self.assertEqual(self.conditions(".cols", "grid-template-columns"), [("@media (min-width: 640px)",)])
+
+    def test_a_bike_is_in_two_columns_from_1000_px(self):
+        self.assertEqual(self.conditions(".split", "grid-template-columns"), [("@media (min-width: 1000px)",)])
+
+    def test_on_a_phone_the_cards_stand_as_far_apart_as_before(self):
+        # The page's gap no longer reaches what is inside the wrappers: without these the sections of a phone would touch, or part.
+        css = stylesheet()
+        self.assertEqual(contrast.declared(css, ".cols").get("gap"), contrast.declared(css, ".page").get("gap"))
+        for wrapper in (".split", ".main-col"):
+            self.assertEqual(contrast.declared(css, wrapper).get("gap"), "var(--s3)", wrapper)
+
+    def test_a_card_in_a_column_has_only_the_gap_above_it(self):
+        # `.page .card + .card` is for cards that have no gap; in a column it would add to it, and push down the second column.
+        css = stylesheet()
+        for selector in (".cols > .card + .card", ".main-col > .card + .card"):
+            self.assertEqual(contrast.declared(css, selector).get("margin-top"), "0", selector)
+
+    def test_nothing_wide_stretches_a_column(self):
+        css = stylesheet()
+        for selector in (".cols > *", ".split > *", ".main-col > *"):
+            self.assertEqual(contrast.declared(css, selector).get("min-width"), "0", selector)
+
+    def test_nothing_is_moved_out_of_the_reading_order(self):
+        # The focus and a screen reader follow the document: a column painted before it would be read after.
+        for rule in contrast.rules(stylesheet()):
+            if re.search(r"\.(?:cols|split|aside|main-col)\b", rule.selector):
+                self.assertNotIn("order", dict(contrast.declarations(rule.body)), rule.selector)
+
+    def test_the_header_of_a_bike_stays_only_beside_the_rest(self):
+        # In one column, a header that stays in place would cover what scrolls under it.
+        for conditions in self.conditions(".split > .aside", "position"):
+            self.assertIn("min-width: 1000px", " ".join(conditions))
+
+    def test_the_header_stays_level_with_the_column_beside_it(self):
+        # Where it starts on the page: the top bar, its 1 px of border and the top of the page, 69 px in a browser. Less and it goes under the bar; more and at rest it stands lower than the first card at its side (7 px with the mockup's 76).
+        css = stylesheet()
+        all_rules = contrast.rules(css)
+        bar = int(contrast.declared(css, ".appbar-row")["height"].removesuffix("px"))
+        border = int(contrast.declared(css, ".appbar")["border-bottom"].split()[0].removesuffix("px"))
+        page = [dict(contrast.declarations(rule.body))["padding-top"] for rule in all_rules if rule.selector == ".page" and rule.conditions == ("@media (min-width: 900px)",)]
+        tops = [dict(contrast.declarations(rule.body))["top"] for rule in all_rules if rule.selector == ".split > .aside" and "top" in dict(contrast.declarations(rule.body))]
+        self.assertEqual(len(tops), 1)
+        self.assertEqual(int(re.search(r"(\d+)px", tops[0]).group(1)), bar + border + int(page[0].removesuffix("px")))
+
+    def test_three_cards_leave_no_hole_in_two_columns(self):
+        # Beside the third card there was nothing. Only with two columns: with one, the span would open an empty row.
+        self.assertEqual(self.conditions(".cols > :first-child:nth-last-child(3)", "grid-row"), [("@media (min-width: 640px)",)])
+
+    def narrow(self, condition, fragment):
+        return {" ".join(rule.selector.split()): dict(contrast.declarations(rule.body))
+                for rule in contrast.rules(stylesheet()) if rule.conditions == (condition,) and fragment in rule.selector}
+
+    def test_a_column_only_measures_where_it_is_one(self):
+        self.assertEqual(self.conditions(".cols > *", "container"), [("@media (min-width: 640px)",)])
+        self.assertEqual(self.conditions(".main-col", "container"), [("@media (min-width: 1000px)",)])
+
+    def test_a_row_in_a_column_is_laid_out_as_on_a_phone_with_the_same_room(self):
+        # At 768 px a column leaves a row what a phone of 389 px does (32 px of page and 34 of card): the chip broke in two lines, and in three at 640 px, its icon alone on the first.
+        phone = self.narrow("@media (max-width: 389px)", ".entry:has(> .big):has(.entry-sub > .chip)")
+        self.assertEqual(len(phone), 7)
+        self.assertEqual(self.narrow("@container col (max-width: 323px)", ".entry:has(> .big):has(.entry-sub > .chip)"), phone)
+
+    def test_the_caption_of_a_figure_too(self):
+        phone = self.narrow("@media (max-width: 439px)", ".big small")
+        self.assertEqual(len(phone), 1)
+        self.assertEqual(self.narrow("@container col (max-width: 373px)", ".big small"), phone)
+
+    def test_four_figures_take_two_rows_in_a_narrow_main_column(self):
+        # From 480 px, on the page, each has its room. At 1000 px the main column gives it 66 px: «↑ 27.216» went on to two lines. Below the same 448 px of room.
+        figures = self.narrow("@container main (max-width: 447px)", ".stats.four")
+        self.assertEqual(figures, {".main-col .stats.four": {"grid-template-columns": "repeat(2, minmax(0, 1fr))"}})
 
 
 class OtherOriginPatternTests(SimpleTestCase):

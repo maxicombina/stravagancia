@@ -373,6 +373,21 @@ class TestWorkshop:
             assert text in html, text
         assert 'href="/garage/maintenance/" aria-current="page"' in html or re.search(r'href="/garage/maintenance/"[^>]*aria-current="page"', html)
 
+    def test_the_links_of_a_technical_alert_take_a_finger(self, garage, client):
+        # «Editar regla» and «Posponer el aviso» measured 19 px, 2 px under the block before them. As plain links right in an `.actions` row
+        # they get the 44 px of `.page .actions > a:not([class])`; as a block of the card, its 12 px.
+        client.force_login(garage.owner)
+        sections = find_all(parse(client.get(reverse("garage:maintenance")).content.decode()), "section", aria_labelledby="maintenance-alerts-title")
+        assert len(sections) == 1
+        cards = find_all(sections[0], "article", cls="card")
+        assert cards
+        for card in cards:
+            rows = [child for child in card.children if not isinstance(child, str) and "actions" in child.attrs.get("class", "").split()]
+            assert len(rows) == 1
+            links = [child for child in rows[0].children if not isinstance(child, str)]
+            assert [(link.tag, "class" in link.attrs) for link in links] == [("a", False), ("a", False)]
+            assert visible_text(links[0]) == "Editar regla" and visible_text(links[1]) in ("Posponer el aviso", "Ver el aplazamiento")
+
     def test_events_capped_and_query_count_constant(self, garage, client):
         kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
         client.force_login(garage.owner)
@@ -528,12 +543,12 @@ class TestPostponedAndNoDataRows:
     def test_a_row_without_data_has_the_ring_with_its_piece(self, garage, client, bottle):
         self.assert_ring_of_the_bottle(self.without_data(garage, client))
 
-    @pytest.mark.parametrize("build,state,icon,word", [("postponed", "snoozed", "#i-clock", "Pospuesto"), ("without_data", "nodata", "#i-help", "Sin datos")])
-    def test_the_chip_says_the_state_without_color(self, garage, client, build, state, icon, word):
+    @pytest.mark.parametrize("build,state,icon,word,rest", [("postponed", "snoozed", "#i-clock", "Pospuesto", r" · \d+ %"), ("without_data", "nodata", "#i-help", "Sin datos", "")])
+    def test_the_chip_says_the_state_without_color(self, garage, client, build, state, icon, word, rest):
         row = getattr(self, build)(garage, client)
         chips = find_all(row, "span", cls="chip")
         assert len(chips) == 1 and uses(chips[0]) == [icon]
-        assert visible_text(chips[0]) == word
+        assert re.fullmatch(word + rest, visible_text(chips[0])), visible_text(chips[0])
         assert classes(chips[0]) == ["chip", f"st-{state}"] and f"st-{state}" in classes(row)
         assert find_all(chips[0], "svg", cls="ic xs", aria_hidden="true")
         assert word in accessible_text(row)
@@ -570,6 +585,29 @@ class TestPostponedAndNoDataRows:
         row = self.without_data(garage, client)
         assert find_all(row, "circle", cls="arc") == [] and len(find_all(row, "circle", cls="trk")) == 1
         assert "st-nodata" in classes(row) and visible_text(find_all(row, "span", cls="chip st-nodata")[0]) == "Sin datos"
+
+    def overdue_snoozed(self, garage, frozen):
+        """Ten days of a rule, eleven gone by: 110 %, whatever the ring can paint."""
+        kind = save_maintenance(garage.owner, ServiceType, name="Engrase")
+        rule = save_maintenance(garage.owner, MaintenanceRule, item=garage.light, service_type=kind, calendar_days=10, anchor_at=frozen - timedelta(days=11))
+        snooze_rule(garage.owner, rule, calendar_days=3)
+        return rule
+
+    def snooze_row(self, garage, client, rule):
+        return row_by_href(workshop_page(client, garage.owner), reverse("garage:maintenance-rule-snooze", args=[rule.pk]))
+
+    def test_a_postponed_chip_says_the_proportion_the_ring_only_draws(self, garage, client, frozen):
+        """Spec §4.1: the ring is decorative, «el porcentaje pasa a leerse en el chip»; the ring of a rule at 110 % is simply full."""
+        row = self.snooze_row(garage, client, self.overdue_snoozed(garage, frozen))
+        assert visible_text(find_all(row, "span", cls="chip")[0]) == "Pospuesto · 110 %"
+        assert "Pospuesto · 110 %" in accessible_text(row)
+
+    def test_a_postponed_chip_says_when_its_figure_is_a_minimum(self, garage, client, frozen, monkeypatch):
+        """Spec §4.1, row «≥»: the same figure as the rest of the app, not a bare number that promises more than is known."""
+        rule = self.overdue_snoozed(garage, frozen)
+        real = workshop_module.maintenance_due
+        monkeypatch.setattr(workshop_module, "maintenance_due", lambda owner, at: tuple(replace(due, metrics=tuple(replace(metric, coverage="partial") for metric in due.metrics)) if due.rule.pk == rule.pk else due for due in real(owner, at=at)))
+        assert visible_text(find_all(self.snooze_row(garage, client, rule), "span", cls="chip")[0]) == "Pospuesto · ≥ 110 %"
 
     def test_a_postponed_ring_shows_the_real_proportion(self, garage, client, frozen):
         kind = save_maintenance(garage.owner, ServiceType, name="Engrase")

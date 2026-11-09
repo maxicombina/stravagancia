@@ -405,11 +405,40 @@ class TestGarageScreen:
         assert visible_text(find_all(row, cls="entry-name")[0]) == "Gravel"
         assert visible_text(find_all(row, cls="big")[0]) == "50km registrados"
 
+    def test_the_name_of_a_bike_is_written_as_a_title(self, garage, client):
+        names = find_all(self.row(self.html(garage, client), garage.gravel), cls="entry-name")
+        assert len(names) == 1 and "bike-name" in classes(names[0])
+
+    def test_every_row_of_the_attention_card_has_its_name_in_the_same_column(self, garage, client):
+        # «compact» is 48 px against the 52 of a row with a ring: in one card, the names of «1 regla sin datos» and «1 aviso pospuesto» stood 4 px further left.
+        snooze_rule(garage.owner, on_bike(garage, garage.gravel, "due"), calendar_days=30)
+        on_bike(garage, garage.gravel, "soon", name="Otra")
+        section = find_all(parse(self.html(garage, client)), "section", aria_labelledby="attention-title")[0]
+        rows = find_all(section, "a", cls="entry")
+        hrefs = [row.attrs["href"] for row in rows]
+        assert reverse("garage:maintenance") in hrefs and f'{reverse("garage:maintenance")}#snoozed' in hrefs, hrefs  # Otherwise the test would not be about them.
+        assert [row.attrs["href"] for row in rows if "compact" in classes(row)] == []
+
     def test_the_three_sections_are_cards_with_the_same_titles(self, garage, client):
         cards = find_all(parse(self.html(garage, client)), "section", cls="sec card")
         assert [visible_text(find_all(card, "h2")[0]) for card in cards] == ["Requiere atención", "Bicis", "Equipación y material sin montar"]
         for card in cards:
             assert find_all(card, "h2")[0].attrs["id"] == card.attrs["aria-labelledby"]
+
+    def test_the_headings_are_read_in_the_same_order_as_before(self, garage, client):
+        """Spec F4b: the columns are only wrappers."""
+        headings = [(heading.tag, visible_text(heading)) for heading in find_all(find_all(parse(self.html(garage, client)), "main")[0]) if heading.tag in ("h1", "h2")]
+        assert headings == [("h1", "Garaje"), ("h2", "Requiere atención"), ("h2", "Bicis"), ("h2", "Equipación y material sin montar")]
+
+    def test_the_columns_take_the_three_sections_and_nothing_else(self, garage, client):
+        main = find_all(parse(self.html(garage, client)), "main")[0]
+        elements = [child for child in main.children if not isinstance(child, str)]
+        columns = [element for element in elements if "cols" in classes(element)]
+        assert len(columns) == 1, columns
+        assert [child.tag for child in columns[0].children if not isinstance(child, str)] == ["section"] * 3
+        assert [visible_text(find_all(section, "h2")[0]) for section in find_all(columns[0], "section", cls="sec card")] == ["Requiere atención", "Bicis", "Equipación y material sin montar"]
+        # The title and the notice to install stay above them, across the page.
+        assert [element.tag for element in elements[:3]] == ["h1", "aside", "div"] and elements[2] is columns[0]
 
     def test_the_rides_to_review_keep_their_circle(self, garage, client):
         href = f'{reverse("garage:ride-review", args=[garage.pending.pk])}?next=/garage/'

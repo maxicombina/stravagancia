@@ -117,6 +117,36 @@ def test_missing_file_is_a_bound_form_error(client, inventory):
     assert response.context["form"].is_bound and response.context["form"].errors.get("photo")
 
 
+def photo_control(root):
+    return find_all(root, "input", type="file", name="photo")[0]
+
+
+def test_the_photo_field_has_the_label_of_every_other_field(client, inventory):
+    root = parse(client.get(route("bike-photo-create", inventory[2].pk)).content.decode())
+    assert [visible_text(label) for label in find_all(root, "label", **{"for": photo_control(root).attrs["id"]})] == ["Foto"]
+
+
+def test_the_help_of_the_photo_field_is_read_with_it(client, inventory):
+    root = parse(client.get(route("bike-photo-create", inventory[2].pk)).content.decode())
+    helps = find_all(root, cls="help")
+    assert len(helps) == 1 and "15 MiB" in visible_text(helps[0])
+    assert helps[0].attrs.get("id") == photo_control(root).attrs["aria-describedby"]
+
+
+def test_a_photo_error_marks_its_field(client, inventory):
+    root = parse(client.post(route("bike-photo-create", inventory[2].pk), {}).content.decode())
+    fields = find_all(root, "div", cls="field has-error")
+    assert len(fields) == 1 and find_all(fields[0], "ul", cls="errorlist") and find_all(fields[0], "input", name="photo")
+
+
+def test_an_error_of_the_whole_upload_is_still_shown(client, inventory, backend):
+    """`form.add_error(None, …)` from the view: it belongs to no field, and only the form can show it."""
+    with patch.object(photos, "get_photo_storage", side_effect=PhotoStorageConfigError("DO_NOT_DISCLOSE config")):
+        root = parse(client.post(route("bike-photo-create", inventory[2].pk),
+                                 {"photo": SimpleUploadedFile("a.png", image_bytes(), content_type="image/png")}).content.decode())
+    assert [visible_text(found) for found in find_all(root, "ul", cls="errorlist nonfield")]
+
+
 def test_unavailable_storage_shows_safe_upload_error_and_content_503(client, inventory, backend):
     photo = upload(inventory, backend)
     with patch.object(photos, "get_photo_storage", side_effect=PhotoStorageConfigError("DO_NOT_DISCLOSE config")):

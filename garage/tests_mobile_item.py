@@ -13,6 +13,7 @@ from django.urls import reverse
 
 from .charts import line_chart
 from .models import Bike, Category, Item, MaintenanceRule, ServiceEvent, ServiceType, UsageMaterializationState
+from .services.baselines import record_baseline
 from .services.installations import create_installation
 from .services.maintenance import save_maintenance
 from .services.monthly import MonthBucket, monthly_usage
@@ -258,6 +259,20 @@ class TestComponentScreen:
         html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
         links = [a for a in find_all(parse(html), "a", cls="link solo") if visible_text(a) == "Crear otra regla"]
         assert len(links) == 1
+
+    def test_correcting_a_reading_has_room_for_a_finger(self, garage, client):
+        # It measured 19 px, 2 px under the block before it. As a plain link right in an `.actions` row it gets the 44 px of
+        # `.page .actions > a:not([class])`; as a block of the card, its 12 px.
+        reading = record_baseline(garage.owner, item=garage.chain, metric="distance_m", scope="lifetime", cut_at=datetime(2026, 1, 1, tzinfo=UTC), value=Decimal("1000000"))
+        client.force_login(garage.owner)
+        page = parse(client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode())
+        cards = [card for card in find_all(page, "article", cls="card") if "Corregir lectura" in visible_text(card)]
+        assert len(cards) == 1
+        rows = [child for child in cards[0].children if not isinstance(child, str) and "actions" in child.attrs.get("class", "").split()]
+        assert len(rows) == 1
+        links = [child for child in rows[0].children if not isinstance(child, str)]
+        assert [(link.tag, link.attrs) for link in links] == [("a", {"href": reverse("garage:baseline-edit", args=[reading.pk])})]
+        assert visible_text(links[0]) == "Corregir lectura"
 
     def test_without_rules_offers_one(self, garage, client):
         loose = create_inventory(garage.owner, Item, name="Luz", category=garage.chain.category)

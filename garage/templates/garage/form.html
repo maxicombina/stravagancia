@@ -5,7 +5,7 @@
 {% if missing_types %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Primero crea un tipo de intervención. <a href="{% url 'garage:service-type-create' %}">Nuevo tipo</a></span></p>{% endif %}
 {% include "garage/_starter.html" %}
 {% if form %}
-<form method="post" novalidate class="form">{% csrf_token %}
+<form method="post" novalidate class="card form">{% csrf_token %}
   {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
   {% for field in form.hidden_fields %}{{ field }}{% endfor %}
   {% for field in form.visible_fields %}{% if field.name != "time_zone" %}{% include "garage/_field.html" %}{% endif %}{% endfor %}
@@ -21,7 +21,7 @@
   </div>
 </form>
 {% if delete_url %}
-<section class="sec danger-zone" aria-labelledby="delete-title">
+<section class="sec card danger-zone" aria-labelledby="delete-title">
   <div class="sec-h"><h2 id="delete-title">Eliminar</h2></div>
   <p class="note">Se eliminará «{{ delete_text }}». No se puede deshacer. Si hay lecturas, fotos, intervenciones o reglas que dependan de esto, se avisará y no se borrará nada.</p>
   <form method="post" action="{{ delete_url }}">{% csrf_token %}<button type="submit" class="btn danger">{{ delete_label }}</button></form>

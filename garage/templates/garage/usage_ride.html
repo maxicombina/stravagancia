@@ -6,12 +6,12 @@
 </div>
 {% include "garage/_ride_measures.html" %}
 {% if resolution.unknown_started_at %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Pendiente: sin inicio confirmado; no genera contador.</span></p>{% endif %}
-<ul class="menu">
+<div class="card"><ul class="menu">
   <li><a href="{% url 'garage:ride-review' ride.pk %}?next={{ request.get_full_path|urlencode }}"><span class="glyph accent"><svg class="ic"><use href="#i-bike"/></svg></span><span>Revisar bici y material<small>Con vista previa del efecto</small></span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
   <li><a href="{% url 'garage:history-manual-edit' ride.pk %}"><span class="glyph"><svg class="ic"><use href="#i-edit"/></svg></span><span>Corregir campos de esta salida histórica</span><svg class="ic go"><use href="#i-chev-right"/></svg></a></li>
-</ul>
+</ul></div>
 
-<section class="sec" aria-labelledby="items-title">
+<section class="sec card" aria-labelledby="items-title">
   <div class="sec-h"><h2 id="items-title">Material resuelto</h2></div>
   <ul class="rows">{% for item in items %}
     <li><a class="entry compact" href="{% url 'garage:item-detail' item.pk %}"><span class="glyph"><svg class="ic"><use href="#i-{{ item|item_icon }}"/></svg></span><span><span class="entry-name">{{ item.name }}</span></span><svg class="ic"><use href="#i-chev-right"/></svg></a></li>
@@ -20,7 +20,7 @@
   <p class="note">Esta resolución no escribe contadores. Cada objeto aparece una sola vez; el material retirado en el instante de la salida no se añade.</p>
 </section>
 
-<section class="sec" aria-labelledby="overrides-title">
+<section class="sec card" aria-labelledby="overrides-title">
   <div class="sec-h"><h2 id="overrides-title">Excepciones manuales</h2></div>
   <p class="note">Se conservan al cambiar perfiles y al reimportar una salida. Una exclusión se propaga al conjunto; una inclusión explícita puede recuperar una rama.</p>
   <ul class="rows">{% for override in overrides %}
@@ -36,14 +36,14 @@
   </details>
 </section>
 
-<section class="sec" aria-labelledby="sources-title">
+<section class="sec card" aria-labelledby="sources-title">
   <div class="sec-h"><h2 id="sources-title">Fuentes propias</h2></div>
   <ul class="rows">{% for source in sources %}
     <li class="entry compact"><span class="glyph"><svg class="ic"><use href="#i-{% if source.source_kind == 'strava' %}swap{% else %}file{% endif %}"/></svg></span>
       <span><span class="entry-name">{% if source.source_kind == 'strava' %}Strava · actividad {{ source.external_id }}{% else %}FIT · sesión {{ source.session_index }}{% endif %}</span>
         <span class="entry-sub">{% if source.withdrawn_at %}Retirada{% else %}Activa{% endif %}{% if source.possible_duplicate %} · <span class="badge">Posible duplicado</span>{% endif %}</span>
-        {% if not source.withdrawn_at %}<span class="entry-sub">{% if can_separate %}<a class="link" href="{% url 'garage:history-source-separate' source.pk %}">Separar fuente</a> · {% endif %}<a class="link" href="{% url 'garage:history-source-merge' source.pk %}">Unir con…</a>{% if source.possible_duplicate %} · <form method="post" action="{% url 'garage:history-source-keep' source.pk %}" class="inline">{% csrf_token %}<button type="submit" class="link-btn">No es un duplicado</button></form>{% endif %}</span>{% endif %}</span>
-      {% if not source.withdrawn_at %}<a class="link" href="{% url 'garage:history-source-withdraw' source.pk %}">Retirar</a>{% endif %}</li>
+        {% if not source.withdrawn_at %}<span class="entry-sub">{% if can_separate %}<a class="link solo" href="{% url 'garage:history-source-separate' source.pk %}">Separar fuente</a> · {% endif %}<a class="link solo" href="{% url 'garage:history-source-merge' source.pk %}">Unir con…</a>{% if source.possible_duplicate %} · <form method="post" action="{% url 'garage:history-source-keep' source.pk %}" class="inline">{% csrf_token %}<button type="submit" class="link-btn">No es un duplicado</button></form>{% endif %}</span>{% endif %}</span>
+      {% if not source.withdrawn_at %}<a class="link solo" href="{% url 'garage:history-source-withdraw' source.pk %}">Retirar</a>{% endif %}</li>
     {% empty %}<li class="empty">Sin fuentes activas: salida manual.</li>{% endfor %}
   </ul>
   <p class="note">Una salida reúne como mucho un FIT y una actividad de Strava activos: el FIT prevalece en lo que mide y Strava completa lo que falta (la bici por su vínculo, el deporte concreto).</p>

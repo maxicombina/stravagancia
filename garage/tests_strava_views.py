@@ -98,6 +98,22 @@ def connected_chips(page):
 
 
 @pytest.mark.django_db
+def test_syncing_is_the_main_action_and_importing_the_quiet_one(web):
+    # The mockup: «Sincronizar ahora», primary and with its icon; «Importar histórico», which is done once, in ghost with a download icon.
+    connected(web)
+    page = strava_page(web)
+    def button_of(section):
+        buttons = find_all(section_of(page, section), "button", type="submit")
+        assert len(buttons) == 1, section
+        return buttons[0]
+    sync, history = button_of("strava-state"), button_of("strava-import")
+    assert classes(sync) == {"btn"} and [use.attrs["href"] for use in find_all(sync, "use")] == ["#i-sync"]
+    assert classes(history) == {"btn", "ghost"} and [use.attrs["href"] for use in find_all(history, "use")] == ["#i-download"]
+    assert visible_text(sync) == "Sincronizar ahora" and visible_text(history) == "Importar histórico"
+    assert find_all(page, "symbol", id="i-sync")
+
+
+@pytest.mark.django_db
 def test_the_state_panel_says_connected_in_its_header(web):
     """Spec garage-050 §5, `strava.html`: «`.panel` Estado; chip "Conectado" si procede», as in the mockup."""
     connected(web)
@@ -294,6 +310,28 @@ def test_remove_requires_confirmation(web):
 
 
 @pytest.mark.django_db
+def test_the_loose_actions_of_a_source_are_all_controls_for_a_finger(web):
+    # They are not inside a sentence: beside them, «Retirar» and «No es un duplicado» already measure 44 px, and these measured 30.
+    connected(web)
+    g = ns(web)
+    ride, _ = fit(g, at(4))
+    store(g, 6, start=at(4))
+    store(g, 7, start=at(4))  # a duplicate: on its own ride, with «No es un duplicado»
+    duplicate = ActivitySource.objects.get(external_id=7)
+    links, buttons = [], []
+    for pk in (ride.pk, duplicate.ride_id):
+        root = parse(html(web.client.get(reverse("garage:usage-ride-detail", args=[pk]))))
+        sections = find_all(root, "section", aria_labelledby="sources-title")
+        assert len(sections) == 1
+        links += find_all(sections[0], "a")
+        buttons += find_all(sections[0], "button")
+    assert {visible_text(link) for link in links} == {"Separar fuente", "Unir con…", "Retirar"}
+    assert {visible_text(button) for button in buttons} == {"No es un duplicado"}
+    assert {(visible_text(link), link.attrs["class"]) for link in links if "solo" not in link.attrs["class"].split()} == set()
+    assert all("link-btn" in button.attrs["class"].split() for button in buttons)
+
+
+@pytest.mark.django_db
 def test_ride_screens_show_origin_duplicates_and_actions(web):
     connected(web)
     g = ns(web)
@@ -312,6 +350,19 @@ def test_ride_screens_show_origin_duplicates_and_actions(web):
     assert "Posible duplicado" in html(listing) and "Archivo FIT y Strava" in html(listing) and "Powered by Strava" in html(listing)
     review = html(web.client.get(reverse("garage:ride-review", args=[ride.pk])))
     assert "Archivo FIT y Strava" in review and "Powered by Strava" in review
+
+
+@pytest.mark.django_db
+def test_withdrawing_a_source_has_room_for_a_finger(web):
+    # Alone in the last cell of its row, it measured 33.8 px: the 44 px of `.link.solo`, as the other links that stand alone.
+    connected(web)
+    ride, source = fit(ns(web), at(4))
+    page = parse(html(web.client.get(reverse("garage:usage-ride-detail", args=[ride.pk]))))
+    rows = [row for row in find_all(page, "li", cls="entry compact") if "FIT · sesión 0" in visible_text(row)]
+    assert len(rows) == 1
+    links = [child for child in rows[0].children if not isinstance(child, str) and child.tag == "a"]
+    assert [(visible_text(link), set(link.attrs["class"].split()), link.attrs["href"]) for link in links] == [
+        ("Retirar", {"link", "solo"}, reverse("garage:history-source-withdraw", args=[source.pk]))]
 
 
 @pytest.mark.django_db

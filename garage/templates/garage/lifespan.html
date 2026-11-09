@@ -7,7 +7,7 @@
 <p class="lede">Avisa al llegar al 90 % y vence con <b>lo primero que llegue</b>: los km, las horas, el desnivel o el tiempo. Deja vacío lo que no uses.</p>
 {% if suggestion %}<p class="suggest"><span class="note">Orientativo para {{ suggestion.1 }}: <b>{{ suggestion.2 }}</b> (depende del uso y del terreno).</span>
   <button type="button" class="chip-link" data-fill="{{ suggestion_json }}" hidden>Usar {{ suggestion.2 }}</button></p>{% endif %}
-<form method="post" novalidate class="form" data-lifespan aria-label="Vida útil de {{ item.name }}">{% csrf_token %}
+<form method="post" novalidate class="card form" data-lifespan aria-label="Vida útil de {{ item.name }}">{% csrf_token %}
   {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
   {% if form.distance_km %}{% include "garage/_field.html" with field=form.distance_km %}{% endif %}
   <div class="field-row">
@@ -26,7 +26,7 @@
   <div class="actionbar"><button type="submit" class="btn">Guardar vida útil</button><a class="btn ghost" href="{{ back_url }}">Cancelar</a></div>
 </form>
 {% if rule %}
-<section class="sec danger-zone" aria-labelledby="remove-title">
+<section class="sec card danger-zone" aria-labelledby="remove-title">
   <div class="sec-h"><h2 id="remove-title">Quitar</h2></div>
   <p class="note">Quita sólo la vida útil de {{ item.name }} ({{ rule|thresholds }}). Las intervenciones y el historial se conservan.</p>
   <form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove"><button type="submit" class="btn danger">Quitar vida útil</button></form>

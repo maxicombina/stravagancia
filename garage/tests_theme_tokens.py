@@ -365,7 +365,7 @@ class StylesheetTests(SimpleTestCase):
     def test_a_control_alone_on_its_line_has_room_for_a_finger(self):
         # They measured from 15 to 23 px where the rest of the app gives 44, «Siguiente» among them: the way through a long list.
         # Neither .btn nor .button goes through here: they have their own 50 px (spec §5), and this would outweigh them.
-        for selector in (".page .pagination a", ".page .actions > a:not([class])", ".page h3 > a", ".link.solo", ".page .field.check > label",
+        for selector in (".page .pagination a", ".page .actions > a:not([class])", ".page h2 > a", ".page h3 > a", ".link.solo", ".photo-actions .link", ".page .field.check > label",
                          '.page .field label:has(> :is(input[type="checkbox"], input[type="radio"]))'):
             with self.subTest(selector=selector):
                 control = self.rule(selector)

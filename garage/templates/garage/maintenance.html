@@ -21,7 +21,7 @@
       {% include "garage/_ring.html" with metric=w.headline %}
       <span><span class="entry-name">{{ alert.target.name }} · {{ w.rule|rule_name }}</span>
         <span class="entry-sub">{{ w.real_word }} · {{ w.snooze_verb }} {{ w.snooze_left|unbroken:" o " }} de aplazamiento</span>
-        <span class="entry-sub"><span class="chip st-{{ w.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}</span></span></span>
+        <span class="entry-sub"><span class="chip st-{{ w.state }}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ w.icon }}"/></svg>{{ w.word }}{% if w.headline.percent is not None %} · <span>{{ w.headline.percent_text }}</span>{% endif %}</span></span></span>
       <svg class="ic"><use href="#i-chev-right"/></svg>
     </a></li>{% endwith %}{% endfor %}
   </ul>

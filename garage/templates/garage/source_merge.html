@@ -7,7 +7,7 @@
   <h2 id="merge-effects">Antes de unir</h2>
   <ul>{% for line in warnings %}<li>{{ line }}</li>{% endfor %}</ul>
 </section>
-<form method="post" novalidate class="form">{% csrf_token %}
+<form method="post" novalidate class="card form">{% csrf_token %}
   {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
   {% for field in form.visible_fields %}{% include "garage/_field.html" %}{% endfor %}
   <div class="actionbar">

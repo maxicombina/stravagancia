@@ -55,7 +55,8 @@ def fit_preview(request):
                 requested_from=values['requested_from'], requested_to=values['requested_to'])
         except ValidationError as error:
             show_errors(form, error)
-    execute_form = FitExecuteForm(initial={'preview_token': preview.token}) if preview and preview.token else None
+    # On the page of the form above, which also asks for a file: its own ids, or this label would name the file of that one.
+    execute_form = FitExecuteForm(initial={'preview_token': preview.token}, auto_id='id_execute_%s') if preview and preview.token else None
     return render(request, 'garage/history_preview.html', {'title': 'Previsualizar FIT propio', 'form': form,
                   'preview': preview, 'execute_form': execute_form})
 

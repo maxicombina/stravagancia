@@ -475,6 +475,18 @@ class TestOtherChipsOfARule:
         html = client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()
         rows = [row for row in find_all(parse(html), "a", cls="entry compact", href=item_url(item))]
         assert len(rows) == 1 and classes(chip_of(rows[0])) == {"chip", "st-due", "over-200"}
+        assert visible_text(chip_of(rows[0])) == "Vencido · 230 %"  # D21: this row shows the figure nowhere else, and color alone does not say it.
+
+    @pytest.mark.parametrize("percent,shade", [(100, ""), (149, ""), (150, "over-150"), (199, "over-150"), (200, "over-200")])
+    def test_a_chip_gives_its_figure_exactly_where_its_shade_says_more_than_its_word(self, garage, client, percent, shade):
+        item, _ = rule_at(garage, percent, mounted=True)
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:bike-detail", args=[garage.road.pk])).content.decode()
+        rows = find_all(parse(html), "a", cls="entry compact", href=item_url(item))
+        assert len(rows) == 1
+        chip = chip_of(rows[0])
+        assert (classes(chip) - {"chip", "st-due"}) == ({shade} if shade else set())
+        assert visible_text(chip) == (f"Vencido · {percent} %" if shade else "Vencido")
 
     def test_parts_of_an_item(self, garage, client):
         item, _ = rule_at(garage, 165)
@@ -483,13 +495,25 @@ class TestOtherChipsOfARule:
         html = client.get(item_url(garage.chain)).content.decode()
         rows = [row for row in find_all(parse(html), "a", cls="entry compact", href=item_url(item))]
         assert len(rows) == 1 and classes(chip_of(rows[0])) == {"chip", "st-due", "over-150"}
+        assert visible_text(chip_of(rows[0])) == "Vencido · 165 %"
 
     def test_also_in_this_visit(self, garage, client):
         rule_at(garage, 230, mounted=True)
         client.force_login(garage.owner)
         html = client.get(reverse("garage:service-event-create") + f"?bike={garage.road.pk}").content.decode()
         chips = find_all(find_all(parse(html), "fieldset", cls="together")[0], "span", cls="chip st-due over-200")
-        assert [visible_text(chip) for chip in chips] == ["Vencido"]
+        assert [visible_text(chip) for chip in chips] == ["Vencido · 230 %"]
+
+    @pytest.mark.parametrize("kwargs,text", [({"estimated": True}, "≈ 160 %"), ({"coverage": "partial"}, "≥ 160 %")])
+    def test_a_figure_that_is_not_exact_says_so_in_the_chip(self, kwargs, text):
+        # D21: with «≥» or «≈» the shade applies, and the mark stays in sight.
+        shown = wear(due_of(metric("1600000", **kwargs)))
+        assert shown.over_class == "over-150"
+        html = render_to_string("garage/_together.html", {"together": {
+            "groups": [{"target": SimpleNamespace(name="Cadena 11v", category_id=None), "parent": None, "open": True,
+                        "rows": [{"rule": shown.rule, "wear": shown, "label": "Cambio", "checked": False, "life": True}]}],
+            "shown": [], "other_url": "#"}})
+        assert [visible_text(chip) for chip in find_all(parse(html), "span", cls="chip st-due over-150")] == [f"Vencido · {text}"]
 
     @pytest.mark.parametrize("snoozed", [False, True])
     def test_the_postpone_screen_shows_the_real_state_with_its_figure(self, garage, client, snoozed):

@@ -34,6 +34,39 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
 - Lo que se haga en el VPS no vuelve al portátil solo: traerlo (bundle, o push que pida el
   usuario) es decisión del usuario.
 
+## 14 nov: garage-047 (fricciones de UI), en una rama sobre Anillos
+
+- **Decisión del usuario:** «dale con lo siguiente». Las fricciones ya estaban autorizadas el
+  3 nov («arréglalas apenas puedas, el orden me da igual»); cada una se resuelve con la
+  opción recomendada y se repasa con él en garage-052.
+- **Dónde.** Rama `garage-047-fricciones` en `../stravagancia-garage-047`, nacida de
+  `garage-050-anillos` en `9a2b2a1`, porque Anillos cambió casi todas las plantillas. Crear
+  la rama no fusiona nada; sigue vigente «aun NO merge de nada».
+- **Entorno, fuera del repo, en `~/.cache/garage-vps/garage-047/`:** `demo-restart`
+  (servidor de esta copia en 127.0.0.1:8769), `garage-demo` (base
+  `stravagancia_test_demo_047`, copia del seed ficticio en el clúster 55433), `suite-gate`
+  (referencia: 0 fallos), `snap` y `capture.mjs` (apuntan al 8769). El 8768 y la base
+  `stravagancia_test_demo` siguen siendo de Anillos, para que el usuario la pruebe.
+- **Proceso.** Spec `.claude/specs/2026-11-14-garage-fricciones-ui-spec.md` (en la rama) con
+  crítica adversarial; después, agentes Opus de uno en uno, pruebas primero y hasta 3
+  rondas de revisión por bloque, sin commits de los agentes.
+- **Pausado el 14 nov a petición del usuario** («no quiero gastar más tokens»), con commit y
+  push de la rama «por si esta máquina se rompe». Hechos 9 de 16 bloques: B1, B2, B3, B2b
+  (añadido, D25), B4, B5, B6, B7 y B8. La suite completa terminó sin fallos tras cada uno;
+  la última, tras B8: `3780 passed, 696 subtests`. `check` y `makemigrations --check`
+  limpios. Sin migración. Lo hecho por F, en las notas de `bd show garage-047`; los
+  hallazgos de revisión, en la spec §10.1; el estado al pausar, en §10.2.
+- **Falta, en este orden:** B9a, B9b, B12, B10, B11, B13 y B14; después, la verificación
+  final de la spec §8: suite, `check`, CDP de F01, F04 y F20, capturas completas, y F19 y
+  F23 en capturas. Para retomar: el script del workflow de bloques recibe
+  `{"blocks": [...]}` y lee cada bloque de la spec; las instantáneas `snap` siguen en
+  `~/.cache/garage-vps/garage-047/snap.d`.
+- **Para el despliegue:** el orden alfabético usa la intercalación `es-x-icu`; si la base
+  no la tiene, `garage.E001` hace fallar `check` y `migrate`. Sin comprobar en producción.
+- **Para garage-052:** las decisiones marcadas [052] en la spec y los textos que escribieron
+  los agentes donde la spec no los daba (§10.1). Pendiente de decisión: `services/lifespan.py`
+  busca el tipo de vida útil distinto que `is_life_type` (B3-R1-02).
+
 ## 9 nov: Anillos terminada y subida a su rama, sin fusionar
 
 - **Hecho.** Workflow `wf_9527df31-077`: 22 agentes Opus en serie, 0 errores, unas 8 h.

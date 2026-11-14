@@ -1,12 +1,36 @@
 {
- "updated_at": "2026-11-09T09:01:47+00:00",
- "focus": "garage-050 «Anillos» terminada y subida a la rama garage-050-anillos, sin fusionar (servidor 8768, VPS): falta que el usuario la pruebe y decida cuándo fusionarla en garage. Después: garage-047, garage-053, garage-051 y el repaso garage-052. Bucket de fotos sin decidir.",
+ "updated_at": "2026-11-14T20:50:23+00:00",
+ "focus": "garage-047 (fricciones de UI) PAUSADO el 14 nov a petición del usuario, en la rama garage-047-fricciones (../stravagancia-garage-047, servidor 8769), nacida de garage-050-anillos: 9 de 16 bloques hechos (B1–B8 y B2b), con commit y push. Faltan B9a, B9b, B12, B10, B11, B13, B14 y la verificación final (spec §8, §10.2). Anillos sigue sin fusionar, pendiente de que el usuario la pruebe (8768). Después: garage-053, garage-051 y el repaso garage-052. Bucket de fotos sin decidir.",
  "agents": [
   {
    "name": "Claude Opus 5.5 (sesión principal)",
    "role": "orquestación, documentación, Beads y verificación",
-   "status": "en espera del usuario (9 nov)",
-   "task": "garage-050"
+   "status": "en pausa a petición del usuario (14 nov): sin agentes en marcha",
+   "task": "garage-047"
+  },
+  {
+   "name": "Workflow Opus de los bloques de garage-047 (en serie, mismo script: B6, B7, B8)",
+   "role": "por bloque: implementación con pruebas primero, hasta 3 rondas de revisión y corrección, suite al cerrar; sin commits",
+   "status": "terminado 14 nov 2026: 11 agentes, 0 errores; suite tras cada bloque sin fallos (B8: 3780 passed, 696 subtests)",
+   "task": "garage-047"
+  },
+  {
+   "name": "Workflow Opus de los bloques de garage-047 (en serie, mismo script: B2b, B4, B5)",
+   "role": "por bloque: implementación con pruebas primero, hasta 3 rondas de revisión y corrección, suite al cerrar; sin commits",
+   "status": "terminado 14 nov 2026: 13 agentes, 0 errores; suite tras cada bloque sin fallos (B5: 3722 passed, 696 subtests)",
+   "task": "garage-047"
+  },
+  {
+   "name": "Workflow Opus de los bloques de garage-047 (en serie, wf_ec587e7b-cf9: B1–B3)",
+   "role": "por bloque: implementación con pruebas primero, hasta 3 rondas de revisión y corrección, suite al cerrar; sin commits",
+   "status": "terminado 14 nov 2026: 13 agentes, 0 errores; suite tras cada bloque sin fallos (B3: 3654 passed, 572 subtests); B2b añadido a la spec (D25) por un hallazgo de la revisión de B2",
+   "task": "garage-047"
+  },
+  {
+   "name": "Workflow Opus de la spec de garage-047 (en serie, wf_25d4d66a-763)",
+   "role": "redactar la spec por bloques, crítica adversarial y aplicación, hasta 2 rondas; sin tocar código",
+   "status": "terminado 14 nov 2026: spec con 25 fricciones (2 ya resueltas por Anillos), 15 bloques sin migración; 2 rondas de crítica, 25 hallazgos aplicados, 0 rechazados",
+   "task": "garage-047"
   },
   {
    "name": "Workflow Opus de los dos arreglos de Anillos (9 agentes en serie, wf_88406334-65d)",
@@ -82,14 +106,14 @@
   }
  ],
  "validation": {
-  "tests": 3556,
-  "passed": 3556,
+  "tests": 3780,
+  "passed": 3780,
   "failed": 0,
   "skipped": 0,
-  "subtests": 464,
+  "subtests": 696,
   "postgres": "17.11 · local desechable (55434, VPS)",
-  "checked_at": "2026-11-09T09:00:41+00:00",
-  "report": "log de la suite en el VPS, fuera del repo; rama garage-050-anillos en 9a2b2a1"
+  "checked_at": "2026-11-14T20:40:06+00:00",
+  "report": "log de la suite en el VPS, fuera del repo; rama garage-047-fricciones tras el bloque B8 (el commit de la pausa); check y makemigrations --check limpios"
  },
  "not_applicable": [
   "garage-013",

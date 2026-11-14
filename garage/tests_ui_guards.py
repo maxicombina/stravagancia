@@ -864,3 +864,14 @@ class OtherOriginPatternTests(SimpleTestCase):
 
     def test_a_path_on_this_origin_is_fine(self):
         self.assertIsNone(OTHER_ORIGIN.search("@font-face{src:url(/static/garage/fonts/f.woff2)}"))
+
+
+class BusyStateTests(SimpleTestCase):
+    """garage-047 F04: «Guardando…» marks the button that sent a form; it never disables it."""
+
+    def test_the_busy_state_never_disables_the_submitter(self):
+        # A button disabled while its form is sent no longer sends its own name and value (the snooze shortcuts need theirs).
+        with open(finders.find("garage/garage.js"), encoding="utf-8") as script:
+            source = script.read()
+        self.assertNotRegex(source, r"\.disabled\s*=(?!=)")
+        self.assertNotRegex(source, r"(?:set|toggle)Attribute\(\s*['\"]disabled['\"]")

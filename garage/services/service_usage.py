@@ -184,4 +184,5 @@ def category_comparison(actor, category, *, zone, at=None):
         else:
             days, kind = None, ""
         parts.append(PartLife(item, states[item.pk], distance, reading, days, kind, lives.get(item.pk)))
-    return sorted(parts, key=lambda part: (part.distance.value is None, -(part.distance.value or 0), part.item.name.lower(), str(part.item.pk)))
+    # Stable: equal distances keep the Spanish order of report.rows (garage-047 F10).
+    return sorted(parts, key=lambda part: (part.distance.value is None, -(part.distance.value or 0)))

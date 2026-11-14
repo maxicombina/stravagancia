@@ -21,6 +21,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from .history_forms import FIELD_LABELS
 from .models import ActivitySource, ImportRun, StravaGear
+from .ordering import collated
 from .services.ownership import get_inventory, scoped_inventory
 from .services.strava_client import StravaError
 from .services.strava_sources import (dismiss_duplicate, link_gear, merge_candidates, merge_effects, merge_source,
@@ -54,7 +55,7 @@ def _page(request, *, import_form=None, remove_form=None, status=200):
     user = request.user
     state = strava_status(user)
     zone = user_time_zone(request)
-    gear = list(scoped_inventory(user, StravaGear).select_related("bike").order_by("retired", "name", "gear_id"))
+    gear = list(scoped_inventory(user, StravaGear).select_related("bike").order_by("retired", collated("name"), "gear_id"))
     bikes = owner_bikes(user)
     rows = [{"gear": item, "form": GearLinkForm(bikes=bikes, gear_name=item.name or item.gear_id, prefix=str(item.pk),
                                                 initial={"bike": str(item.bike_id) if item.bike_id else ""})} for item in gear]

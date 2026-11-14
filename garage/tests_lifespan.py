@@ -18,6 +18,7 @@ from .services.maintenance_due import maintenance_due
 from .services.ownership import InventoryNotFound, InventoryWriteError, create_inventory, update_inventory
 from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
+from .tests_mobile_workshop import status_line
 
 UTC = dt_timezone.utc
 MADRID = ZoneInfo("Europe/Madrid")
@@ -329,3 +330,85 @@ class TestReviewFixes:
         html = client.post(reverse("garage:installation-replace", args=[period.pk]),
                            {"time_zone": "UTC", "at": "2026-10-15T08:00", "incoming_item": spare.pk, "inherit_lifespan": "on"}, follow=True).content.decode()
         assert "La pieza que sale (Cadena 11v) sigue contando días" in html and life(garage.owner, spare).calendar_days == 365
+
+
+def type_options(html):
+    """The rule form's «Tipo» options, by the value they send."""
+    selects = find_all(parse(html), "select", name="service_type")
+    assert len(selects) == 1
+    return {option.attrs.get("value", ""): visible_text(option) for option in find_all(selects[0], "option")}
+
+
+class TestLifeTypeInRules:
+    """garage-047 F06 (D8): «Sustitución» in a rule of an item is its useful life; the form and the save say so."""
+
+    OPTION = "Sustitución (en un objeto, es su vida útil)"
+    SAVED = "Guardada como vida útil de Luz: se ve como «Vida útil» en su ficha."
+
+    def test_the_life_type_option_says_it_is_the_useful_life(self, garage, client):
+        kind = save_maintenance(garage.owner, ServiceType, name=LIFE_TYPE)
+        lookalike = save_maintenance(garage.owner, ServiceType, name="Sustitución de cubiertas")
+        review = ServiceType.objects.get(owner=garage.owner, name="Revisión")
+        client.force_login(garage.owner)
+        rule = save_maintenance(garage.owner, MaintenanceRule, bike=garage.road, service_type=review, calendar_days=30)
+        for url in (reverse("garage:maintenance-rule-create"), reverse("garage:maintenance-rule-edit", args=[rule.pk])):
+            options = type_options(client.get(url).content.decode())
+            assert options[str(kind.pk)] == self.OPTION, url  # the value sent is still the type itself
+            assert options[str(lookalike.pk)] == "Sustitución de cubiertas", url  # only that very type
+            assert options[str(review.pk)] == "Revisión", url
+            assert list(options.values()).count(self.OPTION) == 1, url
+
+    def test_saving_a_life_rule_says_so(self, garage, client):
+        kind = save_maintenance(garage.owner, ServiceType, name=LIFE_TYPE)
+        client.force_login(garage.owner)
+        data = {"item": garage.light.pk, "service_type": kind.pk, "calendar_days": "365", "time_zone": "UTC"}
+        created = client.post(reverse("garage:maintenance-rule-create"), data, follow=True)
+        assert created.redirect_chain == [(reverse("garage:maintenance"), 302)]
+        assert status_line(created) == [self.SAVED]
+        rule = MaintenanceRule.objects.get(owner=garage.owner, item=garage.light, service_type=kind)
+        assert is_life(rule) and lifespan_rule(garage.owner, garage.light).pk == rule.pk  # what its page shows as «Vida útil»
+        edited = client.post(reverse("garage:maintenance-rule-edit", args=[rule.pk]), {**data, "calendar_days": "400"}, follow=True)
+        assert status_line(edited) == [self.SAVED]
+        rule.refresh_from_db()
+        assert rule.calendar_days == 400
+
+    @pytest.mark.parametrize("name", ["sustitución", " Sustitución ", "SUSTITUCIÓN"])
+    def test_a_type_named_in_other_case_or_spacing_counts(self, garage, client, name):
+        """The same rule as `is_life`: spaces around and case do not matter, so the label and the life never disagree."""
+        kind = save_maintenance(garage.owner, ServiceType, name=LIFE_TYPE)
+        ServiceType.objects.filter(pk=kind.pk).update(name=name)  # stored as is: the form strips spaces, older data may keep them
+        client.force_login(garage.owner)
+        assert type_options(client.get(reverse("garage:maintenance-rule-create")).content.decode())[str(kind.pk)] == self.OPTION
+        response = client.post(reverse("garage:maintenance-rule-create"),
+                               {"item": garage.light.pk, "service_type": kind.pk, "calendar_days": "365", "time_zone": "UTC"}, follow=True)
+        assert status_line(response) == [self.SAVED]
+        assert is_life(MaintenanceRule.objects.get(owner=garage.owner, item=garage.light, service_type=kind))
+
+    @pytest.mark.parametrize("first", ["Sustitución", "sustitución"])
+    def test_two_types_that_both_count_never_read_the_same(self, garage, client, first):
+        """A database that lowercases only ASCII keeps «SUSTITUCIÓN» apart from «Sustitución», while `is_life` takes both
+        for the useful life. Both options say so, and the name the person gave each one tells them apart."""
+        kind = save_maintenance(garage.owner, ServiceType, name=first)
+        client.force_login(garage.owner)
+        created = client.post(reverse("garage:service-type-create"), {"name": "SUSTITUCIÓN"}, follow=True)
+        other = ServiceType.objects.filter(owner=garage.owner, name="SUSTITUCIÓN").first()
+        if other is None:  # a database that lowercases «Ó» too refuses it as the same name: no two options can read the same
+            assert "Ya tienes un tipo con ese nombre." in created.content.decode()
+            return
+        rule = save_maintenance(garage.owner, MaintenanceRule, item=garage.light, service_type=other, calendar_days=30)
+        assert is_life(rule)  # what the label has to keep saying
+        expected = {str(kind.pk): f"{first} (en un objeto, es su vida útil)", str(other.pk): "SUSTITUCIÓN (en un objeto, es su vida útil)"}
+        for url in (reverse("garage:maintenance-rule-create"), reverse("garage:maintenance-rule-edit", args=[rule.pk])):
+            options = type_options(client.get(url).content.decode())
+            assert {pk: options[pk] for pk in expected} == expected, url
+            assert len(set(options.values())) == len(options), url
+
+    def test_a_bike_rule_of_that_type_is_ordinary(self, garage, client):
+        """Guard: on a bike, «Sustitución» is an ordinary rule, and the save never speaks of a useful life."""
+        kind = save_maintenance(garage.owner, ServiceType, name=LIFE_TYPE)
+        client.force_login(garage.owner)
+        response = client.post(reverse("garage:maintenance-rule-create"),
+                               {"bike": garage.road.pk, "service_type": kind.pk, "calendar_days": "30", "time_zone": "UTC"}, follow=True)
+        assert response.redirect_chain == [(reverse("garage:maintenance"), 302)]
+        assert not is_life(MaintenanceRule.objects.get(owner=garage.owner, bike=garage.road, service_type=kind))
+        assert not any("vida útil" in text.lower() for text in status_line(response))

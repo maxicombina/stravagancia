@@ -24,7 +24,7 @@
     <div><b>{{ strava_rides }}</b><span>salidas con datos de Strava</span></div>
     <div><b>{{ duplicates }}</b><span>posibles duplicados</span></div>
   </div>
-  {% if state.is_owner %}<form method="post" action="{% url 'garage:strava-sync' %}">{% csrf_token %}<button type="submit" class="btn"><svg class="ic sm" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</button></form>
+  {% if state.is_owner %}<form method="post" action="{% url 'garage:strava-sync' %}" data-busy>{% csrf_token %}<button type="submit" class="btn"><svg class="ic sm" aria-hidden="true"><use href="#i-sync"/></svg>Sincronizar ahora</button></form>
   <p class="note">Pide los últimos 7 días y confirma los avisos pendientes del webhook. Si una salida ya existe por un FIT (inicio a ±90 s y distancia a ±2 %), se une a ella; si hay dudas, queda aparte como «posible duplicado».</p>{% endif %}
 </section>
 {% endif %}

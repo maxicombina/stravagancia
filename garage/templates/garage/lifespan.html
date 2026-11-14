@@ -20,7 +20,7 @@
   {% include "garage/_field.html" with field=form.start %}
   {% if reference_event %}<p class="pending st-review"><svg class="ic sm"><use href="#i-alert"/></svg><span>Ahora cuenta desde la última sustitución registrada, el {% local_date reference_event.performed_at %}. «Cuenta desde» sólo se usa sin sustituciones.</span></p>{% endif %}
   {% if rule.ride_count %}<p class="note">También vence a {{ rule.ride_count }} salidas: se edita en la regla del Taller.</p>{% endif %}
-  <details class="zone"{% if form.time_zone.errors %} open{% endif %}><summary>Zona horaria: {{ form.time_zone.value|default:"UTC" }} · Cambiar</summary>
+  <details class="zone"{% if form.time_zone.errors %} open{% endif %}><summary><span>Horas en <span data-zone-name>{{ form.time_zone.value|zone_name }}</span> · Cambiar</span></summary>
     {% include "garage/_field.html" with field=form.time_zone %}</details>
   <p class="note">Los km cuentan desde esa fecha con las salidas registradas en Garage. Si la pieza es usada, sus km anteriores aún no se suman aquí.</p>
   <div class="actionbar"><button type="submit" class="btn">Guardar vida útil</button><a class="btn ghost" href="{{ back_url }}">Cancelar</a></div>

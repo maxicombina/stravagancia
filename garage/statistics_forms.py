@@ -1,15 +1,18 @@
 from django import forms
 
 from .forms import LocalDateTimeField
+from .maintenance_forms import SpanishWebMixin
 from .models import Bike, Category, Item
+from .ordering import by_name
 from .services.ownership import get_inventory, require_actor, scoped_inventory
 from .web_forms import LOCAL_WIDGET, ZONE_HELP, clean_zone, convert_local_fields
 
 
-class StatisticsForm(forms.Form):
-    bike = forms.ModelChoiceField(Bike.objects.none(), required=False, label="Bici (uso observado)")
-    category = forms.ModelChoiceField(Category.objects.none(), required=False, label="Categoría")
-    item = forms.ModelChoiceField(Item.objects.none(), required=False, label="Objeto")
+class StatisticsForm(SpanishWebMixin, forms.Form):
+    # Empty is «no filter» here, so it says so (garage-047 F09).
+    bike = forms.ModelChoiceField(Bike.objects.none(), required=False, label="Bici (uso observado)", empty_label="Todas")
+    category = forms.ModelChoiceField(Category.objects.none(), required=False, label="Categoría", empty_label="Todas")
+    item = forms.ModelChoiceField(Item.objects.none(), required=False, label="Objeto", empty_label="Todos")
     started_from = LocalDateTimeField(required=False, widget=LOCAL_WIDGET, label="Desde (incluido)")
     started_to = LocalDateTimeField(required=False, widget=LOCAL_WIDGET, label="Hasta (excluido; vacío: ahora)")
     time_zone = forms.CharField(initial="UTC", help_text=ZONE_HELP, label="Zona IANA")
@@ -18,7 +21,7 @@ class StatisticsForm(forms.Form):
         self.actor = require_actor(user)
         super().__init__(*args, **kwargs)
         for name, model in (("bike", Bike), ("category", Category), ("item", Item)):
-            self.fields[name].queryset = scoped_inventory(self.actor, model)
+            self.fields[name].queryset = by_name(scoped_inventory(self.actor, model))
             # Resolve submitted UUIDs first: unowned/malformed identifiers are 404.
             if self.is_bound and self.data.get(name):
                 get_inventory(self.actor, model, self.data[name])

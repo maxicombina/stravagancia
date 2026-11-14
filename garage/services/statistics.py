@@ -11,6 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from garage.models import Bike, Category, Installation, Item, ItemUsage, Ride, ServiceEvent, UsageBaseline, UsageMaterializationState
+from garage.ordering import by_name, positions
 from .baselines import _instant
 from .ownership import InventoryWriteError, _lock_owner, get_inventory
 
@@ -168,8 +169,8 @@ def statistics(actor, *, started_from=None, started_to=None, bike=None, category
         owner = _lock_owner(actor)
         filters = {name: get_inventory(owner, model, getattr(value, "pk", value)) if value is not None else None
                    for name, model, value in (("bike", Bike, bike), ("category", Category, category), ("item", Item, item))}
-        bikes = list(Bike.objects.filter(owner=owner).order_by("name", "id"))
-        items = list(Item.objects.filter(owner=owner).select_related("category").order_by("name", "id"))
+        bikes = list(by_name(Bike.objects.filter(owner=owner)))
+        items = list(by_name(Item.objects.filter(owner=owner).select_related("category")))
         items = [obj for obj in items if (not filters["item"] or obj.pk == filters["item"].pk) and (not filters["category"] or obj.category_id == filters["category"].pk)]
         rides = list(Ride.objects.filter(owner=owner).only("id", "started_at", "bike_id", "distance_m", "moving_time_s", "elevation_gain_m"))
         current = not rides or UsageMaterializationState.objects.filter(owner=owner, initialized_at__isnull=False).exists()
@@ -185,7 +186,7 @@ def statistics(actor, *, started_from=None, started_to=None, bike=None, category
         for row in Installation.objects.filter(owner=owner, started_at__lt=end, **only).select_related("bike", "parent_item"):
             installations[row.item_id].append(row)
         bike_id = filters["bike"].pk if filters["bike"] else None
-        names = {obj.pk: obj.name for obj in bikes}
+        names, rank = {obj.pk: obj.name for obj in bikes}, positions(bikes)
         targets = [(obj, "bike") for obj in bikes if (bike_id is None or obj.pk == bike_id) and not filters["item"] and not filters["category"]] + [(obj, "item") for obj in items]
         results = []
         for target, kind in targets:
@@ -202,7 +203,8 @@ def statistics(actor, *, started_from=None, started_to=None, bike=None, category
                 totals.append(UsageBlock("Desde adquisición (observado)", target.acquisition_anchor_at, end, _observed(_select(rows, target.acquisition_anchor_at, end), empty_complete=target.acquisition_anchor_at == end)))
             distribution = []
             if is_item and trusted:
-                for destination in sorted({row.bike_id for row in selected}, key=str):
+                # In the bikes' Spanish order, and the rides without a bike («Bici desconocida») last (garage-047 F10).
+                for destination in sorted({row.bike_id for row in selected}, key=lambda bike: (rank.get(bike, len(rank)), str(bike))):
                     distribution.append(UsageBlock(names.get(destination, "Bici desconocida"), start, end, _observed([row for row in selected if row.bike_id == destination], trusted=trusted)))
             mounts = []
             for mount in installations[target.pk] if is_item else []:

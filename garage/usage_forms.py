@@ -6,13 +6,15 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from .forms import LocalDateTimeField
+from .maintenance_forms import SpanishWebMixin
 from .models import Bike, Item, Ride, UsageProfile
+from .ordering import by_name
 from .services.ownership import get_inventory, require_actor, scoped_inventory
 from .services import usage_profiles
 from .web_forms import LOCAL_WIDGET, ZONE_HELP, clean_zone, convert_local_fields
 
 
-class ProfileWebForm(forms.Form):
+class ProfileWebForm(SpanishWebMixin, forms.Form):
     name = forms.CharField(max_length=150, label='Nombre del perfil')
     bike = forms.ModelChoiceField(queryset=Bike.objects.none(), required=False, label='Bici',
                                  empty_label='Todas mis bicis / sin bici asignada')
@@ -35,8 +37,8 @@ class ProfileWebForm(forms.Form):
         profile = get_inventory(self.actor, UsageProfile, profile.pk) if profile is not None else None
         self.profile = profile
         super().__init__(*args, **kwargs)
-        self.fields['bike'].queryset = scoped_inventory(self.actor, Bike)
-        self.fields['items'].queryset = scoped_inventory(self.actor, Item)
+        self.fields['bike'].queryset = by_name(scoped_inventory(self.actor, Bike))
+        self.fields['items'].queryset = by_name(scoped_inventory(self.actor, Item))
         if profile is not None:
             for field in ('name', 'bike', 'sport_type', 'notes'):
                 self.initial[field] = getattr(profile, field)
@@ -92,8 +94,8 @@ class ProfileWebForm(forms.Form):
         return usage_profiles.create_profile(self.actor, at=None if data['timing'] == 'now' else data['at'], items=items, **values)
 
 
-class OverrideWebForm(forms.Form):
-    item = forms.ModelChoiceField(queryset=Item.objects.none(), label='Objeto')
+class OverrideWebForm(SpanishWebMixin, forms.Form):
+    item = forms.ModelChoiceField(queryset=Item.objects.none(), label='Objeto', empty_label='—')
     action = forms.ChoiceField(choices=[('include', 'Incluir este objeto y su conjunto'),
                                       ('exclude', 'Excluir este objeto y su conjunto')], label='Excepción')
 
@@ -101,7 +103,7 @@ class OverrideWebForm(forms.Form):
         self.actor = require_actor(user)
         self.ride = get_inventory(self.actor, Ride, ride.pk)
         super().__init__(*args, **kwargs)
-        self.fields['item'].queryset = scoped_inventory(self.actor, Item)
+        self.fields['item'].queryset = by_name(scoped_inventory(self.actor, Item))
 
     def save(self):
         return usage_profiles.set_usage_override(self.actor, ride=self.ride,

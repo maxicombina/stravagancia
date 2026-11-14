@@ -6,23 +6,29 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .models import ActivitySource, Bike, Item, Ride, UsageOverride, UsageProfile
+from .ordering import by_name, positions
 from .services.ownership import get_inventory, scoped_inventory
 from .services.usage_profiles import resolve_ride_usage, delete_usage_override
 from .usage_forms import ProfileWebForm, OverrideWebForm
-from .views import show_errors, form_page
+from .views import search_text, show_errors, form_page
+
+
+def items_by_name():
+    """A profile's items as they are listed: in Spanish order (garage-047 F10), not by Item.Meta.ordering."""
+    return Prefetch('items', queryset=by_name(Item.objects.all()))
 
 
 @login_required
 @require_http_methods(['GET'])
 def profile_list(request):
-    query = scoped_inventory(request.user, UsageProfile).select_related('bike').prefetch_related('items').order_by('-started_at', '-pk')
+    query = scoped_inventory(request.user, UsageProfile).select_related('bike').prefetch_related(items_by_name()).order_by('-started_at', '-pk')
     page = Paginator(query, 20).get_page(request.GET.get('page'))
     return render(request, 'garage/usage_profiles.html', {'title': 'Perfiles de uso', 'page': page,
                                                          'back_url': reverse('garage:more'), 'back_label': 'Más'})
@@ -32,7 +38,7 @@ def profile_list(request):
 @require_http_methods(['GET'])
 def profile_detail(request, pk):
     profile = get_inventory(request.user, UsageProfile, pk)
-    versions = scoped_inventory(request.user, UsageProfile).filter(series_id=profile.series_id).prefetch_related('items').order_by('started_at', 'pk')
+    versions = scoped_inventory(request.user, UsageProfile).filter(series_id=profile.series_id).prefetch_related(items_by_name()).order_by('started_at', 'pk')
     return render(request, 'garage/usage_profile.html', {'title': profile.name, 'profile': profile, 'versions': versions,
                                                         'back_url': reverse('garage:usage-profile-list'), 'back_label': 'Perfiles de uso'})
 
@@ -62,7 +68,7 @@ def profile_edit(request, pk=None, correction=False):
 
 def resolved_context(request, ride):
     resolution = resolve_ride_usage(request.user, ride.pk)
-    items = scoped_inventory(request.user, Item).filter(pk__in=resolution.item_ids).order_by('name', 'pk')
+    items = by_name(scoped_inventory(request.user, Item).filter(pk__in=resolution.item_ids))
     return resolution, items
 
 
@@ -79,7 +85,7 @@ def ride_list_url(filters):
 @login_required
 @require_http_methods(['GET'])
 def ride_list(request):
-    q = request.GET.get('q', '')[:200].strip()
+    q = search_text(request)
     pending = request.GET.get('pending') == '1'
     rides = scoped_inventory(request.user, Ride).select_related('bike').order_by('-started_at', '-pk')
     if pending:
@@ -99,12 +105,13 @@ def ride_list(request):
     # One locked resolver snapshot for the whole page instead of one per row.
     from .services.ride_review import resolve_rides
     resolutions = resolve_rides(request.user, list(page))
-    names = {item.pk: item for item in scoped_inventory(request.user, Item).filter(
-        pk__in={pk for resolution in resolutions.values() for pk in resolution.item_ids})}
+    names = {item.pk: item for item in by_name(scoped_inventory(request.user, Item).filter(
+        pk__in={pk for resolution in resolutions.values() for pk in resolution.item_ids}))}
+    rank = positions(names.values())  # each row's gear in the Spanish order of that query (garage-047 F10)
     from .services.strava_sources import ride_origins
     origins = ride_origins(request.user, [ride.pk for ride in page])
     rows = [{'ride': ride, 'resolution': resolutions[ride.pk], 'origin': origins[ride.pk][0], 'duplicate': origins[ride.pk][1],
-             'items': sorted((names[pk] for pk in resolutions[ride.pk].item_ids), key=lambda item: (item.name, str(item.pk)))}
+             'items': sorted((names[pk] for pk in resolutions[ride.pk].item_ids), key=lambda item: rank[item.pk])}
             for ride in page]
     return render(request, 'garage/usage_rides.html', {'title': 'Salidas', 'tab': 'rides', 'rows': rows, 'pending': pending, 'bike': bike,
                    'has_strava': any('Strava' in row['origin'] for row in rows),
@@ -129,7 +136,7 @@ def ride_detail(request, pk):
             messages.success(request, 'Excepción guardada.')
             return redirect('garage:usage-ride-detail', pk=ride.pk)
     resolution, items = resolved_context(request, ride)
-    overrides = scoped_inventory(request.user, UsageOverride).filter(ride=ride).select_related('item').order_by('item__name', 'pk')
+    overrides = by_name(scoped_inventory(request.user, UsageOverride).filter(ride=ride).select_related('item'), 'item__name')
     sources = list(scoped_inventory(request.user, ActivitySource).filter(ride=ride).order_by('source_kind', 'started_at', 'pk'))
     active = [source for source in sources if source.withdrawn_at is None]
     from .services.strava_sources import origin_label

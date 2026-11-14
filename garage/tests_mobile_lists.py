@@ -2,6 +2,7 @@
 import re
 from datetime import date, datetime, timezone as dt_timezone
 from pathlib import Path
+from urllib.parse import parse_qs, urljoin, urlsplit
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -10,10 +11,11 @@ from django.urls import reverse
 
 from test_support import contrast
 
-from .models import Category, UsageProfile
+from .models import Bike, Category, Item, UsageProfile
 from .services.ownership import create_inventory
 from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture)
+from .tests_ordering import SPANISH, owner_named, row_names, spanish  # noqa: F401 (fixture)
 
 UTC = dt_timezone.utc
 TEMPLATES = Path(__file__).parent / "templates" / "garage"
@@ -231,3 +233,147 @@ class TestOtherScreens:
         assert "Revisar bici y material" in html and "Material resuelto" in html and "Añadir o cambiar excepción" in html
         export = client.get(reverse("garage:export")).content.decode()
         assert "Descargar JSON" in export and "Descargar CSV (ZIP)" in export and 'aria-label="Volver a Más"' in export
+
+
+# The four lists with a search box, each with a search that finds some of its rows and not all of them.
+SEARCH_LISTS = [("garage:bike-list", "ra"), ("garage:item-list", "Ca"), ("garage:category-list", "Ca"), ("garage:usage-ride-list", "Ruta")]
+
+
+def shown(client, route, **params):
+    """A list as a browser gets it: the names of its rows, what its search box says and the parameters of each link."""
+    response = client.get(reverse(route), params)
+    assert response.status_code == 200, (route, params)
+    root = parse(response.content.decode())
+    boxes = find_all(root, "input", id="q")
+    assert len(boxes) == 1
+    links = [parse_qs(urlsplit(link.attrs["href"]).query) for link in find_all(root, "a", href=True)]
+    return [visible_text(name) for name in find_all(root, cls="entry-name")], boxes[0].attrs.get("value", ""), links
+
+
+class TestNullCharactersInTheSearch:
+    """F25 (garage-047, D2): PostgreSQL takes no null character in a literal and a name cannot hold one, so the rest is searched."""
+
+    @pytest.mark.parametrize("route,search", SEARCH_LISTS)
+    @pytest.mark.parametrize("where", ["first", "inside", "last", "everywhere"])
+    def test_a_null_character_in_the_search_is_ignored(self, garage, client, route, search, where):
+        dirty = {"first": "\x00" + search, "inside": search[0] + "\x00" + search[1:], "last": search + "\x00",
+                 "everywhere": "\x00" + "\x00".join(search) + "\x00\x00"}[where]
+        client.force_login(garage.owner)
+        names, box, links = shown(client, route, q=dirty)
+        clean_names = shown(client, route, q=search)[0]
+        assert names == clean_names and 0 < len(names) < len(shown(client, route)[0]), (names, clean_names)
+        assert box == search
+        carried = [link["q"] for link in links if "q" in link]
+        assert carried and all(value == [search] for value in carried), carried  # the filters and pages go on with the clean search
+
+    @pytest.mark.parametrize("route", [route for route, _ in SEARCH_LISTS])
+    @pytest.mark.parametrize("dirty", ["\x00", "\x00" * 250, " \x00\t\x00 "], ids=["one", "250", "and-spaces"])
+    def test_a_search_of_only_null_characters_is_no_search(self, garage, client, route, dirty):
+        client.force_login(garage.owner)
+        names, box, links = shown(client, route, q=dirty)
+        assert names and names == shown(client, route)[0]
+        assert box == "" and not [link for link in links if "q" in link]
+
+    @pytest.mark.parametrize("route,search", SEARCH_LISTS)
+    def test_the_200_character_cap_counts_after_cleaning(self, garage, client, route, search):
+        client.force_login(garage.owner)
+        # Two hundred null characters first: cutting before cleaning would leave nothing to search, and every row would show.
+        names, box, _ = shown(client, route, q="\x00" * 200 + search)
+        assert box == search and names == shown(client, route, q=search)[0]
+        assert shown(client, route, q="\x00" * 50 + "x" * 250)[1] == "x" * 200
+
+
+ONLY_PENDING = "Sólo las que están por revisar"
+NO_MATCH = "Ninguna salida coincide con estos filtros."
+
+
+class TestThePendingPillAndABike:
+    """F24 (garage-047, D3): the rides «por revisar» have no bike, so with a bike chosen that pill always led to an empty list."""
+
+    @staticmethod
+    def rides(client, url=None, **params):
+        response = client.get(url or reverse("garage:usage-ride-list"), params)
+        assert response.status_code == 200, (url, params)
+        return parse(response.content.decode())
+
+    @staticmethod
+    def pills(root):
+        """What each pill of Salidas says and what it asks for."""
+        navs = find_all(root, "nav", cls="chips")
+        assert len(navs) == 1
+        return {visible_text(pill): parse_qs(urlsplit(pill.attrs["href"]).query) for pill in find_all(navs[0], "a")}
+
+    @staticmethod
+    def message(root):
+        empties = find_all(root, "li", cls="card empty")
+        assert len(empties) == 1
+        return visible_text(empties[0])
+
+    @pytest.mark.parametrize("search", ["", "bici"])
+    def test_pending_pill_without_a_bike(self, garage, client, search):
+        client.force_login(garage.owner)
+        searched = {"q": search} if search else {}
+        root = self.rides(client, **searched)
+        assert self.pills(root) == {ONLY_PENDING: {"pending": ["1"], **{name: [value] for name, value in searched.items()}}}
+        href = find_all(find_all(root, "nav", cls="chips")[0], "a")[0].attrs["href"]
+        target = self.rides(client, urljoin(reverse("garage:usage-ride-list"), href))
+        assert [visible_text(name) for name in find_all(target, cls="entry-name")] == ["Sin bici"]
+
+    @pytest.mark.parametrize("search", ["", "Pista", "nada se llama así"])
+    def test_no_pending_pill_with_a_bike(self, garage, client, search):
+        client.force_login(garage.owner)
+        root = self.rides(client, bike=garage.gravel.pk, **({"q": search} if search else {}))
+        assert list(self.pills(root)) == ["Gravel"]  # only the chip that takes the bike off
+        asks = [parse_qs(urlsplit(link.attrs["href"]).query) for link in find_all(root, "a", href=True)]
+        assert asks and not [ask for ask in asks if "pending" in ask]
+
+    @pytest.mark.parametrize("search", ["", "bici"])
+    def test_pending_and_bike_explain_the_empty_list(self, garage, client, search):
+        # As an old link or a bookmark may still ask: the list says why it is empty, and the chip takes the bike off and keeps the rest.
+        client.force_login(garage.owner)
+        searched = {"q": search} if search else {}
+        root = self.rides(client, bike=garage.gravel.pk, pending="1", **searched)
+        assert not find_all(root, cls="entry-name")
+        assert self.message(root) == "Las salidas por revisar no tienen bici: quita el filtro de Gravel para verlas."
+        chip = find_all(root, "a", cls="chip-link on")
+        assert len(chip) == 1 and parse_qs(urlsplit(chip[0].attrs["href"]).query) == {"pending": ["1"], **{k: [v] for k, v in searched.items()}}
+        target = self.rides(client, urljoin(reverse("garage:usage-ride-list"), chip[0].attrs["href"]))
+        assert [visible_text(name) for name in find_all(target, cls="entry-name")] == ["Sin bici"]
+
+    def test_the_name_of_the_bike_in_that_sentence_is_text(self, garage, client):
+        bike = create_inventory(garage.owner, Bike, name='Tándem <b>& "dos"')
+        client.force_login(garage.owner)
+        root = self.rides(client, bike=bike.pk, pending="1")
+        assert self.message(root) == 'Las salidas por revisar no tienen bici: quita el filtro de Tándem <b>& "dos" para verlas.'
+        assert not find_all(find_all(root, "li", cls="card empty")[0], "b")
+
+    @pytest.mark.parametrize("params", [{"pending": "1", "q": "nada se llama así"}, {"bike": "gravel", "q": "nada se llama así"}])
+    def test_the_other_empty_lists_say_what_they_said(self, garage, client, params):
+        client.force_login(garage.owner)
+        params = {name: garage.gravel.pk if value == "gravel" else value for name, value in params.items()}
+        assert self.message(self.rides(client, **params)) == NO_MATCH
+
+
+class TestSpanishOrder:
+    """garage-047 F10: the three lists sort as in Spanish (§4 F10 of the spec), and so do their pages of 20."""
+
+    @pytest.mark.parametrize("route", LIST_ROUTES)
+    def test_names_sort_as_in_spanish(self, spanish, route):
+        html = spanish.client.get(reverse(route)).content.decode()
+        assert row_names(html, SPANISH) == SPANISH
+
+    @pytest.mark.parametrize("model", [Item, Bike])
+    def test_pages_of_twenty_follow_the_new_order(self, db, client, model):
+        # In Spanish order the 20 «alfa» and «Ébano» fill the first page and the five «Zeta» go to the second; in byte
+        # order the «Zeta» would come first (uppercase) and «Ébano» last (a byte above every ASCII letter).
+        owner = owner_named("paginas")
+        names = [f"alfa {number:02}" for number in range(1, 20)] + ["Ébano"] + [f"Zeta {number}" for number in range(1, 6)]
+        extra = {"category": create_inventory(owner, Category, name="Varios")} if model is Item else {}
+        for name in reversed(names):
+            create_inventory(owner, model, name=name, **extra)
+        client.force_login(owner)
+        route = "garage:item-list" if model is Item else "garage:bike-list"
+        first = client.get(reverse(route)).content.decode()
+        second = client.get(reverse(route), {"page": 2}).content.decode()
+        assert row_names(first, set(names)) == names[:20]
+        assert row_names(second, set(names)) == names[20:]

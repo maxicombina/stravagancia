@@ -20,9 +20,14 @@ LIFE_TYPE = "Sustitución"
 THRESHOLDS = ("distance_m", "moving_time_s", "calendar_days", "elevation_gain_m")
 
 
+def is_life_type(name):
+    """Whether a service type's name is «Sustitución»: spaces around and case do not matter."""
+    return name.strip().lower() == LIFE_TYPE.lower()
+
+
 def is_life(rule):
     """A component's useful life: an item rule of the «Sustitución» type (bike rules of that type are ordinary)."""
-    return rule is not None and rule.item_id is not None and rule.service_type.name.strip().lower() == LIFE_TYPE.lower()
+    return rule is not None and rule.item_id is not None and is_life_type(rule.service_type.name)
 
 
 def latest_replacement(actor, item, *, at=None):

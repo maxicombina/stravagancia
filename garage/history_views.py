@@ -17,6 +17,7 @@ from .services.import_history import (preview_fit, start_fit_import, resume_fit_
 from .services.ownership import get_inventory, scoped_inventory
 from .services.rides import withdraw_source
 from .local_forms import localize
+from .maintenance_forms import SpanishWebMixin
 from .templatetags.garage_ui import datetime_text
 from .timezones import user_time_zone
 from .views import form_page, show_errors
@@ -171,7 +172,7 @@ def manual_ride(request, pk=None):
 def source_withdraw(request, pk):
     source = get_inventory(request.user, ActivitySource, pk)
     from django import forms
-    class ConfirmForm(forms.Form):
+    class ConfirmForm(SpanishWebMixin, forms.Form):
         confirm = forms.BooleanField(label='Confirmo retirar esta fuente y recalcular sus campos y material; las correcciones manuales permanecen.')
     form = ConfirmForm(request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and form.is_valid():

@@ -3,11 +3,12 @@ from datetime import datetime, timezone as datetime_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, PermissionDenied, ValidationError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from .models import Bike, Category, Item, UsageBaseline, ServiceEvent
+from .ordering import by_name
 from .services.baselines import record_baseline, update_baseline
 from .validators import exact_usage_value
 from .services.ownership import (create_inventory, get_inventory, require_actor, scoped_inventory,
@@ -56,7 +57,7 @@ class OwnedInventoryForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.instance.owner = self.actor
         if "category" in self.fields:
-            self.fields["category"].queryset = scoped_inventory(self.actor, Category)
+            self.fields["category"].queryset = by_name(scoped_inventory(self.actor, Category))
         for name in ("acquisition_anchor_at", "retired_at"):
             if name in self.fields:
                 original = self.fields[name]
@@ -70,6 +71,40 @@ class OwnedInventoryForm(forms.ModelForm):
         exclusions = super()._get_validation_exclusions()
         exclusions.discard("owner")
         return exclusions
+
+    # Model messages that only follow from another field the form rejected, by that field: Model.clean checks a
+    # price with its currency, and the local times stay naive until a valid zone converts them.
+    FOLLOWS = {"purchase_amount": "Enter both a purchase amount and its currency, or neither.",
+               "amount": "Enter both an amount and its currency, or neither.",
+               "time_zone": "Enter an instant with an explicit time zone."}
+
+    def _update_errors(self, errors):
+        """Each model message once, and none that the form's own rejections invented (garage-047 F07).
+
+        A field the form rejected reached the instance empty, so Model.clean complains about a value nobody typed:
+        «Enter a nonempty name.» under a repeated or missing name. A rejected price or zone invents one message
+        elsewhere (FOLLOWS), and only that one: a bad currency code next to it is still a mistake of its own.
+        UsageBaseline checks its value in clean_fields and again in clean, which said it twice.
+        """
+        if hasattr(errors, "error_dict"):
+            rejected = self._errors or {}
+            invented = {self.FOLLOWS[field] for field in rejected if field in self.FOLLOWS}
+            kept = {}
+            for field, messages in errors.error_dict.items():
+                if field != NON_FIELD_ERRORS and field in rejected:
+                    continue
+                seen, unique = set(), []
+                for message in messages:
+                    key = (message.code, str(message.message % message.params if message.params else message.message))
+                    if key not in seen and key[1] not in invented:
+                        seen.add(key)
+                        unique.append(message)
+                if unique:  # an empty list would still mark the field as failed
+                    kept[field] = unique
+            if not kept:
+                return
+            errors = ValidationError(kept)
+        super()._update_errors(errors)
 
     def clean(self):
         cleaned = super().clean()
@@ -188,7 +223,7 @@ class UsageBaselineForm(OwnedInventoryForm):
 
     def __init__(self, *args, user, time_zone="UTC", **kwargs):
         super().__init__(*args, user=user, **kwargs)
-        self.fields["item"].queryset = scoped_inventory(self.actor, Item)
+        self.fields["item"].queryset = by_name(scoped_inventory(self.actor, Item))
         self.fields["service_event"].queryset = scoped_inventory(self.actor, ServiceEvent)
         self.initial.setdefault("time_zone", time_zone)
         if not self.is_bound and isinstance(self.initial.get("cut_at"), datetime):

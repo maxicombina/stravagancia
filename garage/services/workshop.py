@@ -2,10 +2,10 @@
 from dataclasses import dataclass
 
 from django.db import transaction
-from django.db.models.functions import Lower
 from django.utils import timezone
 
 from garage.models import Bike, Item, ServiceEvent, ServiceType
+from garage.ordering import by_name, name_key, positions
 from garage.presentation import by_severity, wear
 from .baselines import _instant
 from .home import HomeAlert, _retired, mount_resolver, open_installations, place_of
@@ -52,7 +52,7 @@ def workshop_snapshot(actor, *, at=None, all_events=False):
             .order_by("-performed_at", "-created_at", "-id")
         events_total = events.count()
         events = tuple(events if all_events else events[:EVENT_LIMIT])
-        types = tuple(ServiceType.objects.filter(owner=owner).order_by(Lower("name"), "id"))
+        types = tuple(by_name(ServiceType.objects.filter(owner=owner)))
 
     mount_of = mount_resolver(open_now, bikes, items)
     groups = {"attention": [], "snoozed": [], "nodata": [], "calm": []}
@@ -61,8 +61,11 @@ def workshop_snapshot(actor, *, at=None, all_events=False):
             continue
         group = "attention" if item.needs_attention else item.state if item.state in ("snoozed", "nodata") else "calm"
         groups[group].append(HomeAlert(item, place_of(item, mount_of)[1]))
-    rules = tuple(sorted((due.rule for due in dues), key=lambda rule: (_retired(rule.item or rule.bike, at), rule.service_type.name.lower(),
-                                                                         str(rule.item or rule.bike).lower(), str(rule.pk))))
+    # Type by its place in `types` (Spanish order); the target is a bike or an item, which no single query sorts
+    # together, so name_key (garage-047 F10).
+    kinds = positions(types)
+    rules = tuple(sorted((due.rule for due in dues), key=lambda rule: (_retired(rule.item or rule.bike, at), kinds[rule.service_type_id],
+                                                                         name_key(str(rule.item or rule.bike)), str(rule.pk))))
     return Workshop(attention=tuple(groups["attention"]), snoozed=tuple(groups["snoozed"]), nodata=tuple(groups["nodata"]), calm=tuple(groups["calm"]), rules=rules,
                     events=events, events_total=events_total, types=types,
                     dues=tuple(due for due in dues if not _retired(due.rule.item or due.rule.bike, at)),

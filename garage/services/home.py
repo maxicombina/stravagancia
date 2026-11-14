@@ -8,6 +8,7 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from garage.models import Bike, Installation, Item, ItemUsage, Ride, UsageMaterializationState
+from garage.ordering import by_name
 from garage.presentation import by_severity, wear
 from .baselines import _instant
 from .lifecycle import IN_USE, ItemLifecycle, item_lifecycles, mount_resolver  # mount_resolver re-exported: workshop, bike screen
@@ -95,12 +96,12 @@ def home_snapshot(actor, *, at=None):
         owner = _lock_owner(actor)
         # Same transaction and lock as the reads below: one coherent snapshot.
         dues = maintenance_due(owner, at=at)
-        all_bikes = list(Bike.objects.filter(owner=owner).order_by("name", "id"))
+        all_bikes = list(by_name(Bike.objects.filter(owner=owner)))
         totals = {row["bike"]: row for row in Ride.objects.filter(owner=owner, bike__isnull=False, started_at__lt=at)
                   .values("bike").annotate(distance=Sum("distance_m"), moving=Sum("moving_time_s"), elevation=Sum("elevation_gain_m"),
                                             no_elevation=Count("id", filter=Q(elevation_gain_m__isnull=True)))}
         open_now = open_installations(owner, at)
-        all_items = list(Item.objects.filter(owner=owner).select_related("category").order_by("name", "id"))
+        all_items = list(by_name(Item.objects.filter(owner=owner).select_related("category")))
         usage_current = not Ride.objects.filter(owner=owner).exists() or \
             UsageMaterializationState.objects.filter(owner=owner, initialized_at__isnull=False).exists()
         pending = pending_rides(owner).aggregate(count=Count("id"), distance=Sum("distance_m"))
@@ -131,7 +132,7 @@ def home_snapshot(actor, *, at=None):
 
     gear = [HomeGear(item, lives[item.pk].state == IN_USE, lives[item.pk].contexts,
                      (distances.get(item.pk) or Decimal(0)) if usage_current else None, lives[item.pk]) for item in loose]
-    gear.sort(key=lambda entry: (not entry.in_use, entry.item.name.lower(), str(entry.item.pk)))
+    gear.sort(key=lambda entry: not entry.in_use)  # stable: each group keeps the Spanish order of all_items (F10)
     return Home(
         attention=tuple(alerts[:ATTENTION_LIMIT]),
         attention_total=len(alerts),

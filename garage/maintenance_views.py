@@ -17,7 +17,7 @@ from .maintenance_forms import MaintenanceRuleWebForm, ServiceEventWebForm, Serv
 from .models import Bike, Item, MaintenanceRule, ServiceEvent, ServiceType, UsageBaseline
 from .services.maintenance import delete_maintenance
 from .services.ownership import InventoryWriteError, get_inventory, scoped_inventory
-from .services.lifespan import LIFE_TYPE
+from .services.lifespan import LIFE_TYPE, is_life
 from .services.parts import ScopeChanged, register_together
 from .services.photos import owned_photos
 from .timezones import user_time_zone
@@ -42,6 +42,7 @@ EXPLANATIONS = {
     "service-type": "Por ejemplo «Lubricar cadena» o «Cambiar pastillas». Se usa en intervenciones y reglas.",
 }
 DELETE_LABELS = {"service-event": "Eliminar intervención", "maintenance-rule": "Eliminar regla", "service-type": "Eliminar tipo"}
+SAVED = {"service-event": "Intervención guardada.", "maintenance-rule": "Regla guardada.", "service-type": "Tipo de intervención guardado."}
 
 
 def _prefill(request):
@@ -121,6 +122,13 @@ def _together_message(events):
     return "Registradas también: " + "; ".join(parts) + "."
 
 
+def _saved_message(kind, saved, extras):
+    """One message per save, also when editing (garage-047 F08): what was saved, and the others of the same visit."""
+    if kind == "maintenance-rule" and is_life(saved):
+        return f"Guardada como vida útil de {saved.item.name}: se ve como «Vida útil» en su ficha."  # F06
+    return f"{SAVED[kind]} {_together_message(extras)}" if extras else SAVED[kind]
+
+
 @login_required
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -163,8 +171,7 @@ def maintenance_edit(request, kind, pk=None):
         except ValidationError as error:
             form._update_errors(error)
         else:
-            if extras:
-                messages.success(request, _together_message(extras))
+            messages.success(request, _saved_message(kind, saved, extras))
             return redirect("garage:service-event-detail", pk=saved.pk) if model is ServiceEvent else redirect("garage:maintenance")
     if fixed and posted:
         # Always kept once shown: the target stays fixed even if that date offers nothing else.

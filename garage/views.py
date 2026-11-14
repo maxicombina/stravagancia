@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .models import Bike, Category, Installation, Item, UsageBaseline
+from .ordering import by_name
 from .services.ownership import get_inventory, scoped_inventory, reactivate_inventory
 from .services.installations import close_installation, replace_installation, transfer_installation
 from .web_forms import (CategoryWebForm, BikeWebForm, ItemWebForm, UsedItemWebForm,
@@ -19,18 +20,41 @@ from .web_forms import (CategoryWebForm, BikeWebForm, ItemWebForm, UsedItemWebFo
 
 KINDS = {'bike': (Bike, BikeWebForm, 'Bicis'), 'item': (Item, ItemWebForm, 'Material'),
          'category': (Category, CategoryWebForm, 'Categorías')}
+# «Crear bici», not «Crear bicis»; the plural above names the list (garage-047 F09).
+SINGULAR = {'bike': 'bici', 'item': 'material', 'category': 'categoría'}
 
 
 def detail_url(kind, obj):
     return reverse('garage:' + kind + '-detail', args=[obj.pk])
 
 
+def search_text(request):
+    """What a list searches for. A name cannot hold a null character and PostgreSQL takes none in a literal (a 500), so
+    they are dropped and the rest is searched; the cap of 200 counts after that (garage-047 F25)."""
+    return request.GET.get('q', '').replace('\x00', '')[:200].strip()
+
+
 def show_errors(form, error):
+    """What a service refused, on its field or above the form, each message once (garage-047 F07).
+
+    Saving may have put it there already (OwnedInventoryForm.save keeps a race visible to every caller), and in
+    Spanish: messages are compared by code and translated text.
+    """
+    from django.core.exceptions import NON_FIELD_ERRORS
+    from .maintenance_forms import error_key
     if hasattr(error, 'error_dict'):
-        for field, errors in error.error_dict.items():
-            form.add_error(field if field in form.fields else None, errors)
+        groups = [(field if field in form.fields else None, errors) for field, errors in error.error_dict.items()]
     else:
-        form.add_error(None, error)
+        groups = [(None, error.error_list)]
+    for field, errors in groups:
+        shown = {error_key(item) for item in form.errors.as_data().get(field or NON_FIELD_ERRORS, ())}
+        fresh = []
+        for item in errors:
+            if error_key(item) not in shown:
+                shown.add(error_key(item))
+                fresh.append(item)
+        if fresh:
+            form.add_error(field, fresh)
 
 
 def form_page(request, form, title, back, explanation='', back_label='la página anterior', extra=None):
@@ -61,7 +85,7 @@ def inventory_list(request, kind):
     from .services import lifecycle
     model, _, label = KINDS[kind]
     objects = scoped_inventory(request.user, model)
-    q = request.GET.get('q', '')[:200].strip()
+    q = search_text(request)
     state = request.GET.get('state', 'all')
     if state not in (lifecycle.FILTERS if kind == 'item' else ('active', 'retired')):
         state = 'all'
@@ -74,7 +98,7 @@ def inventory_list(request, kind):
     elif state != 'all':
         objects = objects.filter(**({'is_archived': state == 'retired'} if kind == 'category'
                                    else {'retired_at__isnull': state == 'active'}))
-    page = Paginator(objects.order_by('name', 'pk'), 20).get_page(request.GET.get('page'))
+    page = Paginator(by_name(objects), 20).get_page(request.GET.get('page'))  # Spanish order, pages included (F10)
     if kind == 'item':
         page.object_list = list(page.object_list)
         lives = lifecycle.item_lifecycles(request.user, page.object_list, at=now)  # the whole page in at most three reads
@@ -254,16 +278,41 @@ def inventory_edit(request, kind, pk=None, used=False):
         # No category yet, and an item needs one: offer the starter set here too (garage-041).
         from .services.categories import starter_offer
         extra = {'starter': starter_offer(request.user, 'item-used-create' if used else 'item-create')}
-    return form_page(request, form, ('Editar ' if obj else 'Crear ') + label.lower(), back,
+    return form_page(request, form, ('Editar ' if obj else 'Crear ') + SINGULAR[kind], back,
         'Cada lectura es independiente. Vacío significa desconocido; no sumamos lecturas históricas.' if used else '',
         back_label=obj.name if obj else label, extra=extra)
+
+
+def retire_explanation(obj, preview, zone):
+    """What retiring closes and from when (garage-047 F04). The limit is a necessary condition, never a promise."""
+    from .templatetags.garage_ui import datetime_text
+    sentences = []
+    # With a retirement already set, its mounts end on that date: there is no open one to name. Mounted until a
+    # later end (its bike's retirement is set, say), it is neither unmounted nor is that mount closed by retiring.
+    if obj.retired_at is None and not preview.ends_later:
+        nothing = '.' if preview.closes_others else ': no se cierra ningún montaje.'
+        if isinstance(obj, Bike):
+            sentences.append('Una bici no tiene montaje propio' + nothing)
+        elif preview.mount is None:
+            sentences.append('No está montado' + nothing)
+        else:
+            mount = preview.mount
+            where = f'en {mount.bike.name}' if mount.bike_id else f'sobre {mount.parent_item.name}'
+            sentences.append(f'Se cerrará su montaje actual: {where} desde el {datetime_text(mount.started_at, zone)}.')
+    if preview.limit is not None:
+        sentences.append(f'Tiene que ser posterior al {datetime_text(preview.limit, zone)}: antes choca con su historial de montajes.')
+    if preview.limit_with_parts is not None and (preview.limit is None or preview.limit_with_parts > preview.limit):
+        sentences.append(f'Si retiras también lo que lleva montado, posterior al {datetime_text(preview.limit_with_parts, zone)}.')
+    sentences.append('El historial permanece disponible.')
+    return ' '.join(sentences)
 
 
 @login_required
 @require_http_methods(['GET', 'POST'])
 def retire(request, kind, pk):
     from django.utils import timezone
-    from .services.retirement import PartsChanged, mounted_in, retire_with_parts
+    from .services.retirement import PartsChanged, mounted_in, retire_with_parts, retirement_preview
+    from .timezones import parse_zone, user_time_zone
     from .web_forms import RetireWebForm
     obj = get_inventory(request.user, KINDS[kind][0], pk)
     # With a retirement already scheduled its mounts close at that date: parts are retired from their own screens.
@@ -288,8 +337,12 @@ def retire(request, kind, pk):
             plural = 'También retirados: ' if len(also) > 1 else 'También retirado: '
             messages.success(request, f'{done}. El historial se conserva.' + (' ' + plural + ', '.join(item.name for item in also) + '.' if also else ''))
             return redirect(detail_url(kind, obj))
+    # Read when the page is shown: a refused save changed nothing, so it says the same as before.
+    preview = retirement_preview(request.user, obj, parts=inside)
+    # In the hours of the form below it: sent back, those of the zone it was sent with, if that is one.
+    zone = parse_zone(getattr(form, 'cleaned_data', {}).get('time_zone')) or user_time_zone(request)
     return form_page(request, form, 'Retirar ' + obj.name, detail_url(kind, obj),
-                     'Se cerrarán los montajes abiertos compatibles con este instante. El historial permanece disponible.', back_label=obj.name)
+                     retire_explanation(obj, preview, zone), back_label=obj.name)
 
 
 @login_required
@@ -376,6 +429,12 @@ def installation_action(request, pk, action):
                 transfer_installation(request.user, pk, at=data['at'], bike=data['bike'],
                                       parent_item=data['parent_item'], slot=data['slot'])
         except ValidationError as error:
+            # The services call the instant of the change started_at (replace, transfer) or ended_at (close); here it is
+            # «Instante del cambio», and its error goes next to it, not above the form (garage-047 F07).
+            if hasattr(error, 'error_dict'):
+                for name in ('started_at', 'ended_at'):
+                    if name in error.error_dict:
+                        error.error_dict.setdefault('at', []).extend(error.error_dict.pop(name))
             show_errors(form, error)
         else:
             messages.success(request, 'Historial actualizado.')

@@ -7,13 +7,15 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .models import Bike, Installation, Item
+from .models import Bike, ImportRun, Installation, Item, MaintenanceRule
 from .services.installations import create_installation
 from .services.lifespan import lifespan_rule, set_lifespan
-from .services.ownership import InventoryWriteError, create_inventory
+from .services.ownership import InventoryWriteError, create_inventory, update_inventory
 from .services.retirement import mounted_in, retire_with_parts
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 from .tests_parts import wheel  # noqa: F401 (fixture)
+from .tests_strava_client import connected, strava  # noqa: F401 (fixture)
 
 WRITES = {"INSERT", "UPDATE", "DELETE"}
 
@@ -189,3 +191,200 @@ class TestReviewFixes:
         with pytest.raises(InventoryWriteError) as error:
             retire_one(garage.owner, garage.light, at=at(15))
         assert "No se puede retirar Luz en esa fecha" in " ".join(error.value.messages)
+
+
+class TestWhatRetiringCloses:
+    """garage-047 F04: the retire page says which mount it closes and the earliest instant its history allows.
+
+    The viewer's zone is UTC here, so `at(100)` (8 Jul 2026, 12:00 UTC) reads «8 jul 2026, 12:00».
+    """
+
+    @staticmethod
+    def open(client, owner, obj):
+        client.force_login(owner)
+        client.cookies["garage_tz"] = "UTC"
+        return client.get(reverse(f"garage:{'bike' if isinstance(obj, Bike) else 'item'}-retire", args=[obj.pk]))
+
+    @staticmethod
+    def lede(html):
+        ledes = find_all(parse(html), "p", cls="lede")
+        assert len(ledes) == 1, ledes
+        return visible_text(ledes[0])
+
+    def test_retiring_names_the_mount_it_closes(self, garage, wheel, client, now):
+        on_bike = self.lede(self.open(client, garage.owner, wheel.rear).content.decode())
+        assert "Se cerrará su montaje actual: en Carretera desde el 8 jul 2026, 12:00." in on_bike
+        assert "Se cerrarán los montajes abiertos compatibles" not in on_bike and "El historial permanece disponible." in on_bike
+        nested = self.lede(self.open(client, garage.owner, wheel.cassette).content.decode())
+        assert "Se cerrará su montaje actual: sobre Rueda trasera desde el 18 jul 2026, 12:00." in nested
+        loose = self.lede(self.open(client, garage.owner, garage.light).content.decode())
+        assert loose.startswith("No está montado: no se cierra ningún montaje.") and "Se cerrará" not in loose
+
+    def test_a_name_in_the_sentence_is_escaped(self, garage, client, now):
+        odd = create_inventory(garage.owner, Bike, name="Pista <b>")
+        create_installation(garage.owner, item=garage.light, bike=odd, parent_item=None, started_at=at(5), ended_at=None, slot=None)
+        html = self.open(client, garage.owner, garage.light).content.decode()
+        assert "en Pista &lt;b&gt; desde el 11 oct 2026, 12:00." in html and "Pista <b>" not in html
+
+    def test_retiring_states_the_earliest_instant(self, garage, wheel, client, now):
+        # One open mount: its start.
+        chain = self.lede(self.open(client, garage.owner, garage.chain).content.decode())
+        assert "Tiene que ser posterior al 30 mar 2026, 12:00: antes choca con su historial de montajes." in chain
+        # A closed mount that ended after the open ones began: its end, not the latest start.
+        create_installation(garage.owner, item=wheel.spare, bike=None, parent_item=wheel.rear, started_at=at(80), ended_at=at(20), slot=None)
+        rear = self.lede(self.open(client, garage.owner, wheel.rear).content.decode())
+        assert "Tiene que ser posterior al 26 sep 2026, 12:00: antes choca con su historial de montajes." in rear
+        # Only closed mounts: nothing closes, and still a limit.
+        create_installation(garage.owner, item=garage.light, bike=garage.gravel, parent_item=None, started_at=at(60), ended_at=at(30), slot=None)
+        light = self.lede(self.open(client, garage.owner, garage.light).content.decode())
+        assert light.startswith("No está montado: no se cierra ningún montaje.")
+        assert "Tiene que ser posterior al 16 sep 2026, 12:00: antes choca con su historial de montajes." in light
+        # The limit is the server's: a minute before it is refused, a minute after it is saved.
+        url = reverse("garage:item-retire", args=[wheel.rear.pk])
+        refused = client.post(url, {"at": "2026-09-26T11:59", "time_zone": "UTC"}).content.decode()
+        assert "No se puede retirar Rueda trasera en esa fecha" in refused and fresh(wheel.rear).retired_at is None
+        client.post(url, {"at": "2026-09-26T12:01", "time_zone": "UTC"})
+        assert fresh(wheel.rear).retired_at == at(20) + timedelta(minutes=1)
+
+    def test_without_history_no_limit_is_stated(self, garage, client, now):
+        for obj in (garage.light, garage.gravel):
+            text = self.lede(self.open(client, garage.owner, obj).content.decode())
+            assert "posterior" not in text and "historial de montajes" not in text, obj.name
+
+    def test_the_limit_counts_what_goes_inside(self, garage, wheel, client, now):
+        # A second-level part mounted after the wheel's own limit (its cassette, 18 jul): retiring the disc with it fails.
+        create_installation(garage.owner, item=wheel.spare, bike=None, parent_item=wheel.disc, started_at=at(10), ended_at=None, slot=None)
+        html = self.open(client, garage.owner, wheel.rear).content.decode()
+        assert "Retirar también lo que lleva montado (3)" in html
+        text = self.lede(html)
+        assert "Tiene que ser posterior al 18 jul 2026, 12:00: antes choca con su historial de montajes." in text
+        assert "Si retiras también lo que lleva montado, posterior al 6 oct 2026, 12:00." in text
+        url = reverse("garage:item-retire", args=[wheel.rear.pk])
+        between = "2026-08-27T12:00"  # at(50)
+        shown = ",".join(str(obj.pk) for obj in mounted_in(garage.owner, wheel.rear, at=at(50)))
+        response = client.post(url, {"at": between, "time_zone": "UTC", "with_parts": "on", "shown_parts": shown})
+        refused = response.content.decode()
+        assert response.status_code in (200, 400) and "No se puede retirar Disco 160 en esa fecha" in refused
+        assert all(fresh(obj).retired_at is None for obj in (wheel.rear, wheel.cassette, wheel.disc, wheel.spare))
+        assert "Si retiras también lo que lleva montado, posterior al 6 oct 2026, 12:00." in self.lede(refused)
+        # Alone, the wheel's own limit is the one that counts.
+        client.post(url, {"at": between, "time_zone": "UTC"})
+        assert fresh(wheel.rear).retired_at == at(50) and fresh(wheel.disc).retired_at is None
+
+    def test_the_preview_survives_a_rejected_post(self, garage, wheel, client, now):
+        self.open(client, garage.owner, wheel.rear)
+        response = client.post(reverse("garage:item-retire", args=[wheel.rear.pk]), {"at": "2026-07-13T12:00", "time_zone": "UTC"})
+        html = response.content.decode()
+        assert response.status_code in (200, 400) and "No se puede retirar Rueda trasera en esa fecha" in html
+        assert "Correct later" not in html and fresh(wheel.rear).retired_at is None
+        text = self.lede(html)
+        assert "Se cerrará su montaje actual: en Carretera desde el 8 jul 2026, 12:00." in text
+        assert "Tiene que ser posterior al 18 jul 2026, 12:00: antes choca con su historial de montajes." in text
+        # What goes inside adds nothing later than the wheel's own limit: no second sentence.
+        assert "Si retiras también" not in text and "Retirar también lo que lleva montado (2)" in html
+
+    def test_a_bike_lists_nothing_of_its_own(self, garage, wheel, client, now):
+        html = self.open(client, garage.owner, garage.road).content.decode()
+        text = self.lede(html)
+        assert text.startswith("Una bici no tiene montaje propio.") and "No está montad" not in text and "Se cerrará" not in text
+        assert "Tiene que ser posterior al 8 jul 2026, 12:00: antes choca con su historial de montajes." in text
+        assert "Si retiras también lo que lleva montado, posterior al 18 jul 2026, 12:00." in text
+        assert "Ahora: Cadena 11v, Rueda trasera, Casete 11-34, Disco 160." in html  # its parts, in the help of with_parts
+        empty = self.lede(self.open(client, garage.owner, garage.gravel).content.decode())
+        assert empty.startswith("Una bici no tiene montaje propio: no se cierra ningún montaje.")
+
+    def test_a_loose_item_with_parts_does_not_say_nothing_closes(self, garage, wheel, client, now):
+        # Unmounted, its own parts still unmount: «no se cierra ningún montaje» would be false.
+        from .services.installations import close_installation
+        close_installation(garage.owner, Installation.objects.get(item=wheel.rear, ended_at__isnull=True).pk, at=at(5))
+        html = self.open(client, garage.owner, wheel.rear).content.decode()
+        text = self.lede(html)
+        assert text.startswith("No está montado.") and "no se cierra ningún montaje" not in text
+        assert "Tiene que ser posterior al 11 oct 2026, 12:00" in text and "Ahora: Casete 11-34, Disco 160." in html
+
+    def test_a_scheduled_retirement_names_no_mount(self, garage, wheel, client, now):
+        # Its mounts already end on that date: nothing open to name, and moving it earlier would clash with them.
+        update_inventory(garage.owner, Item, wheel.rear.pk, retired_at=NOW + timedelta(days=30))
+        text = self.lede(self.open(client, garage.owner, wheel.rear).content.decode())
+        assert "Se cerrará" not in text and "No está montado" not in text
+        assert "Tiene que ser posterior al 15 nov 2026, 12:00: antes choca con su historial de montajes." in text
+
+    def test_an_item_mounted_until_a_later_date_is_not_said_to_be_unmounted(self, garage, client, now):
+        # Its item screen says «Montado»; retiring closes none of that mount, which already ends later.
+        from .services.lifecycle import MOUNTED, item_lifecycles
+        create_installation(garage.owner, item=garage.light, bike=garage.gravel, parent_item=None, started_at=at(5),
+                            ended_at=NOW + timedelta(days=10), slot=None)
+        # Retiring the bike from its page ten days ahead, without its parts: the chain stays on it until then.
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "UTC"
+        response = client.post(reverse("garage:bike-retire", args=[garage.road.pk]), {"at": "2026-10-26T12:00", "time_zone": "UTC"})
+        assert response.status_code == 302 and fresh(garage.road).retired_at == NOW + timedelta(days=10)
+        for item in (garage.light, garage.chain):
+            assert item_lifecycles(garage.owner, [fresh(item)], at=NOW)[item.pk].state == MOUNTED, item.name
+            text = self.lede(self.open(client, garage.owner, item).content.decode())
+            assert "No está montado" not in text and "Se cerrará" not in text, text
+            assert "Tiene que ser posterior al 26 oct 2026, 12:00: antes choca con su historial de montajes." in text, text
+            assert text.endswith("El historial permanece disponible."), text
+
+    def test_a_mount_that_ended_at_this_instant_is_no_longer_mounted(self, garage, client, now):
+        # An end at the instant is already closed (as on the item screen): not mounted, and nothing to close.
+        from .services.lifecycle import MOUNTED, item_lifecycles
+        create_installation(garage.owner, item=garage.light, bike=garage.gravel, parent_item=None, started_at=at(5), ended_at=NOW, slot=None)
+        assert item_lifecycles(garage.owner, [garage.light], at=NOW)[garage.light.pk].state != MOUNTED
+        text = self.lede(self.open(client, garage.owner, garage.light).content.decode())
+        assert text.startswith("No está montado: no se cierra ningún montaje.")
+        assert "Tiene que ser posterior al 16 oct 2026, 12:00: antes choca con su historial de montajes." in text
+
+    def test_a_refused_save_states_its_hours_in_the_zone_the_form_was_sent_with(self, garage, wheel, client, now):
+        # The cookie says UTC; the form went with New York's hours (EDT in July, UTC-4), and the page keeps them.
+        self.open(client, garage.owner, wheel.rear)
+        url = reverse("garage:item-retire", args=[wheel.rear.pk])
+        html = client.post(url, {"at": "2026-07-13T12:00", "time_zone": "America/New_York"}).content.decode()
+        assert "No se puede retirar Rueda trasera en esa fecha" in html and fresh(wheel.rear).retired_at is None
+        assert "Horas en America/New_York" in visible_text(parse(html))
+        text = self.lede(html)
+        assert "Se cerrará su montaje actual: en Carretera desde el 8 jul 2026, 8:00." in text, text
+        assert "Tiene que ser posterior al 18 jul 2026, 8:00: antes choca con su historial de montajes." in text, text
+        # A minute after the hour it names, in that same zone, is saved.
+        client.post(url, {"at": "2026-07-18T08:01", "time_zone": "America/New_York"})
+        assert fresh(wheel.rear).retired_at == at(90) + timedelta(minutes=1)
+
+    def test_the_zone_of_the_form_also_east_of_the_cookie_and_with_what_goes_inside(self, garage, wheel, client, now):
+        create_installation(garage.owner, item=wheel.spare, bike=None, parent_item=wheel.disc, started_at=at(10), ended_at=None, slot=None)
+        self.open(client, garage.owner, wheel.rear)
+        client.cookies["garage_tz"] = "America/New_York"
+        url = reverse("garage:item-retire", args=[wheel.rear.pk])
+        # A missing instant: the form is refused before the service, and still sent in Tokyo's hours (UTC+9).
+        text = self.lede(client.post(url, {"at": "", "time_zone": "Asia/Tokyo"}).content.decode())
+        assert "Tiene que ser posterior al 18 jul 2026, 21:00: antes choca con su historial de montajes." in text, text
+        assert "Si retiras también lo que lleva montado, posterior al 6 oct 2026, 21:00." in text, text
+        # A zone that is none: the form says so, and the page's hours stay the viewer's.
+        html = client.post(url, {"at": "2026-07-13T12:00", "time_zone": "Marte/Olimpo"}).content.decode()
+        assert "Elige una zona horaria IANA válida." in html and fresh(wheel.rear).retired_at is None
+        assert "Tiene que ser posterior al 18 jul 2026, 8:00: antes choca con su historial de montajes." in self.lede(html)
+
+
+class TestBusyMarks:
+    """garage-047 F04 (R2-07): POST forms without `form.form` where a second tap does harm carry `data-busy`."""
+
+    @staticmethod
+    def forms(html):
+        return [form for form in find_all(parse(html), "form") if form.attrs.get("method", "").lower() == "post"]
+
+    def test_slow_or_repeating_posts_are_marked_busy(self, strava, garage, client):
+        connected(strava)
+        client.force_login(strava.owner)
+        page = client.get(reverse("garage:strava")).content.decode()
+        sync = [form for form in self.forms(page) if form.attrs.get("action") == reverse("garage:strava-sync")]
+        assert len(sync) == 1 and "data-busy" in sync[0].attrs
+        run = ImportRun.objects.create(owner=strava.owner, source_kind="strava", items_imported=0, items_skipped=0, requested_from=at(30))
+        page = client.get(reverse("garage:history-run", args=[run.pk])).content.decode()
+        resume = [form for form in self.forms(page) if "Continuar importación" in visible_text(form)]
+        cancel = [form for form in self.forms(page) if form.attrs.get("action") == reverse("garage:history-cancel", args=[run.pk])]
+        assert len(resume) == 1 and "data-busy" in resume[0].attrs
+        assert len(cancel) == 1 and "data-busy" not in cancel[0].attrs
+        client.force_login(garage.owner)
+        rule = MaintenanceRule.objects.get(owner=garage.owner, item=garage.chain)
+        page = client.get(reverse("garage:maintenance-rule-snooze", args=[rule.pk])).content.decode()
+        presets = [form for form in self.forms(page) if "presets" in form.attrs.get("class", "").split()]
+        assert len(presets) == 1 and "data-busy" in presets[0].attrs

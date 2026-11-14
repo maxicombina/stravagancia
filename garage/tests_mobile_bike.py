@@ -384,9 +384,8 @@ class TestRidesByBike:
     def test_the_filter_of_a_bike_is_the_chosen_pill_and_takes_itself_off(self, garage, client):
         client.force_login(garage.owner)
         all_rides = reverse("garage:usage-ride-list")
-        chosen, other = self.pills(client, bike=garage.gravel.pk)
-        assert chosen == (["chip-link", "on"], all_rides, "Gravel")
-        assert (other[0], other[2]) == (["chip-link"], "Sólo las que están por revisar")
+        # garage-047 F24: no «Sólo las que están por revisar» with a bike; those rides have none.
+        assert self.pills(client, bike=garage.gravel.pk) == [(["chip-link", "on"], all_rides, "Gravel")]
         chosen, other = self.pills(client, bike=garage.gravel.pk, pending="1")
         assert chosen == (["chip-link", "on"], f"{all_rides}?pending=1", "Gravel")
         assert (other[0], other[2]) == (["chip-link"], "Ver todas")
@@ -404,6 +403,7 @@ class TestRidesByBike:
 
 
 NO_MATCH = "Ninguna salida coincide con estos filtros."
+PENDING_HAVE_NO_BIKE = "Las salidas por revisar no tienen bici: quita el filtro de Gravel para verlas."
 NO_RIDES = "No hay salidas propias. Las importaciones y las entradas manuales aportarán salidas a esta lista."
 ALL_RIDES = "Ver todas"
 ONLY_PENDING = "Sólo las que están por revisar"
@@ -486,6 +486,8 @@ class TestFiltersKeepEachOther:
         page = salidas(client, **{name: values[0] for name, values in asked.items()})
         if pending:
             assert page.asks(ALL_RIDES) == without(asked, "pending")
+        elif with_bike:
+            assert ONLY_PENDING not in visible_text(find_all(page.root, "nav", cls="chips")[0])  # garage-047 F24
         else:
             assert page.asks(ONLY_PENDING) == {**asked, "pending": ["1"]}
         if with_bike:
@@ -499,13 +501,12 @@ class TestFiltersKeepEachOther:
         assert target.filters == {"q": ["bici"], "pending": ["1"]}
         assert target.names == ["Sin bici"] and target.search == "bici"
 
-    def test_only_pending_keeps_the_bike_and_the_search(self, garage, client):
+    def test_pending_by_address_keeps_the_bike_and_the_search(self, garage, client):
+        # garage-047 F24: no pill leads there from a bike any more; an old address still does, and says why it is empty.
         client.force_login(garage.owner)
-        page = salidas(client, bike=garage.gravel.pk, q="Pista")
-        assert page.names == ["Pista"]
-        target = page.follow(ONLY_PENDING)
-        assert target.filters == {"bike": [str(garage.gravel.pk)], "q": ["Pista"], "pending": ["1"]}
-        assert target.names == [] and target.message == NO_MATCH and target.search == "Pista"
+        target = salidas(client, bike=garage.gravel.pk, q="Pista", pending="1")
+        assert target.names == [] and target.message == PENDING_HAVE_NO_BIKE and target.search == "Pista"
+        assert target.asks(ALL_RIDES) == {"bike": [str(garage.gravel.pk)], "q": ["Pista"]}
 
     def test_see_all_drops_pending_and_keeps_the_bike_and_the_search(self, garage, client):
         client.force_login(garage.owner)
@@ -532,13 +533,12 @@ class TestFiltersKeepEachOther:
         target = salidas(client, bike=garage.gravel.pk, pending="1", q="bici").follow()
         assert target.filters == {"pending": ["1"], "q": ["bici"]} and target.names == ["Sin bici"]
 
-    def test_from_the_bike_to_pending_and_back(self, garage, client):
+    def test_from_pending_with_a_bike_to_the_bike_and_back(self, garage, client):
+        # garage-047 F24: the way in is an address (no pill offers it); the ways out are the same as before.
         client.force_login(garage.owner)
-        rides_of_the_bike = salidas(client, bike=garage.gravel.pk)
-        assert rides_of_the_bike.names == ["Pista"]
-        pending = rides_of_the_bike.follow(ONLY_PENDING)
-        assert pending.filters == {"bike": [str(garage.gravel.pk)], "pending": ["1"]}
-        assert pending.names == [] and pending.message == NO_MATCH
+        pending = salidas(client, bike=garage.gravel.pk, pending="1")
+        assert pending.names == [] and pending.message == PENDING_HAVE_NO_BIKE
+        assert pending.follow().names == ["Sin bici"]
         everything_of_the_bike = pending.follow(ALL_RIDES)
         assert everything_of_the_bike.url == rides_address("?bike=", str(garage.gravel.pk)) and everything_of_the_bike.names == ["Pista"]
         everything = everything_of_the_bike.follow()
@@ -567,9 +567,11 @@ class TestFiltersGoBackToTheFirstPage:
         client.force_login(garage.owner)
         page = salidas(client, bike=garage.gravel.pk, q="Lote", page="2")
         assert "Página 2 de 2" in page.html
-        assert "page" not in page.asks(ONLY_PENDING) and "page" not in page.asks()
+        assert "page" not in page.asks()
         first = page.follow()
         assert first.filters == {"q": ["Lote"]} and "Página 1 de 2" in first.html
+        # garage-047 F24: «Sólo las que están por revisar» is only offered with no bike, and leaves the page behind there.
+        assert "page" not in first.paginate().asks(ONLY_PENDING)
 
     def test_see_all_leaves_the_page_behind(self, garage, client):
         batch(garage)
@@ -582,7 +584,8 @@ class TestFiltersGoBackToTheFirstPage:
     def test_a_page_past_the_end_is_not_carried_either(self, garage, client):
         client.force_login(garage.owner)
         page = salidas(client, bike=garage.gravel.pk, page="99")
-        assert "page" not in page.asks(ONLY_PENDING) and page.link() == rides_address()
+        assert page.link() == rides_address()
+        assert "page" not in salidas(client, page="99").asks(ONLY_PENDING)  # garage-047 F24: that pill only without a bike
 
     @pytest.mark.parametrize("on_bike,pending", [(True, False), (False, True)])
     def test_pagination_keeps_every_filter(self, garage, client, on_bike, pending):
@@ -614,7 +617,7 @@ class TestFiltersAndAwkwardSearches:
     def test_an_empty_search_is_no_parameter(self, garage, client, search):
         client.force_login(garage.owner)
         page = salidas(client, bike=garage.gravel.pk, q=search)
-        assert "q" not in page.asks(ONLY_PENDING) and "q" not in page.asks()
+        assert "q" not in salidas(client, q=search).asks(ONLY_PENDING) and "q" not in page.asks()  # garage-047 F24: that pill only without a bike
         assert "q" not in salidas(client, bike=garage.gravel.pk, pending="1", q=search).asks(ALL_RIDES)
 
     def test_a_search_is_read_as_the_list_reads_it(self, garage, client):
@@ -644,7 +647,7 @@ class TestFiltersAndAwkwardSearches:
 class TestApplyingAFilterAgain:
     def test_going_there_and_back_leaves_the_same_address(self, garage, client):
         client.force_login(garage.owner)
-        start = salidas(client, bike=garage.gravel.pk, q="Pista")
+        start = salidas(client, q="Pista")  # garage-047 F24: «Sólo las que están por revisar» is only offered with no bike
         pending = start.follow(ONLY_PENDING)
         back = pending.follow(ALL_RIDES)
         again = back.follow(ONLY_PENDING)
@@ -655,8 +658,9 @@ class TestApplyingAFilterAgain:
         client.force_login(garage.owner)
         bike = str(garage.gravel.pk)
         page = Salidas(client, rides_address(f"?bike={bike}&bike={bike}&q=Pista&q=Pista"))
-        assert page.asks(ONLY_PENDING) == {"bike": [bike], "q": ["Pista"], "pending": ["1"]}
         assert page.asks() == {"q": ["Pista"]}
+        searched = Salidas(client, rides_address("?q=Pista&q=Pista"))  # garage-047 F24: that pill only without a bike
+        assert searched.asks(ONLY_PENDING) == {"q": ["Pista"], "pending": ["1"]}
         pending = Salidas(client, rides_address(f"?pending=1&pending=1&bike={bike}"))
         assert pending.asks(ALL_RIDES) == {"bike": [bike]}
         assert pending.asks() == {"pending": ["1"]}
@@ -677,7 +681,8 @@ class TestAListWithNoRows:
     def test_a_bike_and_pending_can_never_match_and_it_says_so(self, garage, client):
         client.force_login(garage.owner)
         page = salidas(client, bike=garage.road.pk, pending="1")
-        assert page.names == [] and page.message == NO_MATCH
+        # garage-047 F24: it says why, and where they are.
+        assert page.names == [] and page.message == "Las salidas por revisar no tienen bici: quita el filtro de Carretera para verlas."
 
     @pytest.mark.parametrize("address", ["", "?q=", "?q=%20", "?pending=0", "?page=5"])
     def test_without_a_filter_it_says_what_it_always_said(self, garage, client, address):

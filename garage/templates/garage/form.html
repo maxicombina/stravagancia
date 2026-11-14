@@ -1,4 +1,4 @@
-{% extends "garage/base.html" %}
+{% extends "garage/base.html" %}{% load garage_ui %}
 {% block garage_content %}
 <h1>{{ title }}</h1>
 {% if explanation %}<p class="lede">{{ explanation }}</p>{% endif %}
@@ -8,13 +8,13 @@
 <form method="post" novalidate class="card form">{% csrf_token %}
   {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
   {% for field in form.hidden_fields %}{{ field }}{% endfor %}
-  {% for field in form.visible_fields %}{% if field.name != "time_zone" %}{% include "garage/_field.html" %}{% endif %}{% endfor %}
-  {% if together %}{% include "garage/_together.html" %}{% endif %}
-  {% for field in form.visible_fields %}{% if field.name == "time_zone" %}
+  {% for group in form|form_layout %}{% if group.zone %}{% with field=group.fields.0 %}
   <details class="zone"{% if field.errors %} open{% endif %}>
-    <summary>Zona horaria: {{ field.value|default:"UTC" }} · Cambiar</summary>
+    <summary><span>Horas en <span data-zone-name>{{ field.value|zone_name }}</span> · Cambiar</span></summary>
     {% include "garage/_field.html" %}
-  </details>{% endif %}{% endfor %}
+  </details>{% endwith %}{% elif group.row %}
+  <div class="field-row">{% for field in group.fields %}{% include "garage/_field.html" %}{% endfor %}</div>{% else %}{% for field in group.fields %}{% include "garage/_field.html" %}{% endfor %}{% endif %}{% endfor %}
+  {% if together %}{% include "garage/_together.html" %}{% endif %}
   <div class="actionbar">
     <button type="submit" class="btn">{{ submit_label|default:"Guardar" }}</button>
     <a class="btn ghost" href="{{ back }}">Cancelar</a>

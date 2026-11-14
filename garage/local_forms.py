@@ -11,6 +11,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from .choices import DistinctChoiceField
 from .forms import LocalDateTimeField, local_time_to_utc
 
 PICKER = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?")
@@ -58,7 +59,12 @@ def localize(form, zone):
     Forms render unbound instants as naive UTC wall time with zone "UTC". Only
     then are they converted, so an explicit non-UTC initial zone keeps its values.
     """
-    if form is None or "time_zone" not in form.fields:
+    if form is None:
+        return form
+    for field in form.fields.values():
+        if isinstance(field, DistinctChoiceField):
+            field.zone = zone  # the dates that tell equal options apart, also on a bound form (garage-047 F02)
+    if "time_zone" not in form.fields:
         return form
     names = [name for name, field in form.fields.items() if isinstance(field, LocalDateTimeField)]
     for name in names:

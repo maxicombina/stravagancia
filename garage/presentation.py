@@ -9,6 +9,7 @@ from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 from math import pi
 
 from .icons import item_icon_key
+from .ordering import name_key
 
 STATES = {
     "due": ("Vencido", "octagon"),
@@ -355,7 +356,8 @@ def wear(due):
 def by_severity(wears):
     def key(item):
         ratio = item.headline.ratio if item.headline and item.headline.ratio is not None else Decimal(-1)
-        return SEVERITY.index(item.state), -ratio, str(item.target), str(item.rule.pk)
+        # The target is a bike or an item, which no single query sorts together (garage-047 F10).
+        return SEVERITY.index(item.state), -ratio, name_key(str(item.target)), str(item.rule.pk)
     return sorted(wears, key=key)
 
 

@@ -2,14 +2,18 @@
 import re
 from datetime import datetime
 from decimal import Decimal, localcontext
+from functools import cache
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import DecimalValidator, MaxLengthValidator, ProhibitNullCharactersValidator
 
+from .choices import TARGET_FIELDS
 from .forms import LocalDateTimeField, OwnedInventoryForm, local_time_to_utc
-from .models import Bike, Item, MaintenanceRule, ServiceEvent, ServiceType
+from .models import THRESHOLD_FIELDS, Bike, Item, MaintenanceRule, ServiceEvent, ServiceType
+from .ordering import by_name
+from .services.lifespan import is_life_type
 from .services.maintenance import save_maintenance
 from .services.ownership import scoped_inventory
 from .validators import MAX_USAGE_VALUE, exact_usage_value
@@ -33,18 +37,86 @@ SPANISH = {
     "Constraint “garage_servicetype_owner_name_unique” is violated.": "Ya tienes un tipo con ese nombre.",
     "Enter an instant with an explicit time zone.": "Indica la fecha y hora con su zona horaria.",
     "Enter an uppercase ISO 4217 currency code.": "Usa un código de moneda ISO 4217, por ejemplo EUR.",
+    # Inventory, mounts and readings (garage-047 F07).
+    "This item is already installed during this period.": "Este objeto ya está montado en ese período.",
+    "This position is occupied during this period.": "Esa posición ya está ocupada en ese período.",
+    "These installations form a cycle during a common period.": "Esos montajes forman un ciclo en un período común.",
+    "Choose exactly one destination.": "Elige exactamente una bici o un objeto de destino.",
+    "An item cannot contain itself.": "Un objeto no puede ir montado dentro de sí mismo.",
+    "The end must be later than the start.": "El final debe ser posterior al inicio.",
+    "The installation must finish by this resource's retirement.": "El montaje debe terminar antes de que se retire.",
+    "The installation overlaps recorded inactivity.": "El montaje coincide con un período en el que estaba retirado.",
+    "Choose an instant strictly inside the outgoing installation.":
+        "El cambio tiene que caer dentro del montaje actual: después de su inicio y, si tiene final, antes de él.",
+    "Use a lowercase ASCII position key.": "Usa minúsculas, números y guion bajo, por ejemplo rear_wheel.",
+    "This installation is already closed; edit it explicitly to correct history.":
+        "Ese montaje ya está cerrado: corrígelo con «Editar período».",
+    "Enter a nonempty name.": "Escribe un nombre.",
+    "You already have a category with this name.": "Ya tienes una categoría con ese nombre.",
+    "Enter both a purchase amount and its currency, or neither.": "Indica precio y moneda, o ninguno de los dos.",
+    "Choose one of your own categories.": "Elige una de tus categorías.",
+    "Choose one of your own items.": "Elige uno de tus objetos.",
+    "Correct acquisition readings before removing their anchor.":
+        "Hay lecturas «Desde mi adquisición»: corrígelas antes de quitar este inicio.",
+    "The acquisition anchor cannot follow an existing acquisition reading.":
+        "El inicio del uso desde adquisición no puede ser posterior a una lectura «Desde mi adquisición» ya registrada.",
+    "Declare the reading's source.": "Indica la procedencia de la lectura.",
+    "The reading cannot precede acquisition.": "La lectura no puede ser anterior a la adquisición.",
+    "Confirm the acquisition instant before recording this scope.": "Confirma antes el inicio de la adquisición para este ámbito.",
+    "Constraint “garage_baseline_unique_reading” is violated.": "Ya hay una lectura de esa métrica y ámbito en ese instante: corrígela.",
+    "Constraint “garage_baseline_service_unique” is violated.": "Ya hay una lectura de esa métrica y ámbito en ese instante: corrígela.",
+    "Correct the existing reading at this cut instead of creating another.":
+        "Ya hay una lectura de esa métrica y ámbito en ese instante: corrígela.",
+    "Only service readings require an intervention.":
+        "La intervención va con el ámbito «Desde una intervención concreta», y sólo con él.",
+    "Choose an intervention on this own item.": "Elige una intervención de este mismo objeto.",
+    "The reading cannot precede the intervention.": "La lectura no puede ser anterior a la intervención.",
+    "The number of rides must be an integer.": "Las salidas son un número entero.",
+    "The value must be exactly representable with three decimal places.": "El valor exacto admite como máximo 3 decimales.",
+    "Enter a finite nonnegative value within the supported range.": "Escribe un valor positivo o cero, dentro del máximo admitido.",
+    # ModelChoiceField.to_python raises it itself, before run_validators could use FIELD_MESSAGES.
+    "Null characters are not allowed.": "No se admiten caracteres nulos.",
+    # Usage profiles and manual rides (garage-047 D25).
+    "Use an explicit historical operation for past dates.":
+        "Esa fecha ya ha pasado: para fechas pasadas, elige «Aplicar explícitamente al histórico».",
+    "Split strictly inside this profile version's interval.":
+        "La nueva versión tiene que empezar dentro de la vigencia de esta: después de su inicio y, si tiene final, antes de él.",
+    "Profile versions in the same series cannot overlap.": "Las versiones de un mismo perfil no pueden solaparse.",
+    "A correction cannot remove the only known start.": "Ninguna fuente aporta el inicio: sin la corrección, quedaría desconocido.",
+    # A forged choice that is not even a key: the model's UUIDField refuses it before ModelChoiceField and
+    # ModelMultipleChoiceField look it up, with the value in the text (garage-047 B2b-R1-02). Found by its template.
+    "“%(value)s” is not a valid UUID.": "Elige una opción válida.",
 }
 FIELD_MESSAGES = {"required": "Este campo es obligatorio.", "invalid_choice": "Elige una opción válida.",
                   "min_value": "Debe ser como mínimo %(limit_value)s.", "max_value": "Debe ser como máximo %(limit_value)s.",
-                  "max_length": "Como máximo %(limit_value)d caracteres."}
-# DecimalField subclasses IntegerField: the most specific type goes first.
+                  "max_length": "Como máximo %(limit_value)d caracteres.",
+                  # Validators' codes: Field.run_validators shows these instead and keeps their parameters.
+                  "max_decimal_places": "Como máximo %(max)s decimales.", "max_digits": "Como máximo %(max)s cifras.",
+                  "max_whole_digits": "Como máximo %(max)s cifras antes de la coma.",
+                  "null_characters_not_allowed": "No se admiten caracteres nulos."}
+# DecimalField subclasses IntegerField: the most specific type goes first. DateTimeField is no DateField.
 INVALID = ((forms.DecimalField, "Introduce un número."), (forms.IntegerField, "Introduce un número entero."),
-           (forms.DateTimeField, "Introduce una fecha y hora válidas."))
+           (forms.DateTimeField, "Introduce una fecha y hora válidas."), (forms.DateField, "Introduce una fecha válida."),
+           (forms.FileField, "No llegó ningún archivo: vuelve a elegirlo."))
+# A file's own limit is on its name, with other parameters than a text's (garage-047 D25).
+FILE_MESSAGES = {"empty": "El archivo está vacío.",
+                 "max_length": "El nombre del archivo admite como máximo %(max)d caracteres."}
 
 
 def _spanish_one(error):
     message = str(error.message % error.params if error.params else error.message)
-    return ValidationError(SPANISH[message], code=error.code) if message in SPANISH else error
+    if message in SPANISH:
+        return ValidationError(SPANISH[message], code=error.code)
+    template = str(error.message)  # a message that carries the value typed is only known by its template
+    if error.params and template in SPANISH:
+        return ValidationError(SPANISH[template], code=error.code, params=error.params)
+    return error
+
+
+def error_key(error):
+    """The code and the text of one error once translated: two errors with the same key say the same thing."""
+    spanish = _spanish_one(error)
+    return spanish.code, str(spanish.message % spanish.params if spanish.params else spanish.message)
 
 
 def _spanish(error):
@@ -80,6 +152,8 @@ def spanish_fields(form):
             if isinstance(field, kind):
                 wanted["invalid"] = message
                 break
+        if isinstance(field, forms.FileField):
+            wanted.update(FILE_MESSAGES)
         for code, message in wanted.items():
             current = field.error_messages.get(code)
             if current is None or current == _default_message(field, code):
@@ -196,7 +270,7 @@ class MaintenanceForm(OwnedInventoryForm):
         super().__init__(*args, user=user, **kwargs)
         for field, model in (("item", Item), ("bike", Bike), ("service_type", ServiceType)):
             if field in self.fields:
-                self.fields[field].queryset = scoped_inventory(self.actor, model)
+                self.fields[field].queryset = by_name(scoped_inventory(self.actor, model))
                 self.fields[field].empty_label = "Elige un tipo" if field == "service_type" else "—"
         for field in ("performed_at", "anchor_at"):
             if field in self.fields:
@@ -243,6 +317,9 @@ class ServiceTypeForm(MaintenanceForm):
 
 
 class ServiceTypeWebForm(SpanishWebMixin, ServiceTypeForm):
+    class Meta(ServiceTypeForm.Meta):
+        labels = {"name": "Nombre", "notes": "Notas"}  # here, not in ServiceTypeForm: the admin keeps its own
+
     def clean_name(self):
         name = self.cleaned_data["name"]
         from .services.lifespan import LIFE_TYPE
@@ -268,13 +345,17 @@ class ServiceEventForm(MaintenanceForm):
 class ServiceEventWebForm(SpanishWebMixin, ServiceEventForm):
     """Phone page: decimal comma, field order and a preselected currency (garage-032)."""
 
+    class Meta(ServiceEventForm.Meta):
+        field_classes = TARGET_FIELDS  # options that tell equal names apart (garage-047 F02); the admin keeps its own
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         currency = self.fields["currency"]
         self.fields["currency"] = UpperCodeField(required=False, max_length=3, label=currency.label, help_text=currency.help_text,
             validators=[v for v in currency.validators if not isinstance(v, (MaxLengthValidator, ProhibitNullCharactersValidator))],
             empty_value=None, error_messages=currency.error_messages)
-        self.fields["currency"].widget.attrs.update({"autocapitalize": "characters", "placeholder": "EUR"})
+        # No placeholder: a grey «EUR» looked like a value already typed (garage-047 F13). The help gives the example.
+        self.fields["currency"].widget.attrs.update({"autocapitalize": "characters"})
         # Lets changed_data tell a preselected currency from one the person chose, also on POST.
         self.fields["currency"].show_hidden_initial = True
         amount = self.fields["amount"]
@@ -298,6 +379,28 @@ class ServiceEventWebForm(SpanishWebMixin, ServiceEventForm):
 UNITS = (("distance_m", "distance_km", Decimal(1000), "Distancia (km)", "Como máximo 6 decimales (milímetros)."),
          ("moving_time_s", "moving_time_h", Decimal(3600), "Tiempo en movimiento (horas)",
           "Ese tiempo no se puede guardar exacto (milisegundos): usa menos decimales."))
+
+
+LIFE_NOTE = "(en un objeto, es su vida útil)"
+LIFE_OPTION = f"Sustitución {LIFE_NOTE}"
+
+
+def rule_type_labels(kinds):
+    """How each «Tipo» option of a rule reads (garage-047 F06): a rule of an item of the «Sustitución» type is its useful life.
+
+    Its option says so. Two types can both count as that one: a database that lowercases only ASCII keeps «SUSTITUCIÓN»
+    apart from «Sustitución». Then each option keeps its own name in front, so no two read the same. `kinds` (the field's
+    queryset) is read only when such an option is shown.
+    """
+    @cache
+    def several():
+        return sum(is_life_type(name) for name in kinds.values_list("name", flat=True)) > 1
+
+    def label(kind):
+        if not is_life_type(kind.name):
+            return str(kind)
+        return f"{kind.name.strip()} {LIFE_NOTE}" if several() else LIFE_OPTION
+    return label
 
 
 def _plain(value):
@@ -330,10 +433,23 @@ class MaintenanceRuleWebForm(SpanishWebMixin, MaintenanceRuleForm):
 
     class Meta(MaintenanceRuleForm.Meta):
         # '1.000' salidas or días is a thousand, never 1 (Django's IntegerField would drop '.000').
-        field_classes = {"ride_count": WholeNumberInput, "calendar_days": WholeNumberInput}
+        # Options that tell equal names apart (garage-047 F02); the admin keeps its own.
+        field_classes = {"ride_count": WholeNumberInput, "calendar_days": WholeNumberInput, **TARGET_FIELDS}
+        # «Salidas» says it already; on the phone «Número de salidas.» only made its row taller (garage-047 F20). The admin keeps it.
+        help_texts = {name: text for name, text in MaintenanceRuleForm.Meta.help_texts.items() if name != "ride_count"}
+
+    # Thresholds two by two, so «Contar desde» comes up the page (garage-047 F20). The km and hours names: a value kept in
+    # metres or seconds has another field, and then each of the pair goes on its own line.
+    field_rows = (("distance_km", "moving_time_h"), ("ride_count", "calendar_days"))
+
+    # A threshold the form rejected reached the rule empty, so «at least one» would be false: one was typed (garage-047 F07).
+    FOLLOWS = {**MaintenanceRuleForm.FOLLOWS, **{name: "Configure at least one independent threshold."
+                                                 for name in (*THRESHOLD_FIELDS, *(friendly for _, friendly, *_ in UNITS))}}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        service_type = self.fields["service_type"]
+        service_type.label_from_instance = rule_type_labels(service_type.queryset)  # only the text: the value sent is the same
         self.converted_fields = set()
         fields = {}
         for name, field in self.fields.items():

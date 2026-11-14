@@ -173,6 +173,60 @@
     input.insertAdjacentElement('afterend', clear);
   });
 
+  // Time zone fold (garage-047 F01): its summary names the zone being typed, and the one the browser puts back on
+  // Back or reload: that comes with no `input`, and only by `pageshow`. Opened right above the action bar, it
+  // would unfold under it: it moves just enough into view. `nearest` keeps the scroll padding and focuses nothing, so
+  // no keyboard opens. One open on arrival, with an error, moves nothing.
+  document.querySelectorAll('.page details.zone').forEach(fold => {
+    const name = fold.querySelector('[data-zone-name]');
+    const input = fold.querySelector('input');
+    if (name && input) {
+      const sync = () => { name.textContent = input.value.trim() || '—'; };
+      input.addEventListener('input', sync);
+      window.addEventListener('pageshow', sync);
+    }
+    let open = fold.open;
+    fold.addEventListener('toggle', () => {
+      if (fold.open && !open) fold.scrollIntoView({ block: 'nearest' });
+      open = fold.open;
+    });
+  });
+
+  // Saving (garage-047 F04): the button that sent a form waits for the answer, and a second tap sends nothing more.
+  // Every POST form of the app (`form.form`) but the theme one, which saves by itself, and the slow or repeating ones
+  // without that class, marked `data-busy`. Never `disabled`: a disabled button stops sending its own name and value.
+  // Back from the browser's cache, the page is the one left behind: all is ready again. A send stopped (Stop, Esc),
+  // cut off or overtaken by another leaves this page in place: that form is ready again. Only where the browser says
+  // so (the Navigation API aborts the signal of that navigation); elsewhere, reloading the page does it.
+  const sending = new Map();  // form -> [the button that sent it, what it said]
+  const ready = form => {
+    const [button, nodes] = sending.get(form) || [];
+    sending.delete(form);
+    if (!button) return;
+    button.removeAttribute('aria-disabled');
+    button.classList.remove('busy');
+    button.replaceChildren(...nodes);
+  };
+  document.querySelectorAll('form.form:not([data-theme-form]), form[data-busy]').forEach(sent => {
+    if (!sent.hasAttribute('data-busy') && (sent.getAttribute('method') || '').toLowerCase() !== 'post') return;
+    sent.addEventListener('submit', event => {
+      if (sending.has(sent)) { event.preventDefault(); return; }
+      const button = event.submitter || sent.querySelector('button:not([type]), button[type="submit"]');
+      sending.set(sent, button ? [button, [...button.childNodes]] : [null, []]);
+      // The next navigation is this send's: it starts after this event, in a task of its own.
+      if (window.navigation) {
+        window.navigation.addEventListener('navigate', next => next.signal.addEventListener('abort', () => ready(sent)), { once: true });
+      }
+      if (!button) return;
+      button.setAttribute('aria-disabled', 'true');
+      button.classList.add('busy');
+      if (button.textContent.trim().startsWith('Guardar')) button.textContent = 'Guardando…';
+    });
+  });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) [...sending.keys()].forEach(ready);
+  });
+
   // Useful life: an orientative suggestion fills the form with one tap.
   document.querySelectorAll('[data-fill]').forEach(button => {
     const form = document.querySelector('form[data-lifespan]');

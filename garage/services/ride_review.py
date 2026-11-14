@@ -17,6 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from garage.models import ActivitySource, Bike, Item, Ride, UsageMaterializationState, UsageOverride
+from garage.ordering import by_name, positions
 from garage.ride_values import decode_manual
 from garage.sports import profile_covers
 from .ownership import InventoryNotFound, InventoryWriteError, _lock_owner, get_inventory, scoped_inventory
@@ -174,7 +175,7 @@ def _gear_ids(gear):
 
 
 def _bikes(owner, context, at):
-    return tuple(bike for bike in Bike.objects.filter(owner=owner).order_by("name", "id")
+    return tuple(bike for bike in by_name(Bike.objects.filter(owner=owner))
                  if _available(context, at, bike_id=bike.pk))
 
 
@@ -212,7 +213,9 @@ def review_state(actor, ride_id, /, *, bike=UNCHANGED, gear=None):
         # Exceptions that keep counting a component carried by another bike than the selected one.
         stale_ids = {o.item_id for o in others if o.action == UsageOverride.Action.INCLUDE
                      and _mount_root(context, o.item_id, ride.started_at) not in (None, selected_bike)}
-        items = {item.pk: item for item in Item.objects.filter(owner=owner, pk__in=candidates | changed_ids | stale_ids).select_related("category")}
+        items = {item.pk: item for item in by_name(Item.objects.filter(owner=owner, pk__in=candidates | changed_ids | stale_ids)
+                                                    .select_related("category"))}
+        rank = positions(items.values())  # Spanish order of that query (garage-047 F10)
         overrides = {override.item_id: override.action for override in context.overrides_by_ride.get(ride.pk, ())}
         effects = []
         if selected_bike != ride.bike_id:
@@ -223,13 +226,13 @@ def review_state(actor, ride_id, /, *, bike=UNCHANGED, gear=None):
             if selected_bike in names:
                 effects.append(Effect(names[selected_bike].name, "bike", names[selected_bike], 1, ride.distance_m, ride.moving_time_s,
                                       ride.elevation_gain_m))
-        for item_id in sorted(changed_ids, key=lambda pk: (items[pk].name.lower(), str(pk))):
+        for item_id in sorted(changed_ids, key=rank.__getitem__):
             effects.append(Effect(items[item_id].name, "item", items[item_id], 1 if item_id in after else -1, ride.distance_m,
                                   ride.moving_time_s, ride.elevation_gain_m))
-        stale = tuple(sorted((items[item_id] for item_id in stale_ids), key=lambda item: (item.name.lower(), str(item.pk))))
+        stale = tuple(sorted((items[item_id] for item_id in stale_ids), key=lambda item: rank[item.pk]))
         bike_write = bike is not UNCHANGED and ("bike" not in manual or ride.bike_id != selected_bike)
         candidate_rows = tuple(Candidate(items[item_id], frozenset(usual.get(item_id, ())), item_id in chosen, overrides.get(item_id))
-                               for item_id in sorted(candidates, key=lambda pk: (items[pk].name.lower(), str(pk))))
+                               for item_id in sorted(candidates, key=rank.__getitem__))
         return ReviewState(ride, True, bikes, bike_key(ride.bike_id), "bike" in manual, bike_key(selected_bike), candidate_rows,
                            tuple(effects), stale, mounted, bool(changed_ids) or bike_write, bike is not UNCHANGED, _source(ride))
 

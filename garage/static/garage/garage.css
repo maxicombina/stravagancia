@@ -342,6 +342,8 @@ html[data-os="android"] .appbar-row:not(:has(:is(a, button):not(.only-ios))) { h
 .btn.ghost { background: var(--surface-2); color: var(--ink); }
 html[data-os="android"] body:has(.fab) .page { padding-bottom: 96px; }
 .link-btn { border: 0; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; padding: 6px 2px; min-height: 44px; }
+/* The button that sent its form, waiting for the answer (garage-047 F04): not disabled, so it still sends its name. */
+.busy { opacity: .7; cursor: progress; }
 .fab { position: fixed; z-index: 4; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-space) + 16px);
   height: 56px; padding: 0 20px 0 16px; border-radius: 16px; background: var(--primary); color: var(--on-primary); font-weight: 650; text-decoration: none;
   box-shadow: var(--shadow-float); align-items: center; gap: 8px; }

@@ -8,9 +8,12 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from .choices import BikeChoiceField, ItemChoiceField
 from .forms import BikeForm, CategoryForm, ItemForm, LocalDateTimeField, UsageBaselineForm, local_time_to_utc
 from .icons import ICON_CHOICES, ICON_KEYS
+from .maintenance_forms import SpanishWebMixin, spanish_fields
 from .models import Bike, Item, UsageBaseline
+from .ordering import by_name
 from .services.baselines import record_baseline
 from .services.categories import suggest_icon
 from .services.installations import create_installation, update_installation
@@ -102,7 +105,8 @@ BY_NAME_HELP = ("Lo heredan sus objetos. «Según el nombre» no fija ninguno: c
 ICON_ERROR = "Elige uno de los iconos de la lista."
 
 
-class CategoryWebForm(InventoryWebMixin, CategoryForm):
+# SpanishWebMixin first: its spanish_fields() runs after InventoryWebMixin has created its fields (garage-047 F07).
+class CategoryWebForm(SpanishWebMixin, InventoryWebMixin, CategoryForm):
     icon = forms.ChoiceField(required=False, widget=IconGrid, label="Icono",
         choices=[("", "Según el nombre"), *((key, label) for key, label, _ in ICON_CHOICES)], help_text=BY_NAME_HELP,
         # invalid_icon: Category.clean() rejecting a key (ModelForm maps model error codes to these).
@@ -123,12 +127,16 @@ class CategoryWebForm(InventoryWebMixin, CategoryForm):
         self.fields["icon"].widget.suggested = suggest_icon(name)
 
 
-class BikeWebForm(InventoryWebMixin, BikeForm):
+class BikeWebForm(SpanishWebMixin, InventoryWebMixin, BikeForm):
     pass
 
 
-class ItemWebForm(InventoryWebMixin, ItemForm):
-    pass
+class ItemWebForm(SpanishWebMixin, InventoryWebMixin, ItemForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # An item needs one: asked right after its name, not after the price (garage-047 F09).
+        self.fields["category"].empty_label = "Elige una categoría"
+        self.order_fields(("name", "category"))
 
 
 class UsedItemWebForm(ItemWebForm):
@@ -149,6 +157,7 @@ class UsedItemWebForm(ItemWebForm):
         self.fields["reading_source"] = forms.ChoiceField(choices=SOURCE_CHOICES, initial="manual", required=False,
                                                          label="Procedencia de las lecturas")
         self.fields["reading_estimated"] = forms.BooleanField(required=False, label="Estas lecturas son estimadas")
+        spanish_fields(self)  # the fields above did not exist when the mixin ran
 
     def clean(self):
         cleaned = super().clean()
@@ -157,7 +166,8 @@ class UsedItemWebForm(ItemWebForm):
             field, cut, scope = f"previous_{key}", f"previous_{key}_cut", f"previous_{key}_scope"
             value = cleaned.get(field)
             if value is None:
-                if cleaned.get(cut) is not None:
+                # Not when what was typed is no number: a reading was given, and that field already says why.
+                if cleaned.get(cut) is not None and field not in self.errors:
                     self.add_error(field, "Introduce una lectura o deja también su referencia vacía.")
                 continue
             try:
@@ -173,7 +183,9 @@ class UsedItemWebForm(ItemWebForm):
             if cleaned.get(scope) == "acquisition":
                 anchor = cleaned.get("acquisition_anchor_at")
                 if anchor is None:
-                    self.add_error(scope, "Confirma el inicio de adquisición para este ámbito.")
+                    # Not when a start was typed and rejected: that field already says why.
+                    if "acquisition_anchor_at" not in self.errors:
+                        self.add_error(scope, "Confirma el inicio de adquisición para este ámbito.")
                 elif cleaned.get(cut) is not None and cleaned[cut] < anchor:
                     self.add_error(cut, "La referencia no puede ser anterior a la adquisición.")
         return cleaned
@@ -191,15 +203,19 @@ class UsedItemWebForm(ItemWebForm):
             return item
 
 
-class TemporalActionForm(forms.Form):
+# «Now» is offered to the minute: a phone's picker has no seconds (garage-047 F03).
+NOW_HELP = "Por defecto, ahora. Si fue antes, cámbialo."
+
+
+class TemporalActionForm(SpanishWebMixin, forms.Form):
     time_zone = forms.CharField(initial="UTC", label=LABELS["time_zone"], help_text=ZONE_HELP)
-    at = LocalDateTimeField(widget=LOCAL_WIDGET, label=LABELS["at"])
+    at = LocalDateTimeField(widget=LOCAL_WIDGET, label=LABELS["at"], help_text=NOW_HELP)
 
     def __init__(self, *args, user, **kwargs):
         self.actor = require_actor(user)
         super().__init__(*args, **kwargs)
         if not self.is_bound:
-            self.initial.setdefault("at", timezone.now().astimezone(ZoneInfo("UTC")).replace(tzinfo=None, microsecond=0))
+            self.initial.setdefault("at", timezone.now().astimezone(ZoneInfo("UTC")).replace(tzinfo=None, second=0, microsecond=0))
         decorate(self)
 
     def clean_time_zone(self):
@@ -214,16 +230,16 @@ class InstallationWebForm(TemporalActionForm):
     at = None
     started_at = LocalDateTimeField(widget=LOCAL_WIDGET)
     ended_at = LocalDateTimeField(required=False, widget=LOCAL_WIDGET)
-    bike = forms.ModelChoiceField(queryset=Bike.objects.none(), required=False)
-    parent_item = forms.ModelChoiceField(queryset=Item.objects.none(), required=False)
+    bike = BikeChoiceField(queryset=Bike.objects.none(), required=False, empty_label="—")
+    parent_item = ItemChoiceField(queryset=Item.objects.none(), required=False, empty_label="—")
     slot = forms.CharField(max_length=80, required=False, help_text="Ejemplos: main_saddle, front_wheel, rear_wheel. Vacío: sin exclusividad.")
     notes = forms.CharField(widget=forms.Textarea, required=False)
 
     def __init__(self, *args, user, item, installation=None, **kwargs):
         self.item, self.installation = item, installation
         super().__init__(*args, user=user, **kwargs)
-        self.fields["bike"].queryset = scoped_inventory(self.actor, Bike)
-        self.fields["parent_item"].queryset = scoped_inventory(self.actor, Item).exclude(pk=item.pk)
+        self.fields["bike"].queryset = by_name(scoped_inventory(self.actor, Bike))
+        self.fields["parent_item"].queryset = by_name(scoped_inventory(self.actor, Item).exclude(pk=item.pk))
         if installation is not None and not self.is_bound:
             for field in ("bike", "parent_item", "slot", "notes"):
                 self.initial[field] = getattr(installation, field)
@@ -231,7 +247,10 @@ class InstallationWebForm(TemporalActionForm):
                 value = getattr(installation, field)
                 self.initial[field] = value.astimezone(ZoneInfo("UTC")).replace(tzinfo=None) if value else None
         elif not self.is_bound:
-            self.initial.setdefault("started_at", timezone.now().astimezone(ZoneInfo("UTC")).replace(tzinfo=None, microsecond=0))
+            self.initial.setdefault("started_at", timezone.now().astimezone(ZoneInfo("UTC")).replace(tzinfo=None, second=0, microsecond=0))
+        if installation is None:
+            # Only a new mount starts from «now», also when sent back with errors; an edit shows the saved start (R2-06).
+            self.fields["started_at"].help_text = NOW_HELP
 
     def clean(self):
         cleaned = super().clean()
@@ -250,7 +269,7 @@ class InstallationWebForm(TemporalActionForm):
 
 
 class ReplacementWebForm(TemporalActionForm):
-    incoming_item = forms.ModelChoiceField(queryset=Item.objects.none())
+    incoming_item = ItemChoiceField(queryset=Item.objects.none(), empty_label="Elige un objeto")
     inherit_lifespan = forms.BooleanField(required=False, initial=True, label="La pieza nueva hereda la vida útil",
         help_text="Los mismos umbrales (km, horas, desnivel, tiempo y salidas), contados desde el reemplazo. No cambia una vida útil que ya tenga.")
 
@@ -260,7 +279,7 @@ class ReplacementWebForm(TemporalActionForm):
 
     def __init__(self, *args, user, installation, **kwargs):
         super().__init__(*args, user=user, **kwargs)
-        self.fields["incoming_item"].queryset = scoped_inventory(self.actor, Item).exclude(pk=installation.item_id)
+        self.fields["incoming_item"].queryset = by_name(scoped_inventory(self.actor, Item).exclude(pk=installation.item_id))
         self.fields["retire_outgoing"].label = f"Retirar lo que sale ({installation.item.name})"
         if installation.item.retired_at is not None:
             self.fields.pop("retire_outgoing")  # its retirement is already scheduled
@@ -303,14 +322,14 @@ class RetireWebForm(TemporalActionForm):
 
 
 class TransferWebForm(TemporalActionForm):
-    bike = forms.ModelChoiceField(queryset=Bike.objects.none(), required=False)
-    parent_item = forms.ModelChoiceField(queryset=Item.objects.none(), required=False)
+    bike = BikeChoiceField(queryset=Bike.objects.none(), required=False, empty_label="—")
+    parent_item = ItemChoiceField(queryset=Item.objects.none(), required=False, empty_label="—")
     slot = forms.CharField(max_length=80, required=False, help_text="Vacío: posición no exclusiva en el nuevo destino.")
 
     def __init__(self, *args, user, installation, **kwargs):
         super().__init__(*args, user=user, **kwargs)
-        self.fields["bike"].queryset = scoped_inventory(self.actor, Bike)
-        self.fields["parent_item"].queryset = scoped_inventory(self.actor, Item).exclude(pk=installation.item_id)
+        self.fields["bike"].queryset = by_name(scoped_inventory(self.actor, Bike))
+        self.fields["parent_item"].queryset = by_name(scoped_inventory(self.actor, Item).exclude(pk=installation.item_id))
 
     def clean(self):
         cleaned = super().clean()
@@ -319,7 +338,7 @@ class TransferWebForm(TemporalActionForm):
         return cleaned
 
 
-class BaselineWebForm(UsageBaselineForm):
+class BaselineWebForm(SpanishWebMixin, UsageBaselineForm):
     def __init__(self, *args, user, item, **kwargs):
         self.fixed_item = item
         super().__init__(*args, user=user, **kwargs)
@@ -330,4 +349,7 @@ class BaselineWebForm(UsageBaselineForm):
         self.fields["metric"].choices = METRICS
         self.fields["cut_at"].widget = LOCAL_WIDGET
         decorate(self)
+        # Not in LABELS: decorate() would also rename the «Pieza» of PartWebForm (garage-047 F07).
+        self.fields["item"].label, self.fields["service_event"].label = "Objeto", "Intervención"
+        self.fields["item"].empty_label = self.fields["service_event"].empty_label = "—"
         self.fields["time_zone"].help_text = ZONE_HELP

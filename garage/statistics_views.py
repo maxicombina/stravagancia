@@ -108,10 +108,11 @@ def statistics_page(request):
             context["chart_missing"] = sum(bucket.missing for bucket in series.buckets) if chart_key == "elevation" else 0
         # else: the very first instant of the year, nothing can have happened yet.
     if report is not None:
-        bikes = sorted((row for row in report.rows if row.kind == "bike"), key=lambda row: (-(row.observed[0].value or 0), row.target.name.lower()))
+        # Stable sorts: equal figures keep the Spanish order of report.rows (garage-047 F10).
+        bikes = sorted((row for row in report.rows if row.kind == "bike"), key=lambda row: -(row.observed[0].value or 0))
         top = max([row.observed[0].value or 0 for row in bikes] + [report.no_bike[0].value or 0 if report.no_bike else 0])
         items = sorted((row for row in report.rows if row.kind == "item" and row.observed[0].value),
-                       key=lambda row: (-row.observed[0].value, row.target.name.lower()))
+                       key=lambda row: -row.observed[0].value)
         spending, unknown_costs = _spending(request.user, report.start, report.end)
         context.update(bikes=[{"row": row, "share": _share(row.observed[0].value, top)} for row in bikes if row.observed[2].value],
                        no_bike_share=_share(report.no_bike[0].value if report.no_bike else None, top),

@@ -13,6 +13,7 @@ from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from garage.models import Installation, Item, UsageBaseline, UsageOverride, UsageProfileItem
+from garage.ordering import collated, name_key
 from garage.sports import sport_label
 from .baselines import _instant
 from .ownership import InventoryWriteError
@@ -155,11 +156,16 @@ def item_lifecycles(owner, items, *, at=None, unmounted=False):
     if not loose:
         return result
     contexts = {}
+    # The bikes in the database's Spanish order (garage-047 F10); the profiles without a bike come last here.
     for item_id, bike_name, sport_type in (UsageProfileItem.objects.filter(owner_id=owner_id, item_id__in=loose)
-                                           .filter(_open_at(at, "profile__")).values_list("item_id", "profile__bike__name", "profile__sport_type")):
-        contexts.setdefault(item_id, set()).add(context_label(bike_name, sport_type))
+                                           .filter(_open_at(at, "profile__"))
+                                           .order_by(collated("profile__bike__name"), "profile__bike_id", "profile__sport_type")
+                                           .values_list("item_id", "profile__bike__name", "profile__sport_type")):
+        contexts.setdefault(item_id, {})[context_label(bike_name, sport_type)] = None  # a set that keeps that order
     for item_id, labels in contexts.items():
-        ordered = tuple(sorted(labels))
+        # Bike names with or without a sport, and «Cualquier bici», which goes among the names: sorted by name_key, and
+        # stably, so what name_key ties (bike names that differ only in case or accents) keeps the database's order.
+        ordered = tuple(sorted(labels, key=name_key))
         result[item_id] = ItemLifecycle(IN_USE, f"{IN_USE_TEXT} · " + ", ".join(ordered), contexts=ordered, retires=retires.get(item_id))
     available = [item for item in pending if item.pk not in result]
     candidates = {item.pk for item in available if item.acquisition_anchor_at is None or item.acquisition_anchor_at > at}

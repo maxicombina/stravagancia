@@ -150,7 +150,7 @@ class TestServiceForm:
         response = client.post(create_url(item=wheel.rear.pk), data)
         assert response.status_code == 302
         texts = [str(message) for message in get_messages(response.wsgi_request)]
-        assert texts == ["Registradas también: Sustitución de Casete 11-34 (reinicia su vida útil); Cambio de disco de Disco 160."]
+        assert texts == ["Intervención guardada. Registradas también: Sustitución de Casete 11-34 (reinicia su vida útil); Cambio de disco de Disco 160."]
         events = {event.item.name: event for event in ServiceEvent.objects.filter(owner=garage.owner, performed_at=at(1) - timedelta(hours=2))}
         assert set(events) == {"Rueda trasera", "Casete 11-34", "Disco 160"}
         assert (events["Rueda trasera"].amount, events["Casete 11-34"].amount, events["Disco 160"].notes) == (Decimal("40.00"), None, "Taller")
@@ -310,7 +310,8 @@ class TestServiceFormReviewFixes:
             save_maintenance(garage.owner, MaintenanceRule, item=extra, service_type=wheel.review, calendar_days=30, anchor_at=at(50))
         with CaptureQueriesContext(connection) as after:
             client.get(create_url(item=wheel.rear.pk))
-        assert len(after) == len(before) <= 34, (len(before), len(after))
+        # garage-047 F02: +3 fixed reads (the lifecycle of the whole «Objeto» list, for its labels), whatever its length.
+        assert len(after) == len(before) <= 37, (len(before), len(after))
 
 
 def test_other_target_keeps_the_type_and_part_message(garage, wheel, client, now):

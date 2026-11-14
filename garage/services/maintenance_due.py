@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from garage.models import ItemUsage, MaintenanceRule, MaintenanceSnooze, Ride, ServiceEvent, UsageBaseline, UsageMaterializationState
+from garage.ordering import by_name
 from .baselines import _instant
 from .ownership import _lock_owner
 
@@ -171,7 +172,9 @@ def maintenance_due(actor, *, at=None):
     at = _instant(timezone.now() if at is None else at, "at")
     with transaction.atomic():
         owner = _lock_owner(actor)
-        rules = list(MaintenanceRule.objects.filter(owner=owner).select_related("item", "item__category", "bike", "service_type").order_by("id"))
+        # By type in Spanish order, then id: the final sort by status is stable (garage-047 F10).
+        rules = list(by_name(MaintenanceRule.objects.filter(owner=owner).select_related("item", "item__category", "bike", "service_type"),
+                             "service_type__name"))
         if not rules:
             return ()
         events = {}
@@ -242,4 +245,4 @@ def maintenance_due(actor, *, at=None):
                 same = snooze is not None and reference is not None and (snooze.reference_at, snooze.reference_event_id) == (reference, event.pk if event else None)
                 state = _snooze_state(rule, snooze, at, rides, usages, current) if same else None
                 results.append(MaintenanceDue(rule, event, reference, at, tuple(metrics), status, pending, unknown_bikes, current, state))
-        return tuple(sorted(results, key=lambda result: (("due", "unknown", "soon", "current").index(result.status), result.rule.service_type.name, str(result.rule.pk))))
+        return tuple(sorted(results, key=lambda result: ("due", "unknown", "soon", "current").index(result.status)))

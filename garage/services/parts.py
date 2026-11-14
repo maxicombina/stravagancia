@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from garage.models import Bike, Installation, Item, MaintenanceRule, ServiceEvent
+from garage.ordering import by_name, collated
 from .baselines import _instant
 from .installations import create_installation
 from .maintenance import save_maintenance
@@ -32,9 +33,11 @@ class ScopeChanged(InventoryWriteError):
     """What is mounted at the chosen date differs from the list the person saw: nothing is saved."""
 
 
-def _open(owner, at):
-    return list(Installation.objects.filter(owner=owner, started_at__lte=at).filter(Q(ended_at__isnull=True) | Q(ended_at__gt=at))
-                .select_related("item__category", "parent_item", "bike").order_by("started_at", "id"))
+def _open(owner, at, *, by_part_name=False):
+    """The mounts open at `at`, by start; `by_part_name`: by the mounted item's name in Spanish order (garage-047 F10)."""
+    mounts = Installation.objects.filter(owner=owner, started_at__lte=at).filter(Q(ended_at__isnull=True) | Q(ended_at__gt=at)) \
+        .select_related("item__category", "parent_item", "bike")
+    return list(mounts.order_by(collated("item__name"), "item_id", "started_at", "id") if by_part_name else mounts.order_by("started_at", "id"))
 
 
 def _active(obj, at):
@@ -43,14 +46,14 @@ def _active(obj, at):
 
 def _scope(owner, target, at):
     children = defaultdict(list)
-    for mount in _open(owner, at):
+    for mount in _open(owner, at, by_part_name=True):  # each parent's parts in Spanish order
         children[("bike", mount.bike_id) if mount.bike_id else ("item", mount.parent_item_id)].append(mount)
     if not _active(target, at):
         return []
     result, seen = [(target, None)], {target.pk}
 
     def walk(key, parent):
-        for mount in sorted(children.get(key, ()), key=lambda m: (m.item.name.lower(), str(m.item_id))):
+        for mount in children.get(key, ()):
             if mount.item_id in seen or not _active(mount.item, at):
                 continue  # inconsistent data or a retired part: never followed
             seen.add(mount.item_id)
@@ -63,11 +66,12 @@ def _scope(owner, target, at):
 def _rules(owner, places):
     order = {obj.pk: index for index, (obj, _) in enumerate(places)}
     parents = {obj.pk: parent for obj, parent in places}
-    rules = MaintenanceRule.objects.filter(owner=owner).filter(
+    rules = by_name(MaintenanceRule.objects.filter(owner=owner).filter(
         Q(item_id__in=[obj.pk for obj, _ in places if isinstance(obj, Item)]) |
-        Q(bike_id__in=[obj.pk for obj, _ in places if isinstance(obj, Bike)])).select_related("item__category", "bike", "service_type")
-    return sorted(((rule, parents[rule.item_id or rule.bike_id]) for rule in rules),
-                  key=lambda pair: (order[pair[0].item_id or pair[0].bike_id], pair[0].service_type.name.lower(), str(pair[0].pk)))
+        Q(bike_id__in=[obj.pk for obj, _ in places if isinstance(obj, Bike)])).select_related("item__category", "bike", "service_type"),
+        "service_type__name")
+    # Stable: each target's rules keep the Spanish order of their types (garage-047 F10).
+    return sorted(((rule, parents[rule.item_id or rule.bike_id]) for rule in rules), key=lambda pair: order[pair[0].item_id or pair[0].bike_id])
 
 
 def scope(actor, target, *, at=None):
@@ -167,8 +171,8 @@ def part_candidates(actor, parent, *, at=None):
     with transaction.atomic():
         owner = _lock_owner(actor)
         mounted = {mount.item_id for mount in _open(owner, at)}
-        return Item.objects.filter(owner=owner).filter(Q(retired_at__isnull=True) | Q(retired_at__gt=at)) \
-            .exclude(pk__in=excluded | mounted).select_related("category").order_by("name", "id")
+        return by_name(Item.objects.filter(owner=owner).filter(Q(retired_at__isnull=True) | Q(retired_at__gt=at))
+                       .exclude(pk__in=excluded | mounted).select_related("category"))
 
 
 def add_part(actor, parent, item, *, at, slot=None, notes=""):

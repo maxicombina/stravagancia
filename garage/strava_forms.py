@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from .maintenance_forms import SpanishWebMixin
 from .models import Bike
+from .ordering import by_name
 from .services.ownership import scoped_inventory
 
 
@@ -27,7 +28,7 @@ class StravaImportForm(SpanishWebMixin, forms.Form):
 
 def owner_bikes(user):
     """The owner's bikes, read once and shared by every GearLinkForm of a page (no query per form)."""
-    return list(scoped_inventory(user, Bike).order_by("name", "pk"))
+    return list(by_name(scoped_inventory(user, Bike)))
 
 
 class GearLinkForm(SpanishWebMixin, forms.Form):

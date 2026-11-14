@@ -166,6 +166,97 @@ class SecondaryFormTests(FieldAssertions, TestCase):
         self.assert_way_back_takes_a_finger(self.page(self.client.get(reverse("garage:history-run", args=[run.pk]))), "Volver a Strava")
 
 
+class EmptyOptionTests(TestCase):
+    """garage-047 F09: no select offers Django's «---------»; an empty option says what it means."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import datetime, timezone as dt_timezone
+        from decimal import Decimal
+
+        from .models import Bike, Category, Item
+        from .services.installations import create_installation
+        from .services.ownership import create_inventory
+        from .services.rides import create_manual_ride
+        cls.owner = get_user_model().objects.create_user("empty-options")
+        category = create_inventory(cls.owner, Category, name="Sillines")
+        cls.bike = create_inventory(cls.owner, Bike, name="Carretera")
+        cls.item = create_inventory(cls.owner, Item, name="Sillín", category=category)
+        create_inventory(cls.owner, Item, name="Otro sillín", category=category)
+        cls.period = create_installation(cls.owner, item=cls.item, bike=cls.bike,
+                                         started_at=datetime(2026, 1, 1, 10, tzinfo=dt_timezone.utc))
+        cls.ride = create_manual_ride(cls.owner, started_at=datetime(2026, 2, 1, 10, tzinfo=dt_timezone.utc), bike=cls.bike,
+                                      name="Ruta", distance_m=Decimal(1000))
+
+    def setUp(self):
+        self.client.force_login(self.owner)
+
+    def page(self, name, *args):
+        response = self.client.get(reverse("garage:" + name, args=args))
+        self.assertEqual(response.status_code, 200)
+        return parse(response.content.decode())
+
+    def first_option(self, root, name):
+        selects = find_all(root, "select", name=name)
+        self.assertEqual(len(selects), 1, name)
+        option = find_all(selects[0], "option")[0]
+        return option.attrs.get("value"), visible_text(option)
+
+    def test_no_django_empty_option_is_shown(self):
+        pages = [("item-create", ()), ("item-used-create", ()), ("installation-create", (self.item.pk,)),
+                 ("installation-transfer", (self.period.pk,)), ("installation-replace", (self.period.pk,)),
+                 ("baseline-create", (self.item.pk,)), ("maintenance-rule-create", ()), ("service-event-create", ()),
+                 ("statistics", ()), ("usage-ride-detail", (self.ride.pk,))]
+        for name, args in pages:
+            with self.subTest(page=name):
+                root = self.page(name, *args)
+                self.assertTrue(find_all(root, "select"), "a page without selects proves nothing")
+                self.assertEqual([visible_text(option) for option in find_all(root, "option") if "---" in visible_text(option)], [])
+
+    def test_empty_options_say_what_they_mean(self):
+        cases = [("item-create", (), "category", "Elige una categoría"), ("item-used-create", (), "category", "Elige una categoría"),
+                 ("installation-create", (self.item.pk,), "bike", "—"), ("installation-create", (self.item.pk,), "parent_item", "—"),
+                 ("installation-transfer", (self.period.pk,), "bike", "—"), ("installation-transfer", (self.period.pk,), "parent_item", "—"),
+                 ("installation-replace", (self.period.pk,), "incoming_item", "Elige un objeto"),
+                 ("baseline-create", (self.item.pk,), "item", "—"), ("baseline-create", (self.item.pk,), "service_event", "—"),
+                 ("usage-ride-detail", (self.ride.pk,), "item", "—")]
+        for name, args, field, text in cases:
+            with self.subTest(page=name, field=field):
+                self.assertEqual(self.first_option(self.page(name, *args), field), ("", text))
+
+    def test_statistics_filters_say_all(self):
+        """Empty there means «no filter»."""
+        root = self.page("statistics")
+        for field, text in (("bike", "Todas"), ("category", "Todas"), ("item", "Todos")):
+            with self.subTest(field=field):
+                self.assertEqual(self.first_option(root, field), ("", text))
+
+
+class ZoneFoldTests(SimpleTestCase):
+    def test_without_date_fields_the_zone_goes_last(self):
+        """Guard, garage-047 F01: the zone follows the last date field; with none it stays the last field, before the buttons."""
+        from django import forms
+        from django.contrib.auth.models import AnonymousUser
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+
+        from .test_html import Node
+
+        class NoDates(forms.Form):
+            name = forms.CharField()
+            time_zone = forms.CharField(initial="UTC")
+            notes = forms.CharField(required=False)
+
+        request = RequestFactory().get("/garage/")
+        request.user = AnonymousUser()
+        root = parse(render_to_string("garage/form.html", {"form": NoDates(), "title": "Sin fechas", "back": "/garage/"}, request=request))
+        form = find_all(root, "form", cls="form")[0]
+        drawn = [(child.tag, child.attrs.get("class", ""), sorted(found.attrs["name"] for tag in CONTROLS for found in find_all(child, tag)))
+                 for child in form.children if isinstance(child, Node) and child.attrs.get("type") != "hidden"]
+        self.assertEqual(drawn, [("div", "field", ["name"]), ("div", "field", ["notes"]), ("details", "zone", ["time_zone"]),
+                                 ("div", "actionbar", [])])
+
+
 class FormColumnTests(SimpleTestCase):
     def test_a_date_box_does_not_widen_the_form_or_its_field(self):
         """F4-r1: in an `auto` column a date and time with seconds asks for 306 px, and at 320 px the card has 254. No document overflow tells."""

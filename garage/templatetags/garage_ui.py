@@ -1,4 +1,5 @@
 """Template helpers for the mobile shell: platform, active tab, icons, Spanish numbers and dates."""
+from dataclasses import dataclass
 from datetime import datetime, timezone as dt_timezone
 from decimal import Decimal
 
@@ -6,6 +7,7 @@ from django import template
 from django.utils.html import format_html, format_html_join
 
 from garage.assets import asset_url
+from garage.forms import LocalDateTimeField
 from garage.icons import ICON_LABELS, category_icon_key, item_icon_key
 from garage.presentation import STATES, number, power_figures as ride_power_figures, quantity, thresholds as rule_thresholds
 from garage.services.lifecycle import AVAILABLE, IN_USE, MOUNTED, RETIRED, RETIRES_TEXT
@@ -68,6 +70,51 @@ def client_theme(context):
 # ImportRun.State keeps its English choice labels (changing them would need a migration).
 RUN_STATES = {"pending": "Pendiente", "running": "En curso", "paused": "En pausa", "completed": "Completado",
               "failed": "Con error", "cancelled": "Cancelado"}
+
+
+@dataclass(frozen=True)
+class FieldGroup:
+    """Fields that form.html draws together. `zone` marks the time zone, drawn inside its fold."""
+    fields: tuple
+    zone: bool = False
+
+    @property
+    def row(self):
+        """Several fields side by side, in a `.field-row` (F20)."""
+        return len(self.fields) > 1
+
+
+@register.filter
+def form_layout(form):
+    """The visible fields of a form.html form, in groups and in the order they are drawn (garage-047 F01, F20).
+
+    One field per group, except the rows a form declares in `field_rows` (tuples of field names): those go side
+    by side, in the declared order, where the first of them would go. A row forms only when all its fields are
+    visible; with one missing (a threshold kept in metres or seconds), each goes on its own line.
+    The time zone goes alone, as `zone`, right after the last visible date and time field
+    (`LocalDateTimeField`): those are the values it says how to read. Without one, it goes last.
+    """
+    visible = form.visible_fields()
+    fields = [field for field in visible if field.name != "time_zone"]
+    by_name = {field.name: field for field in fields}
+    rows = {name: names for names in getattr(form, "field_rows", ()) if all(name in by_name for name in names) for name in names}
+    groups, drawn = [], set()
+    for field in fields:
+        names = rows.get(field.name, (field.name,))
+        if names not in drawn:
+            drawn.add(names)
+            groups.append(FieldGroup(tuple(by_name[name] for name in names)))
+    zone = next((field for field in visible if field.name == "time_zone"), None)
+    if zone is not None:
+        dates = [index for index, group in enumerate(groups) if any(isinstance(field.field, LocalDateTimeField) for field in group.fields)]
+        groups.insert(dates[-1] + 1 if dates else len(groups), FieldGroup((zone,), zone=True))
+    return groups
+
+
+@register.filter
+def zone_name(value):
+    """The zone a fold's summary names: what the field holds, trimmed; «—» while empty, as garage.js writes it (F01)."""
+    return str(value or "").strip() or "—"
 
 
 @register.filter

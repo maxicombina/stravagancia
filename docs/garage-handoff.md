@@ -58,11 +58,16 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
   hallazgos de revisión, en la spec §10.1; el estado al pausar, en §10.2.
 - **Falta, en este orden:** B9a, B9b, B12, B10, B11, B13 y B14; después, la verificación
   final de la spec §8: suite, `check`, CDP de F01, F04 y F20, capturas completas, y F19 y
-  F23 en capturas. Para retomar: el script del workflow de bloques recibe
-  `{"blocks": [...]}` y lee cada bloque de la spec; las instantáneas `snap` siguen en
+  F23 en capturas. Para retomar: el script del workflow de bloques está en
+  `~/.cache/garage-vps/garage-047/bloques-wf.js`; recibe `{"blocks": [...], "scratch":
+  "<scratchpad de la sesión>"}` y lee cada bloque de la spec. Tandas previstas:
+  `["B9a", "B9b", "B12", "B10"]` y después `["B11", "B13", "B14"]`. Antes,
+  `demo-restart` si el 8769 no responde. Las instantáneas `snap` siguen en
   `~/.cache/garage-vps/garage-047/snap.d`.
 - **Para el despliegue:** el orden alfabético usa la intercalación `es-x-icu`; si la base
-  no la tiene, `garage.E001` hace fallar `check` y `migrate`. Sin comprobar en producción.
+  no la tiene, `garage.E001` hace fallar `check` y `migrate`. **Comprobado en Neon el 14 nov**
+  (solo lectura, con permiso del usuario): PostgreSQL 18.7 la tiene y ordena en español.
+  Las pruebas locales usan PostgreSQL 17.11.
 - **Para garage-052:** las decisiones marcadas [052] en la spec y los textos que escribieron
   los agentes donde la spec no los daba (§10.1). Pendiente de decisión: `services/lifespan.py`
   busca el tipo de vida útil distinto que `is_life_type` (B3-R1-02).

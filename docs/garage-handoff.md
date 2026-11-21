@@ -34,6 +34,44 @@ dos commits del legado en `main` (`dd607f6`, `45a7cf6`) siguen sin integrar
 - Lo que se haga en el VPS no vuelve al portátil solo: traerlo (bundle, o push que pida el
   usuario) es decisión del usuario.
 
+## 20–21 nov: garage-047 terminada en su rama, sin commit
+
+- **Hecho.** Retomado el 20 nov («dale, seguí») con el mismo script de bloques, en dos
+  tandas: `wf_cd1eec1f-b8b` (B9a, B9b, B12, B10; 16 agentes) y `wf_39a9d18e-3dc` (B11, B13,
+  B14; 13 agentes), Opus en serie, 0 errores. Ya están los 16 bloques. Suite tras cada uno
+  sin fallos; la última, tras B14: `3973 passed, 720 subtests`. `check` y `makemigrations
+  --check` limpios. Sin migración.
+- **Verificación final de la spec §8** (un agente Opus sin edición): pasan F01, F04 en las
+  cuatro plantillas, F20 (sube 176 px), F19, F23 (44 px) y la página de un trabajo del
+  histórico. Son 588 capturas (49 pantallas × 6 tamaños × 2 temas), con 0 desbordes, 0
+  errores de consola y 0 fallos de red. Resultados, hallazgos y observaciones en la spec
+  §10.1 y §10.3; lo hecho por F y lo que va a garage-052, en las notas de `bd show
+  garage-047`.
+- **Estado de Git.** `garage-047-fricciones` sigue en `91c8acc` (el commit de la pausa,
+  con push), con 41 archivos sin commit en `../stravagancia-garage-047`: B9a a B14 y la
+  spec. **Ni commit ni push** hasta que el usuario lo pida; sigue vigente «aun NO merge de
+  nada». Instantáneas `pre-`/`post-` de cada bloque en `~/.cache/garage-vps/garage-047/snap.d`.
+- **Datos ficticios creados en la base de la copia 047** (`stravagancia_test_demo_047`,
+  nunca en la de Anillos), por la verificación:
+  - una categoría «Verificación 047»;
+  - una lectura en Pastillas traseras;
+  - un trabajo FIT con una salida (la demo pasa de 79 a 80 salidas).
+- **Decisión del usuario (20 nov):** el objetivo semanal de km y la línea de tendencia
+  entran en garage-051, antes de prod. El orden hasta prod **no cambia** («no quiero
+  cambiar lo que dijimos el 3-4 de nov»): garage-047, garage-053, garage-051, repaso
+  garage-052, despliegue garage-023.
+- **Entorno.** Los PostgreSQL estaban parados (sin reinicio de la máquina). Se arrancan con
+  `pg_ctl -D <data> -l <dir>/postgres.log -o '-h 127.0.0.1 -p <puerto> -k "" -c
+  max_connections=30 -c shared_buffers=32MB' -w start`. La demo vive en
+  `~/.cache/garage-vps/pg-demo`, puerto 55433. El de pruebas, puerto 55434, sigue en el
+  scratchpad de la sesión del 8 nov, en `/tmp`: si desaparece, hay que recrearlo con `initdb`
+  y el usuario/base de `~/.cache/garage-vps/garage-test`. Luego,
+  `~/.cache/garage-vps/garage-047/demo-restart` (8769) y `~/.cache/garage-vps/demo-restart`
+  (8768, Anillos).
+- **Siguiente.** El usuario decide el commit y el push de `garage-047-fricciones`. Después
+  viene garage-053, en una rama nueva desde ahí; necesita commit antes, porque una rama
+  nueva no lleva lo que está sin commitear.
+
 ## 14 nov: garage-047 (fricciones de UI), en una rama sobre Anillos
 
 - **Decisión del usuario:** «dale con lo siguiente». Las fricciones ya estaban autorizadas el

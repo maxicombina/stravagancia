@@ -199,6 +199,18 @@ garage-050. Qué más de la lista de docs/garage-vs-probikegarage.md entra antes
 sin decidir todavía. Los agentes van **de uno en uno**, con hasta 3 rondas de revisión
 por bloque («prefiero 3 rondas, pero mas lento»).
 
+**8–21 nov, en el VPS** (el portátil quedó congelado el 8 nov; las rutas de macOS de
+arriba ya no valen aquí; ver docs/garage-vps-handoff.md):
+- **Anillos (garage-050):** terminada el 9 nov en la rama `garage-050-anillos`, con push y
+  sin fusionar. El usuario dijo «aun NO merge de nada».
+- **garage-047 (fricciones):** terminada el 21 nov en la rama `garage-047-fricciones`,
+  nacida de Anillos. Tiene los 16 bloques y la verificación de la spec §8, con la suite en
+  verde (3973 + 720). Está **sin commit** desde `91c8acc`.
+- **20 nov:** el objetivo semanal y la tendencia entran en garage-051. El orden hasta prod
+  no cambia: 047, 053, 051, repaso 052 y despliegue.
+
+Detalle en docs/garage-handoff.md («20–21 nov»).
+
 **Migraciones sólo locales, no están en Neon: `0009_maintenancesnooze`,
 `0010_strava_source`, `0011_category_icon`, `0012_elevation_power`.** Docker
 Compose `web` las aplicaría en producción. La siguiente migración es la

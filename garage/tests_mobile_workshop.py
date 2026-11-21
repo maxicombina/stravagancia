@@ -3,11 +3,15 @@ import re
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
+from pathlib import Path
+from types import SimpleNamespace
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 import pytest
 from django.contrib.messages import get_messages
 from django.db import connection
+from django.template.loader import render_to_string
 from django.test import Client
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -21,12 +25,14 @@ from .services import workshop as workshop_module
 from .services.baselines import record_baseline
 from .services.lifespan import set_lifespan
 from .services.maintenance import save_maintenance
-from .services.ownership import create_inventory
+from .services.maintenance_due import MaintenanceDue
+from .services.ownership import create_inventory, update_inventory
 from .services.parts import scope_rules
 from .services.snoozes import snooze_rule
 from .services.workshop import EVENT_LIMIT, workshop_snapshot
 from .test_html import Node, accessible_text, find_all, parse, row_by_href, visible_text
-from .tests_mobile_home import NOW, at, days_ago, garage  # noqa: F401 (fixture)
+from .tests_mobile_home import NOW, at, days_ago, garage, metric as home_metric  # noqa: F401 (fixture)
+from .tests_ring import ring_row
 from .web_forms import TemporalActionForm
 
 UTC = dt_timezone.utc
@@ -1175,3 +1181,103 @@ class TestRuleRows:
         url = reverse(f"garage:{page}", args=[garage.light.pk] if page == "installation-create" else [])
         layout = drawn_layout(client.get(url).content.decode())
         assert layout and all(kind != "row" and len(names) == 1 for kind, names in layout), layout
+
+
+SECONDS = datetime(2026, 10, 17, 10, 7, 30, 123456, tzinfo=UTC)  # 12:07:30,123456 in Madrid: a `now()` with seconds and microseconds
+MICROSECONDS = re.compile(r"\d:\d{2}:\d{2},\d{6}")
+
+
+def alert_cards(html):
+    """The cards of «Detalles técnicos de los avisos»."""
+    sections = find_all(parse(html), "section", aria_labelledby="maintenance-alerts-title")
+    assert len(sections) == 1
+    return find_all(sections[0], "article", cls="card")
+
+
+def alert_figures(html, name):
+    """The definitions of the one card whose title names `name`: '184 / 365 · Restante: 181 · Completo'."""
+    cards = [card for card in alert_cards(html) if name in visible_text(find_all(card, "h3")[0])]
+    assert len(cards) == 1, name
+    return [visible_text(found) for found in find_all(cards[0], "dd")]
+
+
+def rendered_alert(*metrics):
+    """«Detalles técnicos» of one alert of a piece, drawn by the template the Taller includes."""
+    rule = SimpleNamespace(pk=uuid4(), item="Cadena 11v", bike=None, item_id=uuid4(), service_type=SimpleNamespace(name="Cambio"))
+    alert = MaintenanceDue(rule, None, None, SECONDS, tuple(metrics), "unknown", 0, 0, True)
+    return render_to_string("garage/maintenance_alerts.html", {"alerts": [alert], "user_tz": MADRID})
+
+
+class TestLegacyFormats:
+    """garage-047 F22 (D16): Spanish figures instead of `floatformat`, and the times the server stamps, to the minute."""
+
+    @pytest.fixture
+    def seconds(self, monkeypatch):
+        monkeypatch.setattr("django.utils.timezone.now", lambda: SECONDS)
+        return SECONDS
+
+    @pytest.mark.parametrize("figures,shown", [
+        # The demo: «2744.000 / 2500.000 · Queda como máximo: 0.000».
+        (dict(threshold="2500000", value="2744000", status="due"), "2.744 / 2.500 · Queda como máximo: 0 · "),
+        (dict(threshold="1000000", value="950060", status="soon", coverage="complete"), "950 / 1.000 · Restante: 49,9 · "),
+        # A minimum: what is left is at most that, so it is rounded up, as in the ring.
+        (dict(threshold="1000000", value="950060"), "950 / 1.000 · Queda como máximo: 50 · "),
+        (dict(threshold="1000000", value="950060", coverage="complete", estimated=True), "950 / 1.000 · Restante estimado: 49,9 · "),
+        (dict(name="moving_time_s", threshold="360000", value="332784", status="current", coverage="complete"), "92,4 / 100 · Restante: 7,6 · "),
+        (dict(name="ride_count", threshold="50", value="39", status="current", coverage="complete"), "39 / 50 · Restante: 11 · "),
+        (dict(name="elevation_gain_m", threshold="20000", value="12345.6", status="current", coverage="complete"), "12.346 / 20.000 · Restante: 7.654 · "),
+        (dict(threshold="2500000", value=None, coverage="unknown"), "Desconocido · Umbral: 2.500 · "),
+    ])
+    def test_technical_details_use_spanish_figures(self, figures, shown):
+        found = find_all(parse(rendered_alert(home_metric(**figures))), "dd")
+        assert len(found) == 1
+        assert visible_text(found[0]).startswith(shown), visible_text(found[0])
+
+    def test_technical_details_of_the_workshop_use_spanish_figures(self, garage, client, seconds):
+        html = workshop_page(client, garage.owner)
+        assert alert_figures(html, "Cadena 11v")[0].startswith("400 / 420 · Queda como máximo: 20 · ")
+        figures = [visible_text(found) for card in alert_cards(html) for found in find_all(card, "dd")]
+        # Every figure of this garage is under 1.000: a dot in one can only be a decimal of `floatformat`.
+        assert len(figures) >= 3 and not [text for text in figures if re.search(r"\d\.\d", text)], figures
+
+    def test_technical_details_round_days_left_up(self, garage, client, seconds):
+        """F17: 180,4 days left are «181» in the ring and in «Restante» of the technical details, never 181 and 180 of one rule."""
+        kind = save_maintenance(garage.owner, ServiceType, name="Revisión anual")
+        bottle = create_inventory(garage.owner, Item, name="Bidón", category=garage.helmet.category)
+        whole_minute = SECONDS.replace(second=0, microsecond=0)
+        save_maintenance(garage.owner, MaintenanceRule, item=bottle, service_type=kind, calendar_days=365,
+                         anchor_at=whole_minute - timedelta(days=184, hours=14, minutes=24))  # 184,6 days gone (and the 30 s of SECONDS)
+        html = workshop_page(client, garage.owner)
+        assert alert_figures(html, "Bidón") == ["184 / 365 · Restante: 181 · Completo"]
+        assert visible_text(find_all(find_all(ring_row(html, reverse("garage:item-detail", args=[bottle.pk])), "span", cls="big")[0], "b")[0]) == "181"
+        item = parse(client.get(reverse("garage:item-detail", args=[bottle.pk])).content.decode())
+        assert [visible_text(found) for found in find_all(item, "text", cls="g-num")] == ["181"]
+
+    def test_evaluated_at_is_to_the_minute(self, garage, client, seconds):
+        html = workshop_page(client, garage.owner)
+        cards = alert_cards(html)
+        assert cards
+        for card in cards:
+            evaluated = [text for text in map(visible_text, find_all(card, "p")) if text.startswith("Evaluado a")]
+            assert len(evaluated) == 1 and evaluated[0].startswith("Evaluado a 17 oct 2026, 12:07. "), evaluated
+            assert find_all(card, "time", datetime="2026-10-17T10:07:30.123456Z"), "the exact instant stays in datetime"
+        assert not MICROSECONDS.search(visible_text(parse(html)))
+
+    def test_no_template_uses_floatformat(self):
+        templates = Path(__file__).parent / "templates" / "garage"
+        paths = sorted(templates.rglob("*.html"))
+        assert paths and [path.relative_to(templates).as_posix() for path in paths if "floatformat" in path.read_text()] == []
+
+    @pytest.mark.parametrize("kind,amount,shown", [
+        ("item", Decimal("32.90"), "32,90 EUR"),
+        ("item", Decimal("0"), "0,00 EUR"),
+        ("bike", Decimal("1234.5"), "1.234,50 EUR"),
+    ])
+    def test_purchase_price_uses_a_decimal_comma(self, garage, client, kind, amount, shown):
+        target = garage.chain if kind == "item" else garage.road
+        update_inventory(garage.owner, Item if kind == "item" else Bike, target.pk, purchase_amount=amount, purchase_currency="EUR")
+        client.force_login(garage.owner)
+        page = parse(client.get(reverse(f"garage:{kind}-detail", args=[target.pk])).content.decode())
+        terms = find_all(page, "dt")
+        bought = [visible_text(term) for term in terms].index("Compra")
+        assert visible_text(find_all(page, "dd")[bought]).endswith(f" · {shown}")

@@ -2056,6 +2056,25 @@ menores). Cada uno se intentó refutar reproduciéndolo antes de corregirlo.
 | B8 | B8-R1-01 | menor | corregido | «No está montado» en una pieza que sigue montada hasta una fecha posterior (bici con retirada programada). |
 | B8 | B8-R1-02 | menor | corregido | Tras un POST rechazado, la explicación daba las horas en la zona de la cookie y el formulario decía otra. |
 | B8 | B8-R1-03 | menor | corregido | Si se detenía la carga (Stop o Esc) durante el envío, el botón quedaba en «Guardando…» y no se podía volver a enviar sin recargar. |
+| B9a | — | — | — | Ronda 1 sin hallazgos. Ninguna prueba fija los textos de las tres listas: un error al trasladarlas no lo vería la suite (B9b fija ya los de la métrica). |
+| B9b | R1-B9b-01 | importante | corregido | Al corregir un tiempo sin horas exactas, la métrica decía «(horas)» encima de un campo en segundos: con el campo exacto, las opciones no llevan unidad. |
+| B9b | R1-B9b-02 | menor | pendiente | Una lectura pequeña distinta de cero (40 m, 179 s) se ve «0 km» o «0 h», igual que el cero conocido: `quantity` redondea a un decimal y la spec no da otra regla. Para garage-052. |
+| B9b | R1-B9b-03 | menor | corregido | Faltaba la prueba de «0 salidas»: el mutante del plural sobrevivía. |
+| B9b | R2-B9b-01 | menor | corregido en parte | Tras un envío rechazado, las opciones de intervención salen en la zona enviada, como Retirar (B8). Si se cambia la zona sin enviar, siguen en la anterior: haría falta formatear fechas en `garage.js`. Para garage-052. |
+| B9b | R2-B9b-02 | menor | pendiente | En horas con 6 decimales sólo los múltiplos de 9 s son segundos exactos: un tiempo de Garmin como 1:00:01 no se registra exacto desde la página nueva. Consecuencia de D15. Para garage-052. |
+| B9b | (textos) | — | [052] | «Las salidas son un número entero.» y «12 salidas» / «1 salida» en la ficha; `UsageBaselineForm.save` guarda también `converted_fields` (fuera de la lista de archivos). |
+| B12 | — | — | — | Ronda 1 sin hallazgos. La regla de F18 compara con el texto «≥ 0 km» que construye `_span_parts`: si cambia ese formato, hay que tocarla. |
+| B10 | B10-R1-01 | menor | pendiente | Con histórico parcial, Estadísticas (detalle) redondea el mínimo al más cercano y la página de la intervención hacia abajo: «115 h» frente a «≥ 114 h». Para garage-052. |
+| B10 | (nota) | — | — | En lugar de `figure_max`, `remaining_figure(metric)` reutiliza `remaining_text` de B12, para que «Restante» de una regla por calendario redondee como el anillo. |
+| B11 | B11-R1-01 | menor | corregido | «Antes llevaba» seguía el orden de los UUID cuando las piezas salieron a la vez: ahora desempata por nombre en orden español. |
+| B11 | (notas) | — | [052] | «Desmontar» no sale si el montaje ya tiene fin (el servicio lo rechazaría). Orden de «Más acciones» y la nota de zona sólo cuando hay montajes, elección propia. Regla de espaciado en `garage.css` (fuera de la lista). F15 no cubre la ficha de bici. |
+| B13 | — | — | — | Ronda 1 sin hallazgos. `overflow-wrap: anywhere` en `garage.css` (fuera de la lista): un nombre de 150 caracteres sin espacios ensanchaba Más de 320 a 1164 px. |
+| B14 | B14-R1-01 | importante | corregido | Un trabajo sin terminar de una conexión anterior (antes de «Quitar lo sincronizado» o de la purga) bloqueaba la importación nueva y mandaba a continuarlo. |
+| B14 | B14-R1-01b | menor | pendiente | Ese trabajo antiguo sigue en «Trabajos recientes»; «Continuar» recrea la cuenta, pide sólo desde su cursor y acaba en «Completado» con un hueco. Ya pasaba antes de B14. Para garage-052. |
+| B14 | B14-R1-02 | menor | corregido | Ninguna prueba comprobaba que «cubierto» toma el completado más reciente. |
+| B14 | B14-R1-03 | menor | pendiente | Al cancelar un trabajo de Strava, el aviso dice «Trabajo cancelado. Se conserva las sesiones ya guardadas.» (habla de FIT y falla la concordancia). Ya pasaba antes; la spec no da texto. Para garage-052. |
+| B14 | B14-R2-01 | menor | corregido | Regresión de la corrección de R1: un trabajo creado antes de la conexión actual pero continuado con ella no bloqueaba. |
+| B14 | B14-R2-02 | menor | corregido | Ninguna prueba cubría la rama de `local_bound` que no es medianoche en los tres textos nuevos. |
 
 ### 10.2 Estado al pausar (14 nov 2026, a petición del usuario)
 
@@ -2063,3 +2082,42 @@ Hechos, con la suite completa sin fallos tras cada uno: B1, B2, B3, B2b, B4, B5,
 B8 (B8: 3780 passed, 696 subtests). Quedan, en este orden: **B9a, B9b, B12, B10, B11, B13
 y B14**, y después la verificación final de §8 (suite, `check`, CDP de F01, F04 y F20,
 capturas completas, y F19 y F23 en capturas).
+
+### 10.3 Cierre y verificación final (20–21 nov 2026)
+
+Retomado el 20 nov («dale, seguí»). Hechos B9a, B9b, B12, B10, B11, B13 y B14; ya están los
+16 bloques. Suite completa tras cada uno, sin fallos; la última, tras B14: **3973 passed, 720
+subtests**. `check` y `makemigrations --check` limpios. Sin migración.
+
+Verificación final de §8.4 y §8.5 sobre el árbol final, por un agente sin edición:
+
+- **F01 pasa.** El resumen sigue a lo que se escribe, y al abrir la zona queda por encima
+  de la barra (331–520 px a 390×706).
+- **F04 pasa en las cuatro plantillas** (Retirar, «Sincronizar ahora», «Continuar
+  importación» y posponer): un solo POST, «Guardando…» donde toca y el botón otra vez listo
+  tras «Atrás» y tras «Detener». Las peticiones se fallaron en CDP sin llegar al servidor.
+- **F20 pasa.** «Contar desde» sube 176 px (de 1114 a 938).
+- **F19 pasa.** El radio viene marcado y Guardar funciona de un clic.
+- **F23 pasa.** «Corregir lectura» mide 112×44 px a 320, 390 y 1280.
+- **Trabajo del histórico pasa**, con un FIT ficticio.
+- **Capturas:** 49 pantallas × 6 tamaños × 2 temas = 588, con 0 desbordes, 0 errores de
+  consola y 0 fallos de red.
+
+Datos ficticios creados en la base de la copia 047 (no en la de Anillos):
+- una categoría «Verificación 047»;
+- una lectura en Pastillas traseras;
+- un trabajo FIT con una salida.
+
+Observaciones, para garage-052, sin defecto de garage-047:
+- si el envío acaba en `net::ERR_ABORTED` sin cambiar de página (sólo provocable con CDP en
+  estas vistas), el botón queda en «Guardando…» hasta recargar. D14 sólo pide deshacerlo en
+  `pageshow`;
+- un `InvalidStateError` de View Transitions apareció una vez tras «Atrás», de
+  `@view-transition` (Anillos);
+- en la ficha, «Sin lectura previa: el uso anterior a Garage es desconocido» mira sólo los
+  km, aunque haya una lectura de tiempo (ya en `9a2b2a1`).
+
+Sin verificar en local, como dice §8.6:
+- `es-x-icu` en producción (comprobado en Neon en sólo lectura el 14 nov);
+- F21 contra Strava real y dos importaciones a la vez de verdad;
+- el selector nativo con etiquetas largas en un iPhone real.

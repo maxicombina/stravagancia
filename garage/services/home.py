@@ -65,6 +65,7 @@ class Home:
     pending_first: Ride | None
     bikes: tuple[HomeBike, ...]
     gear: tuple[HomeGear, ...]
+    items_state: str  # why `gear` is empty (garage-047 F11): "none", "retired", "mounted" or "mounted_retired"; "loose" while it is not
     usage_current: bool
     rules: int
 
@@ -75,6 +76,17 @@ class Home:
 
 def _retired(obj, at):
     return obj.retired_at is not None and obj.retired_at <= at
+
+
+def _items_state(all_items, loose, mounted, at):
+    """What the gear card says when nothing is loose: every item is then mounted or retired at `at`."""
+    if loose:
+        return "loose"
+    if not all_items:
+        return "none"
+    if not mounted:
+        return "retired"
+    return "mounted_retired" if any(_retired(item, at) for item in all_items) else "mounted"
 
 
 def open_installations(owner, at):
@@ -147,6 +159,7 @@ def home_snapshot(actor, *, at=None):
                              worst.get(bike.pk))
                     for bike in bikes),
         gear=tuple(gear),
+        items_state=_items_state(all_items, loose, mounted, at),
         usage_current=usage_current,
         rules=len(wears),
     )

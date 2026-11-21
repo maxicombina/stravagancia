@@ -12,13 +12,14 @@ from django.urls import reverse
 
 from .models import Category, Installation, Item, MaintenanceRule, MaintenanceSnooze, ServiceEvent, ServiceType
 from .presentation import wear
-from .services.installations import create_installation
+from .services.installations import close_installation, create_installation
 from .services.lifespan import set_lifespan
 from .services.maintenance import save_maintenance
 from .services.maintenance_due import maintenance_due
 from .services.ownership import InventoryWriteError, create_inventory, retire_inventory
 from .services.parts import ScopeChanged, add_part, ancestors, part_candidates, register_together, scope, scope_rules
 from .services.snoozes import snooze_rule
+from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
 
 WRITES = {"INSERT", "UPDATE", "DELETE"}
@@ -321,3 +322,134 @@ def test_other_target_keeps_the_type_and_part_message(garage, wheel, client, now
     response = client.post(reverse("garage:item-part-create", args=[wheel.rear.pk]),
                            {"item": str(wheel.spare.pk), "at": "2026-10-16T10:00", "time_zone": "UTC"}, follow=True)
     assert "Pieza añadida: Disco de repuesto en Rueda trasera." in response.content.decode()
+
+
+class TestPreviousParts:
+    """garage-047 F16 (D19): a piece with nothing inside now, but with parts before, names the ones it had."""
+
+    @staticmethod
+    def close(owner, item, when):
+        mount = Installation.objects.get(owner=owner, item=item, ended_at__isnull=True)
+        close_installation(owner, mount.pk, at=when)
+
+    @staticmethod
+    def parts(client, item):
+        page = parse(client.get(reverse("garage:item-detail", args=[item.pk])).content.decode())
+        section = find_all(page, "section", aria_labelledby="parts-title")[0]
+        empty = find_all(section, "li", cls="empty")
+        assert len(empty) == 1, empty
+        return visible_text(empty[0]), [(visible_text(link), link.attrs["href"]) for link in find_all(empty[0], "a")]
+
+    def test_a_parent_without_parts_names_the_ones_it_had(self, garage, wheel, client, now):
+        self.close(garage.owner, wheel.cassette, at(20))
+        self.close(garage.owner, wheel.disc, at(10))
+        client.force_login(garage.owner)
+        expected = ("Sin piezas montadas ahora. Antes llevaba: Disco 160 (hasta el 6 oct 2026), Casete 11-34 (hasta el 26 sep 2026).",
+                    [("Disco 160", reverse("garage:item-detail", args=[wheel.disc.pk])),
+                     ("Casete 11-34", reverse("garage:item-detail", args=[wheel.cassette.pk]))])
+        assert self.parts(client, wheel.rear) == expected  # active, still on the bike
+        retire_inventory(garage.owner, Item, wheel.rear.pk, at=at(1))
+        assert self.parts(client, wheel.rear) == expected  # retired: the case of the friction
+
+    def test_a_part_still_inside_keeps_the_list(self, garage, wheel, client, now):
+        self.close(garage.owner, wheel.disc, at(10))  # the cassette stays
+        client.force_login(garage.owner)
+        html = client.get(reverse("garage:item-detail", args=[wheel.rear.pk])).content.decode()
+        parts = html.split('id="parts-title"')[1].split('id="events-title"')[0]
+        assert "Casete 11-34" in parts and "Antes llevaba" not in parts and "Sin piezas montadas" not in parts
+
+    def test_a_part_mounted_later_is_not_one_it_had(self, garage, wheel, client, now):
+        self.close(garage.owner, wheel.cassette, at(20))
+        self.close(garage.owner, wheel.disc, at(10))
+        create_installation(garage.owner, item=wheel.spare, bike=None, parent_item=wheel.rear, started_at=NOW + timedelta(days=5),
+                            ended_at=NOW + timedelta(days=9), slot=None)  # ahead: neither now nor before
+        client.force_login(garage.owner)
+        text, links = self.parts(client, wheel.rear)
+        assert "Disco de repuesto" not in text and [name for name, _ in links] == ["Disco 160", "Casete 11-34"]
+
+    def test_at_most_five_and_how_many_more(self, garage, client, now):
+        parent = create_inventory(garage.owner, Item, name="Caja", category=garage.light.category)
+        inner = [create_inventory(garage.owner, Item, name=f"Pieza {number}", category=garage.light.category) for number in range(7)]
+        for number, item in enumerate(inner):  # Pieza 0 left first, Pieza 6 last
+            create_installation(garage.owner, item=item, bike=None, parent_item=parent, started_at=at(60 - number), ended_at=at(30 - number), slot=None)
+        client.force_login(garage.owner)
+        text, links = self.parts(client, parent)
+        assert [name for name, _ in links] == ["Pieza 6", "Pieza 5", "Pieza 4", "Pieza 3", "Pieza 2"]  # the most recent
+        assert text.startswith("Sin piezas montadas ahora. Antes llevaba: Pieza 6 (hasta el 22 sep 2026), Pieza 5 (hasta el 21 sep 2026), ")
+        assert text.endswith("Pieza 2 (hasta el 18 sep 2026) y 2 más en Detalles.")
+        Installation.objects.filter(item=inner[0]).delete()
+        text, links = self.parts(client, parent)
+        assert len(links) == 5 and text.endswith("Pieza 2 (hasta el 18 sep 2026) y 1 más en Detalles.")
+        Installation.objects.filter(item=inner[1]).delete()
+        text, links = self.parts(client, parent)
+        assert len(links) == 5 and text.endswith("Pieza 2 (hasta el 18 sep 2026).") and " más en Detalles" not in text  # five: all named
+
+    def test_a_part_that_came_back_is_listed_once(self, garage, wheel, client, now):
+        self.close(garage.owner, wheel.disc, at(50))
+        create_installation(garage.owner, item=wheel.disc, bike=None, parent_item=wheel.rear, started_at=at(40), ended_at=at(5), slot="brake_disc")
+        self.close(garage.owner, wheel.cassette, at(20))
+        client.force_login(garage.owner)
+        text, links = self.parts(client, wheel.rear)
+        assert [name for name, _ in links] == ["Disco 160", "Casete 11-34"]  # by its last time inside
+        assert text == "Sin piezas montadas ahora. Antes llevaba: Disco 160 (hasta el 11 oct 2026), Casete 11-34 (hasta el 26 sep 2026)."
+
+    @staticmethod
+    def retired_with(owner, category, parts):
+        """A parent with `parts` ((name, start), ...) inside, then retired: every part leaves at that same instant."""
+        parent = create_inventory(owner, Item, name="Rueda delantera", category=category)
+        for name, start in parts:
+            part = create_inventory(owner, Item, name=name, category=category)
+            create_installation(owner, item=part, bike=None, parent_item=parent, started_at=start, ended_at=None, slot=None)
+        retire_inventory(owner, Item, parent.pk, at=at(5))
+        return parent
+
+    def test_parts_that_left_together_go_by_name(self, garage, client, now):
+        # The case of the friction (B11-R1-01): set up together and closed by the retirement, they share the start and the
+        # end. Neither decides, so their names do, in Spanish order (accents and case do not lead), not their ids.
+        names = ("Casete", "Cubierta", "Disco", "Rodamiento", "Válvula", "Cámara", "llanta")
+        parent = self.retired_with(garage.owner, garage.light.category, [(name, at(60)) for name in names])
+        client.force_login(garage.owner)
+        text, links = self.parts(client, parent)
+        assert [name for name, _ in links] == ["Cámara", "Casete", "Cubierta", "Disco", "llanta"]
+        assert text == ("Sin piezas montadas ahora. Antes llevaba: Cámara (hasta el 11 oct 2026), Casete (hasta el 11 oct 2026), "
+                        "Cubierta (hasta el 11 oct 2026), Disco (hasta el 11 oct 2026), llanta (hasta el 11 oct 2026) y 2 más en Detalles.")
+
+    def test_on_the_same_end_the_newest_mount_goes_first(self, garage, client, now):
+        # Same end, different starts: the one mounted last is the most recent, whatever its name.
+        parent = self.retired_with(garage.owner, garage.light.category, [("Aro", at(60)), ("Zapata", at(30)), ("Buje", at(60))])
+        client.force_login(garage.owner)
+        assert [name for name, _ in self.parts(client, parent)[1]] == ["Zapata", "Aro", "Buje"]
+
+    def test_without_history_the_text_of_today(self, garage, client, now):
+        client.force_login(garage.owner)
+        assert self.parts(client, garage.light) == ("Sin piezas montadas dentro: por ejemplo el casete o el disco de una rueda.", [])
+        retire_inventory(garage.owner, Item, garage.light.pk, at=at(1))
+        assert self.parts(client, garage.light) == ("Sin piezas montadas dentro.", [])
+
+    def test_the_dates_are_in_the_viewers_zone(self, garage, wheel, client, now):
+        # 23:30 UTC on 30 September is 1 October in Madrid and still 30 September in Buenos Aires.
+        self.close(garage.owner, wheel.cassette, at(20))
+        self.close(garage.owner, wheel.disc, NOW.replace(month=9, day=30, hour=23, minute=30))
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "Europe/Madrid"
+        assert "Disco 160 (hasta el 1 oct 2026)" in self.parts(client, wheel.rear)[0]
+        client.cookies["garage_tz"] = "America/Argentina/Buenos_Aires"
+        assert "Disco 160 (hasta el 30 sep 2026)" in self.parts(client, wheel.rear)[0]
+
+    def test_children_are_read_once(self, garage, client, now):
+        parent = create_inventory(garage.owner, Item, name="Caja", category=garage.light.category)
+        first = create_inventory(garage.owner, Item, name="Pieza", category=garage.light.category)
+        create_installation(garage.owner, item=first, bike=None, parent_item=parent, started_at=at(60), ended_at=at(30), slot=None)
+        client.force_login(garage.owner)
+        url = reverse("garage:item-detail", args=[parent.pk])
+        with CaptureQueriesContext(connection) as queries:
+            assert client.get(url).status_code == 200
+        few = len(queries)
+        children = [q["sql"] for q in queries if f'"garage_installation"."parent_item_id" = \'{parent.pk}\'' in q["sql"]]
+        assert len(children) == 1, children  # «Piezas» and «Material montado sobre este objeto» share one read
+        for number in range(6):
+            item = create_inventory(garage.owner, Item, name=f"Otra {number}", category=garage.light.category)
+            create_installation(garage.owner, item=item, bike=None, parent_item=parent, started_at=at(29 - number), ended_at=at(20 - number), slot=None)
+        with CaptureQueriesContext(connection) as queries:
+            assert client.get(url).status_code == 200
+        assert len(queries) == few

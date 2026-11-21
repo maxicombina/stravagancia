@@ -166,6 +166,46 @@ class SecondaryFormTests(FieldAssertions, TestCase):
         self.assert_way_back_takes_a_finger(self.page(self.client.get(reverse("garage:history-run", args=[run.pk]))), "Volver a Strava")
 
 
+class StravaImportAgainTests(FieldAssertions, TestCase):
+    """garage-047 F21 (D24): a date a recent job already covers comes back with its warning on «Importar de nuevo igualmente», a field
+    like any other. No Strava call: the warning is decided before the service is asked."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        from django.utils import timezone
+        from .models import StravaAccount
+        cls.owner = get_user_model().objects.create_user("forms-strava")
+        now = timezone.now()
+        StravaAccount.objects.create(owner=cls.owner, athlete_id=4242, connected_at=now - timedelta(days=30))
+        run = ImportRun.objects.create(owner=cls.owner, source_kind="strava", items_imported=0, items_skipped=0, state="completed",
+                                       processed=1, cursor=1, requested_from=datetime(2026, 2, 1, tzinfo=ZoneInfo("Europe/Madrid")))
+        ImportRun.objects.filter(pk=run.pk).update(created_at=now - timedelta(days=2, hours=1), updated_at=now - timedelta(days=2))
+
+    def setUp(self):
+        self.client.force_login(self.owner)
+
+    def test_the_import_page_has_no_box_until_it_asks(self):
+        with self.settings(GARAGE_STRAVA_USER="forms-strava"):
+            page = parse(self.client.get(reverse("garage:strava")).content.decode())
+        self.assertEqual(controls(page, "again"), [])
+
+    def test_the_box_is_a_field_with_the_warning_under_it(self):
+        from unittest.mock import patch
+        with self.settings(GARAGE_STRAVA_USER="forms-strava"), patch("garage.services.strava_client.requests.get") as get, \
+             patch("garage.services.strava_client.refresh_access_token") as token:
+            response = self.client.post(reverse("garage:strava-import"), {"after": "2026-02-01"})
+        get.assert_not_called()
+        token.assert_not_called()
+        self.assertEqual(response.status_code, 400)
+        page = parse(response.content.decode())
+        self.assert_fields(page, {"after": "Importar histórico desde", "again": "Importar de nuevo igualmente"})
+        self.assert_error_on(page, "again")
+        self.assertEqual(errors_in(field_of(page, "after")), [])
+        self.assertIn("Ya importaste el histórico desde el 1 feb 2026", errors_in(field_of(page, "again"))[0])
+
+
 class EmptyOptionTests(TestCase):
     """garage-047 F09: no select offers Django's «---------»; an empty option says what it means."""
 

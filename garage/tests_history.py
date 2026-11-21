@@ -5,6 +5,7 @@ from io import BytesIO
 import time
 from types import SimpleNamespace
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.core import signing
@@ -23,7 +24,13 @@ from .services.import_history import (assign_pending_bikes, cancel_fit_import, c
                                      preview_fit, resume_fit_import, start_fit_import)
 from .services.ownership import InventoryNotFound, create_inventory
 from .services.rides import correct_ride, create_manual_ride, import_fit_session
+from .test_html import find_all, parse, visible_text
 from .tests_fit_import import activity, session
+
+
+# garage-047 F21: the first sentence of the coverage panel of «Histórico propio».
+COVERAGE_LEAD = ('Garage no puede saber si falta una salida que no le llegó por ninguna fuente. De Strava, el estado de cada '
+                 'trabajo (en «Trabajos recientes») dice qué se pidió y hasta cuándo.')
 
 
 def instant(day):
@@ -303,9 +310,91 @@ class HistoryTests(TestCase):
         self.assertEqual(stats['completeness'], 'unknown')
         self.assertEqual(history_queryset(self.owner, pending=True).count(), 2)
         response = self.client.get(self.url(''))
-        self.assertContains(response, 'Completitud del histórico:')
-        self.assertContains(response, 'desconocida')
+        self.assertContains(response, COVERAGE_LEAD)
         self.assertNotContains(response, 'PRIVATE ride')
+
+    def test_the_time_a_job_was_created_is_to_the_minute(self):
+        """garage-047 F22 (R2-03): the server stamps a job with `now()`; «Histórico propio» shows it to the minute, exact in `datetime`."""
+        stamp = datetime(2026, 10, 17, 10, 7, 30, 123456, tzinfo=timezone.utc)  # 12:07:30,123456 in Madrid
+        with patch('django.utils.timezone.now', return_value=stamp):
+            run = self.begin()
+        self.assertEqual(run.created_at, stamp)
+        index = self.client.get(self.url('')).content.decode()
+        self.assertIn('FIT · <time datetime="2026-10-17T10:07:30.123456Z">17 oct 2026, 12:07</time>', index)
+        for page in (index, self.client.get(self.url('run', run.pk)).content.decode()):
+            self.assertNotRegex(page, r'\d:\d{2}:\d{2},\d{6}')
+            self.assertNotIn('12:07:30', page)
+
+    def job(self, kind, state, *, since=None, finished=None):
+        """A job of the owner in `state`, of Strava or of a FIT file; `finished` stamps its `updated_at`."""
+        done = state == 'completed'
+        values = {'items_imported': 0, 'items_skipped': 0} if kind == 'strava' else {}
+        run = ImportRun.objects.create(owner=self.owner, source_kind=kind, state=state, requested_from=since,
+                                       processed=1 if done else 0, cursor=1 if done else 0, **values)
+        if finished is not None:
+            ImportRun.objects.filter(pk=run.pk).update(updated_at=finished)
+            run.refresh_from_db()
+        return run
+
+    def lead(self, run):
+        """The element right under the page title."""
+        page = parse(self.client.get(self.url('run', run.pk)).content.decode())
+        title = find_all(page, 'h1')[0]
+        holder = next(node for node in find_all(page) if title in node.children)
+        blocks = [child for child in holder.children if not isinstance(child, str)]
+        return blocks[blocks.index(title) + 1]
+
+    def test_the_run_page_leads_with_its_state(self):
+        """garage-047 F21 (D24): under the title, the state in its colour and a sentence that says what to do."""
+        since = datetime(2026, 2, 1, tzinfo=ZoneInfo('Europe/Madrid'))
+        finished = datetime(2026, 10, 17, 10, 7, 30, 123456, tzinfo=timezone.utc)  # 12:07:30,123456 in Madrid
+        strava_unfinished = 'Faltan páginas: pulsa «Continuar importación». Lo ya guardado se conserva.'
+        fit_unfinished = 'Faltan sesiones: vuelve a elegir el archivo y pulsa «Continuar importación».'
+        failed = 'Se detuvo por un error: pulsa «Continuar importación» para reintentar. Lo ya guardado se conserva.'
+        cases = [
+            ('strava', 'completed', 'st-current', 'Completado: Garage pidió a Strava tus salidas desde el 1 feb 2026 hasta el '
+                                                  '17 oct 2026, 12:07. Desde entonces, «Sincronizar ahora» trae sólo los últimos 7 días.'),
+            ('strava', 'pending', 'st-review', strava_unfinished),
+            ('strava', 'running', 'st-review', strava_unfinished),
+            ('strava', 'paused', 'st-review', strava_unfinished),
+            ('strava', 'failed', 'st-due', failed),
+            ('strava', 'cancelled', None, 'Cancelado: se conserva lo ya importado. Para traer el resto, empieza otro trabajo desde Strava.'),
+            ('fit', 'completed', 'st-current', 'Completado: se procesaron todas las sesiones elegidas.'),
+            ('fit', 'pending', 'st-review', fit_unfinished),
+            ('fit', 'running', 'st-review', fit_unfinished),
+            ('fit', 'paused', 'st-review', fit_unfinished),
+            ('fit', 'failed', 'st-due', failed),
+            ('fit', 'cancelled', None, 'Cancelado: se conservan las sesiones ya guardadas.'),
+        ]
+        for kind, state, colour, sentence in cases:
+            with self.subTest(kind=kind, state=state):
+                lead = self.lead(self.job(kind, state, since=since, finished=finished))
+                self.assertEqual(lead.tag, 'p')
+                self.assertEqual(set(lead.attrs['class'].split()), {'pending'} | ({colour} if colour else set()))
+                self.assertEqual(visible_text(lead), sentence)
+
+    def test_the_completed_sentence_follows_sync_days(self):
+        """«Sincronizar ahora» asks for SYNC_DAYS days: the sentence says the constant, not a 7 written in the page."""
+        run = self.job('strava', 'completed', since=datetime(2026, 2, 1, tzinfo=ZoneInfo('Europe/Madrid')))
+        with patch('garage.services.strava_sync.SYNC_DAYS', 12):
+            self.assertIn('trae sólo los últimos 12 días.', visible_text(self.lead(run)))
+
+    def test_the_confusing_sentence_is_gone(self):
+        """garage-047 F21: «la completitud del histórico permanece desconocida» said nothing one could act on; «Histórico propio» says
+        what Garage cannot know and where to look."""
+        for kind in ('strava', 'fit'):
+            for state in ('pending', 'paused', 'failed', 'completed', 'cancelled'):
+                with self.subTest(kind=kind, state=state):
+                    page = self.client.get(self.url('run', self.job(kind, state).pk)).content.decode()
+                    self.assertNotIn('completitud', page.lower())
+                    self.assertNotIn('acredita', page)
+        create_manual_ride(self.owner, started_at=instant(1), distance_m=0)
+        index = self.client.get(self.url(''))
+        self.assertNotIn('completitud', index.content.decode().lower())
+        panel = [found for found in find_all(parse(index.content.decode()), 'section') if found.attrs.get('aria-labelledby') == 'coverage-title']
+        self.assertEqual(len(panel), 1)
+        self.assertIn(COVERAGE_LEAD + ' Procesar todos los archivos enviados no acredita que estén todas las salidas. Un campo ausente no '
+                      'prueba una salida faltante. Las salidas sin inicio no pueden atribuirse a un período.', visible_text(panel[0]))
 
     def test_private_run_routes_superuser_auth_and_csrf(self):
         run = self.begin()

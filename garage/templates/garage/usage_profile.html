@@ -9,7 +9,7 @@
   <div class="sec-h"><h2 id="versions-title">Historial de versiones</h2></div>
   <ul class="timeline">{% for version in versions %}
     <li{% if version.ended_at is None %} class="open"{% endif %}><span><b><a href="{% url 'garage:usage-profile-detail' version.pk %}">{{ version.name }}</a>{% if version.pk == profile.pk %} · versión seleccionada{% endif %}</b>
-      <span>{% local_datetime version.started_at %} → {% if version.ended_at %}{% local_datetime version.ended_at %}{% else %}sin final{% endif %}</span><br>
+      <span>{% local_datetime version.started_at "minute" %} → {% if version.ended_at %}{% local_datetime version.ended_at "minute" %}{% else %}sin final{% endif %}</span><br>
       <span>{% for item in version.items.all %}<a href="{% url 'garage:item-detail' item.pk %}">{{ item.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}Sin material.{% endfor %}</span></span><span></span></li>
   {% endfor %}</ul>
   <p class="note">Serie {{ profile.series_id }}. Cada versión conserva su identidad y material.</p>

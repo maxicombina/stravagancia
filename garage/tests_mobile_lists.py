@@ -13,6 +13,7 @@ from test_support import contrast
 
 from .models import Bike, Category, Item, UsageProfile
 from .services.ownership import create_inventory
+from .templatetags.garage_ui import datetime_text
 from .test_html import find_all, parse, visible_text
 from .tests_mobile_home import at, garage  # noqa: F401 (fixture)
 from .tests_ordering import SPANISH, owner_named, row_names, spanish  # noqa: F401 (fixture)
@@ -62,6 +63,39 @@ class TestLocalDatetime:
         instant = datetime(9999, 12, 31, 23, 30, tzinfo=UTC)
         assert render("{% local_datetime value %}", value=instant) == '<time datetime="9999-12-31T23:30:00Z">31 dic 9999, 23:30 (UTC)</time>'
         assert render("{% local_date value %}", value=instant) == "31 dic 9999 (UTC)"
+
+
+class TestToTheMinute:
+    """garage-047 F22 (D16): an instant the server stamps with `now()` is shown to the minute; the exact one stays in `datetime`."""
+
+    @pytest.mark.parametrize("instant,text", [
+        (datetime(2026, 1, 2, 9, 0, 5, tzinfo=UTC), "2 ene 2026, 10:00"),
+        (datetime(2026, 11, 14, 10, 30, 59, 596356, tzinfo=UTC), "14 nov 2026, 11:30"),
+        (datetime(2026, 1, 2, 9, 0, 59, 999999, tzinfo=UTC), "2 ene 2026, 10:00"),  # cut, never rounded to the next minute
+        (datetime(2026, 1, 2, 9, 0, 0, 1, tzinfo=UTC), "2 ene 2026, 10:00"),
+        (datetime(2026, 10, 17, 8, 30, tzinfo=UTC), "17 oct 2026, 10:30"),  # a whole minute reads as without the option
+        # The repeated hour at the end of summer time still names its offset.
+        (datetime(2026, 10, 25, 0, 30, 15, 500000, tzinfo=UTC), "25 oct 2026, 2:30 (UTC+02:00)"),
+        (datetime(2026, 10, 25, 1, 30, 15, 500000, tzinfo=UTC), "25 oct 2026, 2:30 (UTC+01:00)"),
+    ])
+    def test_text_to_the_minute_and_exact_instant(self, instant, text):
+        html = render('{% local_datetime value "minute" %}', value=instant)
+        exact = instant.isoformat().replace("+00:00", "Z")
+        assert html == f'<time datetime="{exact}">{text}</time>'
+        assert datetime_text(instant, ZoneInfo("Europe/Madrid"), minute=True) == text
+
+    def test_without_the_option_the_seconds_stay(self):
+        instant = datetime(2026, 1, 2, 9, 0, 5, 250000, tzinfo=UTC)
+        assert render("{% local_datetime value %}", value=instant).endswith(">2 ene 2026, 10:00:05,250000</time>")
+        assert datetime_text(instant, ZoneInfo("Europe/Madrid")) == "2 ene 2026, 10:00:05,250000"
+
+    def test_unknown_and_overflowing_instants(self):
+        assert render('{% local_datetime value "minute" %}', value=None) == ""
+        assert render('{% local_datetime value "minute" %}', value="") == ""
+        assert datetime_text(None, ZoneInfo("Europe/Madrid"), minute=True) == ""
+        instant = datetime(9999, 12, 31, 23, 30, 45, 5, tzinfo=UTC)
+        assert render('{% local_datetime value "minute" %}', value=instant) == \
+            '<time datetime="9999-12-31T23:30:45.000005Z">31 dic 9999, 23:30 (UTC)</time>'
 
 
 class TestLists:
@@ -220,7 +254,7 @@ class TestOtherScreens:
         client.force_login(garage.owner)
         client.cookies["garage_tz"] = "America/Argentina/Buenos_Aires"
         html = client.get(reverse("garage:history")).content.decode()
-        assert 'value="America/Argentina/Buenos_Aires"' in html and "Completitud del histórico:" in html
+        assert 'value="America/Argentina/Buenos_Aires"' in html and "Garage no puede saber si falta una salida" in html
         assert 'type="datetime-local" name="requested_from"' in html
         batch = client.get(reverse("garage:history-bike-batch")).content.decode()
         local = garage.pending.started_at.astimezone(ZoneInfo("America/Argentina/Buenos_Aires"))

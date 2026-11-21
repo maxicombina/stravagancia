@@ -273,7 +273,7 @@ def test_service_reading_web_selector_and_save(data, client):
     shown = client.get(url)
     assert shown.status_code == 200
     labels = str(shown.context['form']['service_event'])
-    assert 'Lubricate: chain' in labels and '2026-01-02' in labels
+    assert 'Lubricate · 2 ene 2026, 1:00' in labels  # garage-047 F05: type and local time (Madrid by default), no ISO instant
     payload = {'metric': 'moving_time_s', 'scope': 'service', 'service_event': ev.pk,
                'cut_at': '2026-01-03T00:00:00.123456', 'time_zone': 'UTC', 'value': '1.001', 'source': 'manual'}
     assert client.post(url, payload).status_code == 302

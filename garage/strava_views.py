@@ -26,10 +26,11 @@ from .services.ownership import get_inventory, scoped_inventory
 from .services.strava_client import StravaError
 from .services.strava_sources import (dismiss_duplicate, link_gear, merge_candidates, merge_effects, merge_source,
                                       remove_strava_data, separate_source)
-from .services.strava_sync import STEP_BUDGET, default_after, purge_date, start_strava_import, strava_status, sync_now
+from .services.strava_sync import (STEP_BUDGET, UnfinishedImport, covering_strava_import, default_after, purge_date, start_strava_import,
+                                   strava_status, sync_now, unfinished_strava_import)
 from .services.strava_sync import sync_all as run_sync_all
 from .strava_forms import ConfirmForm, GearLinkForm, MergeForm, StravaImportForm, StravaRemoveForm, owner_bikes
-from .templatetags.garage_ui import datetime_text
+from .templatetags.garage_ui import bound_text, datetime_text
 from .timezones import user_time_zone
 from .views import form_page, local, show_errors
 
@@ -45,6 +46,9 @@ ERROR_LABELS = {
 }
 STATUS_LABELS = {"ok": "correcta", "partial": "con actividades omitidas por datos no válidos", "failed": "con error", "": ""}
 SYNC_TOKEN_MIN = 32  # a shorter GARAGE_SYNC_TOKEN leaves the daily sync disabled (404)
+UNFINISHED = "Ya hay un trabajo de importación sin terminar: continúalo aquí o cancélalo para empezar otro."
+COVERED = ("Ya importaste el histórico desde el {since} (trabajo completado el {done}). Repetirlo no duplica salidas, pero gasta cuota "
+           "de Strava; para traer las nuevas basta «Sincronizar ahora». Si aun así quieres repetirlo, marca «Importar de nuevo igualmente».")
 
 
 def error_label(code):
@@ -76,7 +80,8 @@ def _page(request, *, import_form=None, remove_form=None, status=200):
                "gear_rows": rows, "import_form": import_form, "remove_form": remove_form or StravaRemoveForm(),
                "strava_rides": sources.values("ride_id").distinct().count(),
                "duplicates": sources.filter(possible_duplicate=True).count(),
-               "runs": scoped_inventory(user, ImportRun).filter(source_kind="strava").order_by("-created_at", "-pk")[:5]}
+               "runs": scoped_inventory(user, ImportRun).filter(source_kind="strava").order_by("-created_at", "-pk")[:5],
+               "unfinished": unfinished_strava_import(user) if state.is_owner else None}
     return render(request, "garage/strava.html", context, status=status)
 
 
@@ -150,15 +155,34 @@ def sync_all(request):
     return JsonResponse(run_sync_all().as_json())
 
 
+def _to_unfinished(request, run):
+    messages.info(request, UNFINISHED)
+    return redirect("garage:history-run", pk=run.pk)
+
+
 @login_required
 @require_POST
 def strava_import(request):
+    """garage-047 F21 (D24): an unfinished job is where the person goes, before any warning (R2-08); the service checks it again
+    under the lock. A date a recent job covers asks for «Importar de nuevo igualmente»: a warning, not integrity."""
     if _not_owner(request):
         return redirect("garage:strava")
-    form = StravaImportForm(request.POST, zone=user_time_zone(request))
+    zone = user_time_zone(request)
+    form = StravaImportForm(request.POST, zone=zone)
     if form.is_valid():
+        after = form.cleaned_data["after"]
+        unfinished = unfinished_strava_import(request.user)
+        if unfinished is not None:
+            return _to_unfinished(request, unfinished)
+        covering = None if form.cleaned_data["again"] else covering_strava_import(request.user, after)
+        if covering is not None:
+            form.ask_again(COVERED.format(since=bound_text(covering.requested_from, zone),
+                                          done=datetime_text(covering.updated_at, zone, minute=True)))
+            return _page(request, import_form=form, status=400)
         try:
-            run = start_strava_import(request.user, after=form.cleaned_data["after"], budget=STEP_BUDGET)
+            run = start_strava_import(request.user, after=after, budget=STEP_BUDGET)
+        except UnfinishedImport as error:
+            return _to_unfinished(request, error.run)
         except StravaError as error:
             messages.error(request, error_label(error.code))
         except ValidationError as error:

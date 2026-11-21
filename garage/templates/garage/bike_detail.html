@@ -75,11 +75,15 @@
 
 {% include 'garage/photo_list.html' with in_card=True %}
 
+<section class="sec card" aria-labelledby="actions-title">
+  <div class="sec-h"><h2 id="actions-title">Más acciones</h2></div>
+  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:bike-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:bike-retire' object.pk %}">Retirar</a>{% endif %}</div>
+</section>
+
 <details class="more">
   <summary>Detalles e historial de montajes</summary>
-  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:bike-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:bike-retire' object.pk %}">Retirar</a>{% endif %}</div>
   <p class="notes">{{ object.notes }}</p>
-  <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if object.retired_at %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% endif %}</dd></dl>
+  <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount|money }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if object.retired_at %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% endif %}</dd></dl>
   <h2>Historial de montajes directos en la bici</h2><p class="muted">Lo montado sobre otros componentes figura en la ficha de cada uno.</p>{% include 'garage/periods.html' %}
 </details>
 </div>

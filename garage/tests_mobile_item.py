@@ -149,7 +149,7 @@ class TestChart:
 class TestSectionsInCards:
     """Spec §4.3, the #pieza-fox38 of the mockup and the screen of a bike: the same sections, in the same order, in cards."""
 
-    TITLES = ["Uso registrado en Garage", "Km por mes", "Montajes", "Piezas", "Intervenciones", "Fotos privadas"]
+    TITLES = ["Uso registrado en Garage", "Km por mes", "Montajes", "Piezas", "Intervenciones", "Fotos privadas", "Más acciones"]  # garage-047 F14
 
     def root(self, garage, client):
         client.force_login(garage.owner)
@@ -227,7 +227,8 @@ class TestComponentScreen:
         open_mount = Installation.objects.get(item=garage.chain, ended_at__isnull=True)
         Installation.objects.filter(pk=open_mount.pk).update(ended_at=datetime(2030, 1, 1, tzinfo=UTC))
         html = client.get(url).content.decode()
-        assert "En Carretera desde el" in html and "→ 1 ene 2030" in html
+        timeline = visible_text(find_all(parse(html), "section", aria_labelledby="mounts-title")[0])
+        assert "En Carretera desde el" in html and "→ 1 ene 2030, 1:00" in timeline  # garage-047 F15: not a local midnight in Madrid
         loose = create_inventory(garage.owner, Item, name="Suelta", category=garage.chain.category)
         html = client.get(reverse("garage:item-detail", args=[loose.pk])).content.decode()
         assert ">Mover</a>" not in html and f'href="{reverse("garage:installation-create", args=[loose.pk])}">Montar</a>' in html
@@ -289,3 +290,271 @@ class TestComponentScreen:
         assert client.get(reverse("garage:" + route) + f"?item={garage.foreign.pk}").status_code == 404
         assert client.get(reverse("garage:" + route) + "?item=not-a-uuid").status_code == 404
         assert client.get(reverse("garage:" + route)).status_code == 200
+
+
+class TestReadings:
+    """garage-047 F05 (D15): a usage reading on the item page reads in Spanish, with its figure in km, hours or rides."""
+
+    def cards(self, garage, client, **reading):
+        values = {"metric": "moving_time_s", "scope": "lifetime", "cut_at": datetime(2026, 1, 1, tzinfo=UTC), "value": Decimal("298800"),
+                  "source": "manual", **reading}
+        record_baseline(garage.owner, item=garage.chain, **values)
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "Europe/Madrid"
+        html = client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode()
+        cards = [card for card in find_all(parse(html), "article", cls="card") if "Corregir lectura" in visible_text(card)]
+        assert len(cards) == 1
+        return html, [visible_text(child) for child in cards[0].children if not isinstance(child, str) and child.tag in ("h3", "p")]
+
+    def test_the_item_page_shows_readings_in_spanish(self, garage, client):
+        html, lines = self.cards(garage, client)
+        assert lines[:3] == ["Tiempo en movimiento", "83 h · Toda la vida · 1 ene 2026, 1:00", "Procedencia: Lectura manual propia"]
+        for english in ("Lifetime", "Moving time", "298800.000", "(seconds)", "Procedencia: manual"):
+            assert english not in html, english
+
+    @pytest.mark.parametrize("reading,title,line", [
+        ({"metric": "distance_m", "value": Decimal("0")}, "Distancia", "0 km · Toda la vida"),  # a known zero
+        ({"metric": "distance_m", "value": Decimal("2840500")}, "Distancia", "2.841 km · Toda la vida"),
+        ({"metric": "ride_count", "value": Decimal("12")}, "Salidas", "12 salidas · Toda la vida"),
+        ({"metric": "ride_count", "value": Decimal("1")}, "Salidas", "1 salida · Toda la vida"),
+        ({"metric": "ride_count", "value": Decimal("0")}, "Salidas", "0 salidas · Toda la vida"),  # a known zero, plural
+        ({"is_estimated": True}, "Tiempo en movimiento", "≈ 83 h · Toda la vida"),
+    ])
+    def test_each_metric_has_its_unit(self, garage, client, reading, title, line):
+        _, lines = self.cards(garage, client, **reading)
+        assert lines[0] == title and lines[1].startswith(line + " · "), lines
+
+    def test_an_estimated_reading_still_says_so(self, garage, client):
+        _, lines = self.cards(garage, client, is_estimated=True, source="manual_garmin_reading")
+        assert lines[2] == "Procedencia: Lectura manual de Garmin · Estimada"
+
+    def test_since_acquisition(self, garage, client):
+        from .services.ownership import update_inventory
+        update_inventory(garage.owner, Item, garage.chain.pk, acquisition_anchor_at=datetime(2025, 12, 1, tzinfo=UTC))
+        _, lines = self.cards(garage, client, scope="acquisition")
+        assert " · Desde mi adquisición · " in lines[1]
+
+    def test_since_an_intervention(self, garage, client):
+        event = ServiceEvent.objects.get(item=garage.chain)
+        _, lines = self.cards(garage, client, scope="service", service_event=event)
+        assert " · Desde una intervención concreta · " in lines[1]
+
+    def test_another_source_is_shown_as_it_is_escaped(self, garage, client):
+        html, lines = self.cards(garage, client, source="<b>sensor</b> propio")
+        assert lines[2] == "Procedencia: <b>sensor</b> propio"
+        assert "&lt;b&gt;sensor&lt;/b&gt; propio" in html and "<b>sensor</b>" not in html
+
+
+def element_children(node):
+    return [child for child in node.children if not isinstance(child, str)]
+
+
+def links_to(node, href):
+    return [link for link in find_all(node, "a") if link.attrs.get("href") == href]
+
+
+def inside(container, nodes):
+    within = {id(node) for node in find_all(container)}
+    return [node for node in nodes if id(node) in within]
+
+
+class TestActionsInSight:
+    """garage-047 F14 (D17): retiring, reactivating and the actions of the current mount are in sight, not folded in «Detalles»."""
+
+    def page(self, client, item):
+        response = client.get(reverse("garage:item-detail", args=[item.pk]))
+        assert response.status_code == 200
+        return parse(response.content.decode())
+
+    @staticmethod
+    def details(page):
+        folds = find_all(page, "details", cls="more")
+        assert len(folds) == 1, folds
+        return folds[0]
+
+    @staticmethod
+    def card(page):
+        cards = [section for section in find_all(page, "section", cls="sec card") if find_all(section, "h2")
+                 and visible_text(find_all(section, "h2")[0]) == "Más acciones"]
+        assert len(cards) == 1, cards
+        return cards[0]
+
+    @staticmethod
+    def loose(garage, name="Suelta"):
+        return create_inventory(garage.owner, Item, name=name, category=garage.chain.category)
+
+    def test_retire_is_visible_without_opening_details(self, garage, client):
+        from .services.ownership import retire_inventory
+        client.force_login(garage.owner)
+        loose = self.loose(garage)
+        page = self.page(client, loose)
+        retire = links_to(page, reverse("garage:item-retire", args=[loose.pk]))
+        assert [visible_text(link) for link in retire] == ["Retirar"]
+        assert inside(self.card(page), retire) == retire and not inside(self.details(page), retire)
+        retire_inventory(garage.owner, Item, loose.pk, at=datetime(2026, 1, 1, tzinfo=UTC))
+        page = self.page(client, loose)
+        forms = [form for form in find_all(page, "form") if form.attrs.get("action") == reverse("garage:item-reactivate", args=[loose.pk])]
+        assert len(forms) == 1 and forms[0].attrs.get("method") == "post"
+        assert [visible_text(button) for button in find_all(forms[0], "button")] == ["Reactivar"]
+        assert inside(self.card(page), forms) == forms and not inside(self.details(page), forms)
+        assert not links_to(page, reverse("garage:item-retire", args=[loose.pk]))
+
+    def test_a_retirement_still_to_come_offers_reactivating(self, garage, client):
+        # The rule of garage-042 §8 does not change: with a `retired_at`, even ahead, «Reactivar».
+        from django.utils import timezone
+        from .services.ownership import retire_inventory
+        retire_inventory(garage.owner, Item, garage.chain.pk, at=timezone.now() + timedelta(days=3))
+        client.force_login(garage.owner)
+        page = self.page(client, garage.chain)
+        card = self.card(page)
+        assert [visible_text(button) for button in find_all(card, "button")] == ["Reactivar"]
+        assert not links_to(page, reverse("garage:item-retire", args=[garage.chain.pk]))
+
+    def mount_links(self, client, item):
+        page = self.page(client, item)
+        return page, links_to(page, reverse("garage:installation-create", args=[item.pk]))
+
+    def test_mount_links_by_state(self, garage, client):
+        from django.utils import timezone
+        from .services.ownership import retire_inventory
+        client.force_login(garage.owner)
+        loose = self.loose(garage)
+        _, links = self.mount_links(client, loose)  # loose and active: the head of «Montajes» and the action bar
+        assert [visible_text(link) for link in links] == ["Montar", "Montar"]
+        page, links = self.mount_links(client, garage.chain)  # mounted
+        assert [visible_text(link) for link in links] == ["Añadir un montaje pasado"] and inside(self.card(page), links) == links
+        retire_inventory(garage.owner, Item, loose.pk, at=datetime(2026, 1, 1, tzinfo=UTC))
+        page, links = self.mount_links(client, loose)  # retired
+        assert [visible_text(link) for link in links] == ["Añadir un montaje pasado"] and inside(self.card(page), links) == links
+        retire_inventory(garage.owner, Item, garage.chain.pk, at=timezone.now() + timedelta(days=3))
+        _, links = self.mount_links(client, garage.chain)  # mounted, and its retirement still to come: once, not twice
+        assert [visible_text(link) for link in links] == ["Añadir un montaje pasado"]
+
+    def test_a_mount_whose_end_is_set_offers_no_unmount(self, garage, client):
+        # «Desmontar» closes an open period: one whose end is already set is refused, whatever the instant (as `periods.html`
+        # knows). Offered, it would only lead to that error. «Reemplazar» works inside the period, and stays.
+        from .models import Installation
+        current = Installation.objects.get(item=garage.chain, ended_at__isnull=True)
+        end = datetime(2030, 1, 1, tzinfo=UTC)
+        Installation.objects.filter(pk=current.pk).update(ended_at=end)
+        client.force_login(garage.owner)
+        response = client.post(reverse("garage:installation-close", args=[current.pk]), {"at": "2029-06-01T10:00", "time_zone": "UTC"})
+        assert response.status_code == 200 and Installation.objects.get(pk=current.pk).ended_at == end  # refused
+        card = self.card(self.page(client, garage.chain))
+        assert not links_to(card, reverse("garage:installation-close", args=[current.pk]))
+        assert [visible_text(link) for link in links_to(card, reverse("garage:installation-replace", args=[current.pk]))] == ["Reemplazar"]
+        assert [visible_text(link) for link in find_all(card, "a")] == ["Retirar", "Reemplazar", "Añadir un montaje pasado"]
+
+    def test_mounting_is_no_longer_folded(self, garage, client):
+        client.force_login(garage.owner)
+        for item in (garage.chain, self.loose(garage)):
+            html = client.get(reverse("garage:item-detail", args=[item.pk])).content.decode()
+            assert "Montar / remontar" not in html
+            assert not links_to(self.details(parse(html)), reverse("garage:installation-create", args=[item.pk]))
+
+    def test_a_mounted_piece_offers_unmount_and_replace_outside_details(self, garage, client):
+        from .models import Installation
+        client.force_login(garage.owner)
+        current = Installation.objects.get(item=garage.chain, ended_at__isnull=True)
+        page = self.page(client, garage.chain)
+        card = self.card(page)
+        for route, text in (("installation-close", "Desmontar"), ("installation-replace", "Reemplazar")):
+            links = links_to(card, reverse(f"garage:{route}", args=[current.pk]))
+            assert [visible_text(link) for link in links] == [text], route
+        past = Installation.objects.get(item=garage.chain, ended_at__isnull=False)
+        assert not links_to(card, reverse("garage:installation-close", args=[past.pk]))
+        assert [visible_text(link) for link in find_all(card, "a")] == ["Retirar", "Desmontar", "Reemplazar", "Añadir un montaje pasado"]
+
+    def test_a_piece_inside_another_unmounts_from_it(self, garage, client):
+        shoes = self.loose(garage, "Zapatillas")
+        cleats = self.loose(garage, "Calas")
+        mount = create_installation(garage.owner, item=cleats, bike=None, parent_item=shoes, started_at=datetime(2026, 1, 1, tzinfo=UTC),
+                                    ended_at=None, slot=None)
+        client.force_login(garage.owner)
+        card = self.card(self.page(client, cleats))
+        assert [visible_text(link) for link in links_to(card, reverse("garage:installation-close", args=[mount.pk]))] == ["Desmontar"]
+        assert [visible_text(link) for link in links_to(card, reverse("garage:installation-replace", args=[mount.pk]))] == ["Reemplazar"]
+
+    def test_a_loose_piece_has_nothing_to_unmount(self, garage, client):
+        client.force_login(garage.owner)
+        card = self.card(self.page(client, self.loose(garage)))
+        assert [visible_text(link) for link in find_all(card, "a")] == ["Retirar"]
+
+    def test_registering_a_reading_sits_with_the_readings(self, garage, client):
+        client.force_login(garage.owner)
+        details = self.details(self.page(client, garage.chain))
+        children = element_children(details)
+        headings = [visible_text(child) if child.tag == "h2" else None for child in children]
+        readings, history = headings.index("Lecturas de uso"), headings.index("Historial completo de montajes")
+        rows = [index for index, child in enumerate(children) if links_to(child, reverse("garage:baseline-create", args=[garage.chain.pk]))]
+        assert len(rows) == 1 and readings < rows[0] < history, (readings, rows, history)
+        row = children[rows[0]]
+        assert "actions" in row.attrs.get("class", "").split()
+        assert [visible_text(link) for link in find_all(row, "a")] == ["Registrar lectura"]
+        assert all(child.tag == "p" for child in children[readings + 1:rows[0]])  # only its explanation in between
+
+
+class TestMountTimes:
+    """garage-047 F15 (D18): the timeline of «Montajes» gives the time when it is not a local midnight, and the zone is named."""
+
+    def timeline(self, client, item):
+        page = parse(client.get(reverse("garage:item-detail", args=[item.pk])).content.decode())
+        section = find_all(page, "section", aria_labelledby="mounts-title")[0]
+        return [(visible_text(find_all(row, "b")[0]), visible_text(find_all(row, "span")[1])) for row in find_all(section, "li")]
+
+    def test_the_timeline_shows_the_time_when_it_is_not_midnight(self, garage, client):
+        wheel = create_inventory(garage.owner, Item, name="Rueda", category=garage.chain.category)
+        nine = datetime(2026, 3, 10, 9, tzinfo=MADRID)  # 8:00 UTC (CET)
+        midnight = datetime(2026, 4, 1, tzinfo=MADRID)  # 22:00 UTC on 31 March (CEST)
+        create_installation(garage.owner, item=wheel, bike=garage.gravel, parent_item=None, started_at=nine, ended_at=midnight, slot=None)
+        create_installation(garage.owner, item=wheel, bike=garage.road, parent_item=None, started_at=midnight, ended_at=None, slot=None)
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "Europe/Madrid"
+        assert self.timeline(client, wheel) == [("Carretera", "1 abr 2026 → hoy"), ("Gravel", "10 mar 2026, 9:00 → 1 abr 2026")]
+        client.cookies["garage_tz"] = "America/Argentina/Buenos_Aires"
+        # The same instants: 5:00 there, and Madrid's midnight is 19:00 of the day before.
+        assert self.timeline(client, wheel) == [("Carretera", "31 mar 2026, 19:00 → hoy"), ("Gravel", "10 mar 2026, 5:00 → 31 mar 2026, 19:00")]
+
+    def test_a_time_keeps_the_exact_instant(self, garage, client):
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "Europe/Madrid"
+        page = parse(client.get(reverse("garage:item-detail", args=[garage.chain.pk])).content.decode())
+        section = find_all(page, "section", aria_labelledby="mounts-title")[0]
+        # The fixture mounts at midnight UTC: 1:00 or 2:00 in Madrid, so a time, inside <time> with the instant.
+        assert [time.attrs["datetime"] for time in find_all(section, "time")] == ["2026-06-01T00:00:00Z", "2026-01-01T00:00:00Z", "2026-06-01T00:00:00Z"]
+
+    def test_the_end_still_to_come_keeps_its_time(self, garage, client):
+        from .models import Installation
+        Installation.objects.filter(item=garage.chain, ended_at__isnull=True).update(ended_at=datetime(2030, 1, 1, 8, 30, tzinfo=MADRID))
+        client.force_login(garage.owner)
+        client.cookies["garage_tz"] = "Europe/Madrid"
+        assert self.timeline(client, garage.chain)[0] == ("Carretera", "1 jun 2026, 2:00 → 1 ene 2030, 8:30")
+
+    def notes(self, client, item, zone=None):
+        if zone:
+            client.cookies["garage_tz"] = zone
+        page = parse(client.get(reverse("garage:item-detail", args=[item.pk])).content.decode())
+        section = find_all(page, "section", aria_labelledby="mounts-title")[0]
+        details = find_all(page, "details", cls="more")[0]
+        children = element_children(details)
+        history = next(index for index, child in enumerate(children) if child.tag == "h2" and visible_text(child) == "Historial completo de montajes")
+        after = children[history + 1] if history + 1 < len(children) else None
+        return ([visible_text(note) for note in find_all(section, "p", cls="note")],
+                visible_text(after) if after is not None and after.tag == "p" else None)
+
+    def test_the_zone_of_the_times_is_named(self, garage, client):
+        client.force_login(garage.owner)
+        assert self.notes(client, garage.chain, "Europe/Madrid") == (["Horas en la zona Europe/Madrid."], "Horas en la zona Europe/Madrid.")
+        assert self.notes(client, garage.chain, "America/Argentina/Buenos_Aires") == (
+            ["Horas en la zona America/Argentina/Buenos_Aires."], "Horas en la zona America/Argentina/Buenos_Aires.")
+
+    def test_an_unknown_zone_names_the_one_used(self, garage, client):
+        client.force_login(garage.owner)
+        assert self.notes(client, garage.chain, "Mars/Base") == (["Horas en la zona Europe/Madrid."], "Horas en la zona Europe/Madrid.")
+
+    def test_never_mounted_names_no_zone(self, garage, client):
+        loose = create_inventory(garage.owner, Item, name="Luz", category=garage.chain.category)
+        client.force_login(garage.owner)
+        notes, after = self.notes(client, loose, "Europe/Madrid")
+        assert notes == [] and after != "Horas en la zona Europe/Madrid."
+        assert "Horas en la zona" not in client.get(reverse("garage:item-detail", args=[loose.pk])).content.decode()

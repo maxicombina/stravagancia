@@ -1,6 +1,6 @@
 """Private HTML forms composed from the actor-bound domain forms."""
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
@@ -8,16 +8,19 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from .choices import BikeChoiceField, ItemChoiceField
+from .choices import BikeChoiceField, DistinctChoiceField, ItemChoiceField
 from .forms import BikeForm, CategoryForm, ItemForm, LocalDateTimeField, UsageBaselineForm, local_time_to_utc
 from .icons import ICON_CHOICES, ICON_KEYS
-from .maintenance_forms import SpanishWebMixin, spanish_fields
+from .maintenance_forms import UNITS, DecimalInput, SpanishWebMixin, _shown, spanish_fields
 from .models import Bike, Item, UsageBaseline
 from .ordering import by_name
+from .presentation import EXACT_METRICS, METRICS, SCOPES, SOURCE_CHOICES
 from .services.baselines import record_baseline
 from .services.categories import suggest_icon
 from .services.installations import create_installation, update_installation
 from .services.ownership import require_actor, scoped_inventory
+from .templatetags.garage_ui import datetime_text
+from .timezones import DEFAULT_ZONE
 from .validators import exact_usage_value
 
 ZONE_HELP = "Zona IANA, por ejemplo UTC o Europe/Madrid. Horas locales: AAAA-MM-DDTHH:MM:SS (fracciones opcionales). Las horas ambiguas o inexistentes deben corregirse."
@@ -30,11 +33,8 @@ LABELS = {"name": "Nombre", "brand": "Marca", "model": "Modelo", "serial_number"
           "bike": "Bici de destino", "parent_item": "Objeto de destino", "slot": "Posición exclusiva",
           "started_at": "Inicio", "ended_at": "Final (vacío: sigue montado)", "at": "Instante del cambio",
           "incoming_item": "Objeto entrante", "metric": "Métrica", "scope": "Ámbito de la lectura",
-          "cut_at": "Instante de referencia", "value": "Valor (metros, segundos o salidas)",
+          "cut_at": "Instante de referencia", "value": "Valor exacto (metros o segundos)",
           "source": "Procedencia declarada", "is_estimated": "Lectura estimada"}
-SCOPES = [("lifetime", "Toda la vida"), ("acquisition", "Desde mi adquisición"), ("service", "Desde una intervención concreta")]
-METRICS = [("distance_m", "Distancia (metros)"), ("moving_time_s", "Movimiento (segundos)"), ("ride_count", "Salidas")]
-SOURCE_CHOICES = [("manual", "Lectura manual propia"), ("manual_garmin_reading", "Lectura manual de Garmin")]
 
 
 def decorate(form):
@@ -338,7 +338,45 @@ class TransferWebForm(TemporalActionForm):
         return cleaned
 
 
+class EventChoiceField(DistinctChoiceField):
+    """«Lubricación · 1 feb 2026, 11:00»: an intervention by its type and its local date and time (garage-047 F05).
+
+    In the viewer's zone (set by `local_forms.localize`). Two that would read the same get «(2)», as the other selectors.
+    """
+
+    def labelled(self, queryset, *, at):
+        return super().labelled(queryset.select_related("service_type"), at=at)
+
+    def rows(self, events, at):
+        rows = []
+        for event in events:
+            label = f"{event.service_type.name} · {datetime_text(event.performed_at, self.zone or DEFAULT_ZONE)}"
+            rows.append((event, False, label, label))
+        return rows
+
+
+# A reading is written in km, hours or rides and stored exact in metres, seconds or rides (garage-047 F05, D15).
+READING_SCALES = {"distance_m": Decimal(1000), "moving_time_s": Decimal(3600), "ride_count": Decimal(1)}
+AMOUNT_HELP = "En km, horas o salidas, según la métrica. Con coma decimal: 83,5. Cero es una lectura conocida."
+OUT_OF_RANGE = "Escribe un valor positivo o cero, dentro del máximo admitido."
+# More decimals than metres or seconds keep (3): the time is the message of the rule form; rides are never a fraction.
+INEXACT = {"moving_time_s": next(precision for exact, *_, precision in UNITS if exact == "moving_time_s"),
+           "ride_count": "Las salidas son un número entero."}
+
+
 class BaselineWebForm(SpanishWebMixin, UsageBaselineForm):
+    """A reading in km, hours or rides (`amount`), saved exact in metres, seconds or rides as `value` (garage-047 F05).
+
+    A post with `value` and no `amount` (a page opened before) is still taken as it was sent. A correction whose stored
+    value has no exact km or hours with 6 decimals at most shows its exact field instead, so saving it changes nothing.
+    """
+
+    class Meta(UsageBaselineForm.Meta):
+        field_classes = {"service_event": EventChoiceField}  # the admin keeps its own
+
+    # Without a valid metric the value has no unit and stays empty: the model's complaint only follows from that.
+    FOLLOWS = {**UsageBaselineForm.FOLLOWS, "metric": "Use an explicit decimal value."}
+
     def __init__(self, *args, user, item, **kwargs):
         self.fixed_item = item
         super().__init__(*args, user=user, **kwargs)
@@ -351,5 +389,48 @@ class BaselineWebForm(SpanishWebMixin, UsageBaselineForm):
         decorate(self)
         # Not in LABELS: decorate() would also rename the «Pieza» of PartWebForm (garage-047 F07).
         self.fields["item"].label, self.fields["service_event"].label = "Objeto", "Intervención"
+        self.fields["service_event"].help_text = "Sólo para «Desde una intervención concreta»."
         self.fields["item"].empty_label = self.fields["service_event"].empty_label = "—"
         self.fields["time_zone"].help_text = ZONE_HELP
+        self.converted_fields = set()
+        if self.is_bound:
+            keep_exact = self.add_prefix("value") in self.data and self.add_prefix("amount") not in self.data
+        elif self._resource_id is not None:
+            shown = _shown(Decimal(self.instance.value), READING_SCALES[self.instance.metric])
+            keep_exact = shown is None
+            if shown is not None:
+                self.initial["amount"] = shown
+        else:
+            keep_exact = False
+        if keep_exact:
+            # Over a field in metres or seconds, «(horas)» would have 340 typed for 340 h and saved as 340 s.
+            self.fields["metric"].choices = EXACT_METRICS
+        else:
+            amount = DecimalInput(label="Valor", help_text=AMOUNT_HELP, max_digits=24, decimal_places=6,
+                                  error_messages={"max_digits": OUT_OF_RANGE, "max_whole_digits": OUT_OF_RANGE})
+            self.fields = {"amount" if name == "value" else name: amount if name == "value" else field
+                           for name, field in self.fields.items()}
+            self.converted_fields.add("value")
+        spanish_fields(self)  # `amount` did not exist when the mixin ran
+
+    def _update_errors(self, errors):
+        """What the model says of `value` is about the `amount` typed, when that is the field shown."""
+        if "value" in self.converted_fields and hasattr(errors, "error_dict") and "value" in errors.error_dict:
+            merged = {}
+            for field, messages in errors.error_dict.items():
+                merged.setdefault("amount" if field == "value" else field, []).extend(messages)
+            errors = ValidationError(merged)
+        super()._update_errors(errors)
+
+    def clean(self):
+        cleaned = super().clean()
+        metric = cleaned.get("metric")
+        if "amount" in self.fields and "amount" not in self.errors and metric in READING_SCALES:
+            with localcontext() as context:
+                context.prec = 60  # 24 digits by 4: always exact
+                product = cleaned["amount"] * READING_SCALES[metric]
+            try:
+                cleaned["value"] = exact_usage_value(product, metric=metric)
+            except ValidationError as error:
+                self.add_error("amount", INEXACT.get(metric, error) if error.code == "invalid_precision" else error)
+        return cleaned

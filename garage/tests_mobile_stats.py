@@ -1,19 +1,22 @@
 """garage-032.3: statistics by period, monthly chart of every ride, split by bike and gear, spending."""
-from datetime import datetime, timezone as dt_timezone
+import re
+from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
 from django.db import connection
+from django.template.loader import render_to_string
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from .models import Item, ServiceEvent, ServiceType
+from .services.installations import create_installation
 from .services.maintenance import save_maintenance
 from .services.monthly import monthly_usage
 from .services.ownership import InventoryWriteError, create_inventory
 from .services.rides import create_manual_ride
-from .services.statistics import statistics
+from .services.statistics import StatisticMetric, statistics
 from .statistics_views import period_bounds
 from .test_html import Node, find_all, parse, visible_text
 from .tests_mobile_home import NOW, at, garage  # noqa: F401 (fixture)
@@ -298,3 +301,86 @@ class TestBudgetWithEverything:
         client.cookies["garage_tz"] = "Europe/Madrid"
         html, _ = get(client, time_zone="Europe/Madrid", started_from="2026-01-01T07:30")
         assert "Del <time" in html and "1 ene 2026, 7:30</time> hasta hoy" in html
+
+
+SECONDS = datetime(2026, 10, 17, 10, 7, 30, 123456, tzinfo=UTC)  # 12:07:30,123456 in Madrid: a `now()` with seconds and microseconds
+MICROSECONDS = re.compile(r"\d:\d{2}:\d{2},\d{6}")
+
+
+def detailed_report(client, **params):
+    reports = find_all(parse(get(client, **params)[0]), "details", cls="more")
+    assert len(reports) == 1
+    return reports[0]
+
+
+def fold_headings(report, summary):
+    """The headings of every fold of the report with that summary («Montajes en el período»…), row after row."""
+    return [visible_text(heading) for fold in find_all(report, "details") if visible_text(find_all(fold, "summary")[0]) == summary
+            for heading in find_all(fold, "h4")]
+
+
+class TestDetailedReportFormats:
+    """garage-047 F22 (D16): Spanish figures in the detailed report, and its «now» to the minute."""
+
+    @pytest.fixture
+    def seconds(self, monkeypatch):
+        monkeypatch.setattr("django.utils.timezone.now", lambda: SECONDS)
+        return SECONDS
+
+    def test_statistics_detail_has_no_microseconds(self, garage, client, seconds):
+        """The period, the totals and the headings of the two folds end at the «now» of the report: «12:07», not «12:07:30,123456»."""
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        # An intervention and a mount that start with seconds: in a heading they also read to the minute (exact in `datetime`).
+        save_maintenance(garage.owner, ServiceEvent, item=garage.chain, service_type=kind, performed_at=at(30) + timedelta(seconds=42))
+        create_installation(garage.owner, item=garage.light, bike=garage.gravel, parent_item=None,
+                            started_at=at(5) + timedelta(seconds=15, microseconds=250000), ended_at=None, slot=None)
+        client.force_login(garage.owner)
+        report = detailed_report(client, period="all")
+        text = visible_text(report)
+        assert "Período observado: Todo lo registrado → 17 oct 2026, 12:07." in text
+        totals = [visible_text(heading) for heading in find_all(report, "h3") if visible_text(heading).startswith("Totales acumulados")]
+        assert totals and set(totals) == {"Totales acumulados a 17 oct 2026, 12:07"}
+        mounts, services = fold_headings(report, "Montajes en el período"), fold_headings(report, "Períodos entre intervenciones")
+        assert "Montaje en Gravel · 11 oct 2026, 14:00 → 17 oct 2026, 12:07" in mounts
+        assert services == ["Lavado · 16 sep 2026, 14:00 → 17 oct 2026, 12:07"]
+        assert all(heading.endswith(" → 17 oct 2026, 12:07") for heading in mounts), mounts
+        assert not MICROSECONDS.search(text) and not re.search(r"\d:\d{2}:\d{2}", text), "no seconds in the report"
+        for exact in ("2026-10-17T10:07:30.123456Z", "2026-10-11T12:00:15.250000Z", "2026-09-16T12:00:42Z"):
+            assert find_all(report, "time", datetime=exact), exact
+
+    @pytest.mark.parametrize("name,value,shown", [
+        ("distance_m", Decimal(2795000), "Km: 2.795"),  # the demo: «Km: 2795.000»
+        ("moving_time_s", Decimal("387003.6"), "Horas en movimiento: 108"),  # «107.501»
+        ("ride_count", Decimal(39), "Salidas: 39"),  # «39.000»
+        ("elevation_gain_m", Decimal("12345.6"), "Desnivel (m): 12.346"),
+        ("distance_m", Decimal(92440), "Km: 92,4"),
+        ("moving_time_s", Decimal(0), "Horas en movimiento: 0"),
+        ("distance_m", None, "Km: Desconocido"),
+    ])
+    def test_statistics_detail_uses_spanish_figures(self, name, value, shown):
+        html = render_to_string("garage/statistics_metrics.html", {"metrics": [StatisticMetric(name, value)], "user_tz": MADRID})
+        assert visible_text(parse(html)).startswith(f"{shown} · Histórico parcial"), visible_text(parse(html))
+
+    def test_the_detailed_report_of_the_page_uses_spanish_figures(self, garage, client):
+        client.force_login(garage.owner)
+        report = detailed_report(client, period="all")
+        road = [card for card in find_all(report, "article", cls="card") if visible_text(find_all(card, "h2")[0]) == "Carretera"]
+        assert len(road) == 1
+        observed = find_all(road[0], "div", cls="grid")[0]
+        figures = [visible_text(child).split(" · ")[0] for child in observed.children if isinstance(child, Node)]
+        assert figures == ["Km: 400", "Horas en movimiento: 16", "Salidas: 4", "Desnivel (m): Desconocido"]
+
+    def test_costs_use_a_decimal_comma(self, garage, client, seconds):
+        from .services.baselines import record_baseline
+        from .services.ownership import update_inventory
+        kind = save_maintenance(garage.owner, ServiceType, name="Lavado")
+        save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=at(5), amount=Decimal("1234.5"), currency="EUR")
+        # The chain's cost per km since it was bought can be worked out: a reading of its whole use since then, at the end of the report.
+        update_inventory(garage.owner, Item, garage.chain.pk, purchase_amount=Decimal("1234.5"), purchase_currency="EUR", acquisition_anchor_at=at(300))
+        record_baseline(garage.owner, item=garage.chain, metric="distance_m", scope="acquisition", cut_at=SECONDS, value=Decimal(400000), source="manual")
+        client.force_login(garage.owner)
+        html, _ = get(client, period="all")
+        assert "1.234,50 EUR · Intervenciones del período; distancia observada del período<br>Coste/km no calculable" in html
+        # 1.234,50 EUR over 400 km: 3,08625 EUR/km, to four decimals.
+        assert "1.234,50 EUR · Compra e intervenciones registradas desde adquisición; uso total adquisición, todas las bicis<br>3,0863 EUR/km (costes declarados)." in html
+        assert "1234.50" not in html and "3.0863" not in html

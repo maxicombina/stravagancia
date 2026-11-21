@@ -77,6 +77,7 @@ MAX_ATTEMPTS = 5         # a hint failing for a non-recoverable reason is settle
 EVENT_RETENTION = timedelta(days=30)
 MAX_BUDGET = 5
 STEP_BUDGET = 4          # history pages per «Importar» / «Continuar importación» press
+UNFINISHED_STATES = ("pending", "running", "paused", "failed")  # a history job still to continue or cancel (garage-047 F21)
 REQUEST_SECONDS = 25     # no new Strava call starts after this
 RESPONSE_SECONDS = 30    # and calls are cut to end by this (connect + read): about 30 s a press, not 14 × 25 s
 STOP_CODES = ("rate_limited", "unauthorized", "network")
@@ -522,8 +523,59 @@ def _fail_run(owner, run_id, code):
                                   errors=_merge_errors(run.errors, [{"code": RUN_CODES.get(code, "unexpected_failure"), "session_index": None}]))
 
 
+class UnfinishedImport(Exception):
+    """The owner already has an unfinished Strava history job, `run` (the most recent): continue or cancel it first (garage-047 F21)."""
+
+    def __init__(self, run):
+        super().__init__(f"Unfinished Strava import {run.pk}.")
+        self.run = run
+
+
+def unfinished_strava_import(actor):
+    """The owner's most recent Strava history job of the current connection still to continue or cancel, or None.
+
+    A job not saved since before the current connection, or any without one (after «Quitar lo sincronizado» or the daily
+    purge), does not count: its rides are gone and continuing it would skip its confirmed pages (B14-R1-01). A job counts
+    once it was saved under the current connection: created under it, or older and continued under it, since «Continuar»
+    connects again before it asks Strava (B14-R2-01). Read only: the guard is start_strava_import's.
+    """
+    owner = require_actor(actor)
+    account = StravaAccount.objects.filter(owner_id=owner.pk).first()
+    if account is None:
+        return None
+    return (ImportRun.objects.filter(owner_id=owner.pk, source_kind="strava", state__in=UNFINISHED_STATES,
+                                     updated_at__gte=account.connected_at)
+            .order_by("-created_at", "-pk").first())
+
+
+def covering_strava_import(actor, after):
+    """The most recently completed Strava job that already brought the rides from `after`, or None (garage-047 F21, D24).
+
+    It covers only from the current connection (a job from before «Quitar lo sincronizado» may have lost its rides) and only
+    when it finished at most SYNC_DAYS days ago, what «Sincronizar ahora» asks for since. Read only: a warning, not integrity.
+    """
+    owner = require_actor(actor)
+    account = StravaAccount.objects.filter(owner_id=owner.pk).first()
+    if account is None:
+        return None
+    return (ImportRun.objects.filter(owner_id=owner.pk, source_kind="strava", state="completed", requested_from__lte=after,
+                                     created_at__gte=account.connected_at, updated_at__gte=timezone.now() - timedelta(days=SYNC_DAYS))
+            .order_by("-updated_at", "-pk").first())
+
+
+def _refuse_unfinished(locked):
+    run = unfinished_strava_import(locked)
+    if run is not None:
+        raise UnfinishedImport(run)
+
+
 def start_strava_import(actor, *, after, budget=1):
-    """Create a resumable Strava history job from `after` and run its first step."""
+    """Create a resumable Strava history job from `after` and run its first step.
+
+    With an unfinished Strava job of the current connection (unfinished_strava_import) it creates none and asks Strava
+    nothing: UnfinishedImport (garage-047 F21). Checked under the owner lock before ensure_account, and again under the lock
+    that creates the job, so that two presses at once create one job and the second gets it.
+    """
     owner = require_actor(actor)
     try:
         after = aware_instant(after)
@@ -532,9 +584,14 @@ def start_strava_import(actor, *, after, budget=1):
     if after >= timezone.now():
         _fail("invalid_period", "La fecha de inicio debe estar en el pasado.")
     _budget(budget)
+    with transaction.atomic():
+        _refuse_unfinished(_lock_owner(owner))
     client = StravaClient()
     ensure_account(owner, client)
-    run = create_import_run(owner, requested_from=after, source_kind="strava")
+    with transaction.atomic():
+        locked = _lock_owner(owner)
+        _refuse_unfinished(locked)
+        run = create_import_run(locked, requested_from=after, source_kind="strava")
     return resume_strava_import(owner, run.pk, budget=budget, client=client)
 
 

@@ -9,7 +9,8 @@ from django.utils.html import format_html, format_html_join
 from garage.assets import asset_url
 from garage.forms import LocalDateTimeField
 from garage.icons import ICON_LABELS, category_icon_key, item_icon_key
-from garage.presentation import STATES, number, power_figures as ride_power_figures, quantity, thresholds as rule_thresholds
+from garage.presentation import (NAMES, SCOPES, SOURCE_CHOICES, STATES, WearMetric, number, power_figures as ride_power_figures, quantity,
+                                 thresholds as rule_thresholds)
 from garage.services.lifecycle import AVAILABLE, IN_USE, MOUNTED, RETIRED, RETIRES_TEXT
 from garage.sports import sport_label as modality_label
 from garage.timezones import DEFAULT_ZONE, user_time_zone
@@ -195,6 +196,21 @@ def num(value, decimals=0):
 
 
 @register.filter
+def figure(value, name):
+    """A metric's value in its unit, written as its ring writes it (garage-047 F22): 2744 km -> '2.744', 92.44 -> '92,4', days rounded down."""
+    return quantity(name, value)
+
+
+@register.filter
+def remaining_figure(metric):
+    """What is left of a rule's metric (MaintenanceMetric), the same figure as its ring (garage-047 F22).
+
+    A minimum's remaining is rounded up («Queda como máximo»), and so are days left (F17): the rule of `WearMetric.remaining_text`.
+    """
+    return WearMetric.build(metric).remaining_text
+
+
+@register.filter
 def money(value):
     """Two fixed decimals: 32.9 -> '32,90'."""
     if value is None:
@@ -235,6 +251,42 @@ def metric_m(metres):
 def power_figures(ride):
     """Known power and energy of one ride as (figure, caption) pairs: only for its own screens."""
     return ride_power_figures(ride)
+
+
+# A usage reading (UsageBaseline) in Spanish (garage-047 F05): the model's choice labels are English, and changing them
+# would need a migration. The words come from presentation.
+READING_SCOPES, READING_SOURCES = dict(SCOPES), dict(SOURCE_CHOICES)
+
+
+@register.filter
+def reading_metric(metric):
+    """«Distancia», «Tiempo en movimiento» or «Salidas» for a reading's metric key."""
+    return NAMES.get(metric, metric)
+
+
+@register.filter
+def reading_scope(scope):
+    """«Toda la vida», «Desde mi adquisición» or «Desde una intervención concreta» for a reading's scope key."""
+    return READING_SCOPES.get(scope, scope)
+
+
+@register.filter
+def reading_source(source):
+    """The declared source of a reading: the two the forms offer in Spanish, any other as it was written."""
+    return READING_SOURCES.get(source, source)
+
+
+@register.filter
+def reading_value(reading):
+    """'83 h', '2.841 km', '12 salidas' or '1 salida', after «≈ » when the reading is estimated."""
+    value = reading.value
+    if reading.metric == "distance_m":
+        text = f"{km(value)} km"
+    elif reading.metric == "moving_time_s":
+        text = f"{hours(value)} h"
+    else:  # ride_count: the only other metric a reading may have (garage_baseline_valid_metric)
+        text = f"{number(value)} {'salida' if value == 1 else 'salidas'}"
+    return f"≈ {text}" if reading.is_estimated else text
 
 
 def _local(context, value):
@@ -296,9 +348,9 @@ def local_time(context, value):
     return f"{local.hour}:{local.minute:02d}"
 
 
-def _datetime_text(local):
+def _datetime_text(local, minute=False):
     text = f"{local.day} {MONTHS[local.month - 1]} {local.year}, {local.hour}:{local.minute:02d}"
-    if local.second or local.microsecond:
+    if not minute and (local.second or local.microsecond):
         text += f":{local.second:02d}" + (f",{local.microsecond:06d}" if local.microsecond else "")
     if local.tzinfo is dt_timezone.utc:  # only the overflow fallback: viewer zones are ZoneInfo
         text += " (UTC)"
@@ -309,22 +361,24 @@ def _datetime_text(local):
     return text
 
 
-def datetime_text(value, zone):
-    """Plain '17 oct 2026, 10:30' in `zone`, for option labels built outside templates."""
-    return "" if value is None else _datetime_text(_local({"user_tz": zone}, value))
+def datetime_text(value, zone, minute=False):
+    """Plain '17 oct 2026, 10:30' in `zone`, for option labels built outside templates. `minute` as in `local_datetime`."""
+    return "" if value is None else _datetime_text(_local({"user_tz": zone}, value), minute)
 
 
 @register.simple_tag(takes_context=True)
-def local_datetime(context, value):
+def local_datetime(context, value, precision=""):
     """'17 oct 2026, 10:30' in the viewer's zone inside <time datetime="…Z"> with the exact instant.
 
     Seconds (and microseconds) appear only when present; in the repeated hour at
     the end of summer time the offset is named so the text stays unambiguous.
+    With "minute", the text is cut to the minute, never rounded (garage-047 F22): for the
+    instants the server stamps with `now()`, whose seconds nobody wrote. `datetime` stays exact.
     """
     if value is None or value == "":
         return ""
     exact = value.astimezone(dt_timezone.utc).isoformat().replace("+00:00", "Z")
-    return format_html('<time datetime="{}">{}</time>', exact, _datetime_text(_local(context, value)))
+    return format_html('<time datetime="{}">{}</time>', exact, _datetime_text(_local(context, value), precision == "minute"))
 
 
 @register.simple_tag(takes_context=True)
@@ -338,6 +392,17 @@ def local_bound(context, value):
     if (local.hour, local.minute, local.second, local.microsecond) == (0, 0, 0, 0):
         return local_date(context, value)
     return local_datetime(context, value)
+
+
+def bound_text(value, zone):
+    """`local_bound` of an instant as plain text in `zone`, for messages built outside templates (garage-047 F21)."""
+    if value is None:
+        return ""
+    context = {"user_tz": zone}
+    local = _local(context, value)
+    if (local.hour, local.minute, local.second, local.microsecond) == (0, 0, 0, 0):
+        return local_date(context, value)
+    return _datetime_text(local)
 
 
 def _span_parts(span):
@@ -381,11 +446,16 @@ def unbroken(text, separator=" · "):
 
 @register.filter
 def span_short(span):
-    """'≥ 3.240 km' or, without known km, '210 días': for one-line lists."""
+    """'≥ 3.240 km' or, without known km, '210 días': for one-line lists.
+
+    A minimum shown as «≥ 0 km» says nothing, so the days are shown instead (garage-047 F18).
+    Decided on the figure shown: a minimum of 0,04 km is rounded down to «0».
+    """
     if span is None:
         return ""
     parts, days = _span_parts(span)
-    return next((part for part in parts if part.endswith(" km")), days)
+    km = next((part for part in parts if part.endswith(" km")), None)
+    return days if km is None or km == "≥ 0 km" else km
 
 
 @register.filter

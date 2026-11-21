@@ -59,9 +59,10 @@
 <section class="sec card" aria-labelledby="mounts-title">
   <div class="sec-h"><h2 id="mounts-title">Montajes</h2>{% if not object.retired_at and not current_mount %}<a class="link" href="{% url 'garage:installation-create' object.pk %}">Montar</a>{% endif %}</div>
   {% if mounts %}<ul class="timeline">{% for block in mounts %}
-    <li{% if block.reference.ended_at is None %} class="open"{% endif %}><span><b>{% if block.reference.bike %}{{ block.reference.bike.name }}{% else %}Sobre {{ block.reference.parent_item.name }}{% endif %}</b><span>{% local_date block.start %} → {% if block.reference.ended_at %}{% local_date block.reference.ended_at %}{% else %}hoy{% endif %}</span></span>
+    <li{% if block.reference.ended_at is None %} class="open"{% endif %}><span><b>{% if block.reference.bike %}{{ block.reference.bike.name }}{% else %}Sobre {{ block.reference.parent_item.name }}{% endif %}</b><span>{% local_bound block.start %} → {% if block.reference.ended_at %}{% local_bound block.reference.ended_at %}{% else %}hoy{% endif %}</span></span>
       <span class="num">{% with d=block.metrics.0 %}{% if d.value is None %}—{% else %}{{ d.value|km }} km{% endif %}{% endwith %}</span></li>{% endfor %}
-  </ul>{% else %}<p class="empty">Nunca montado.</p>{% endif %}
+  </ul>
+  <p class="note">Horas en la zona {{ user_tz }}.</p>{% else %}<p class="empty">Nunca montado.</p>{% endif %}
 </section>
 
 <section class="sec card" aria-labelledby="parts-title">
@@ -72,7 +73,7 @@
         <span class="entry-sub">{% if m.slot %}{{ m.slot }} · {% endif %}desde el {% local_date m.started_at %}</span></span>
       {% if row.wear %}<span class="chip st-{{ row.wear.state }}{% if row.wear.over_class %} {{ row.wear.over_class }}{% endif %}"><svg class="ic xs" aria-hidden="true"><use href="#i-{{ row.wear.icon }}"/></svg>{{ row.wear.word }}{% if row.wear.over_class %} · <span>{{ row.wear.headline.percent_text }}</span>{% endif %}</span>{% else %}<svg class="ic"><use href="#i-chev-right"/></svg>{% endif %}
     </a></li>{% endwith %}
-    {% empty %}<li class="empty">Sin piezas montadas dentro{% if not object.retired_at %}: por ejemplo el casete o el disco de una rueda{% endif %}.</li>{% endfor %}
+    {% empty %}<li class="empty">{% if previous_parts %}Sin piezas montadas ahora. Antes llevaba: {% for period in previous_parts %}<a href="{% url 'garage:item-detail' period.item_id %}">{{ period.item.name }}</a> (hasta el {% local_date period.ended_at %}){% if not forloop.last %}, {% endif %}{% endfor %}{% if previous_more %} y {{ previous_more }} más en Detalles{% endif %}.{% else %}Sin piezas montadas dentro{% if not object.retired_at %}: por ejemplo el casete o el disco de una rueda{% endif %}.{% endif %}</li>{% endfor %}
   </ul>
 </section>
 
@@ -90,16 +91,20 @@
 
 {% include 'garage/photo_list.html' with in_card=True %}
 
+<section class="sec card" aria-labelledby="actions-title">
+  <div class="sec-h"><h2 id="actions-title">Más acciones</h2></div>
+  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:item-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:item-retire' object.pk %}">Retirar</a>{% endif %}{% if current_mount %}{% if current_mount.ended_at is None %}<a href="{% url 'garage:installation-close' current_mount.pk %}">Desmontar</a>{% endif %}<a href="{% url 'garage:installation-replace' current_mount.pk %}">Reemplazar</a>{% endif %}{% if current_mount or object.retired_at %}<a href="{% url 'garage:installation-create' object.pk %}">Añadir un montaje pasado</a>{% endif %}</div>
+</section>
+
 <details class="more">
   <summary>Detalles, lecturas y montajes completos</summary>
-  <div class="actions">{% if object.retired_at %}<form method="post" action="{% url 'garage:item-reactivate' object.pk %}">{% csrf_token %}<button class="btn ghost">Reactivar</button></form>{% else %}<a href="{% url 'garage:item-retire' object.pk %}">Retirar</a>{% endif %}</div>
   <p class="notes">{{ object.notes }}</p>
-  <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if lifecycle.state == 'retired' %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% if object.retired_at %} · se retira: {% local_datetime object.retired_at %}{% endif %}{% endif %}</dd></dl>
+  <dl><dt>Marca / modelo</dt><dd>{{ object.brand|default:'—' }} / {{ object.model|default:'—' }}</dd><dt>Número de serie</dt><dd>{{ object.serial_number|default:'Desconocido' }}</dd><dt>Compra</dt><dd>{% if object.acquired_on %}{% local_date object.acquired_on %}{% else %}Desconocida{% endif %}{% if object.purchase_amount != None %} · {{ object.purchase_amount|money }} {{ object.purchase_currency }}{% endif %}</dd><dt>Inicio desde adquisición</dt><dd>{% if object.acquisition_anchor_at %}{% local_datetime object.acquisition_anchor_at %}{% else %}Sin confirmar{% endif %}</dd><dt>Estado</dt><dd>{% if lifecycle.state == 'retired' %}Retirado: {% local_datetime object.retired_at %}{% else %}Activo{% if object.retired_at %} · se retira: {% local_datetime object.retired_at %}{% endif %}{% endif %}</dd></dl>
   <p>Categoría: <a href="{% url 'garage:category-detail' object.category_id %}">{{ object.category.name }}</a></p>
-  <div class="actions"><a class="button" href="{% url 'garage:installation-create' object.pk %}">Montar / remontar</a><a href="{% url 'garage:baseline-create' object.pk %}">Registrar lectura</a></div>
   <h2>Lecturas de uso</h2><p class="muted">Lecturas independientes, con ámbito y referencia. No se suman entre sí. Sin lectura, el uso anterior de esa métrica es desconocido.</p>
-  {% for reading in readings %}<article class="card"><h3>{{ reading.get_metric_display }}</h3><p>{{ reading.value }} · {{ reading.get_scope_display }} · {% local_datetime reading.cut_at %}</p><p>Procedencia: {{ reading.source }}{% if reading.is_estimated %} · Estimada{% endif %}</p><p class="notes">{{ reading.notes }}</p><div class="actions"><a href="{% url 'garage:baseline-edit' reading.pk %}">Corregir lectura</a></div></article>{% empty %}<p>Uso previo desconocido: no hay lecturas.</p>{% endfor %}
-  <h2>Historial completo de montajes</h2>{% include 'garage/periods.html' %}
+  <div class="actions"><a href="{% url 'garage:baseline-create' object.pk %}">Registrar lectura</a></div>
+  {% for reading in readings %}<article class="card"><h3>{{ reading.metric|reading_metric }}</h3><p>{{ reading|reading_value }} · {{ reading.scope|reading_scope }} · {% local_datetime reading.cut_at %}</p><p>Procedencia: {{ reading.source|reading_source }}{% if reading.is_estimated %} · Estimada{% endif %}</p><p class="notes">{{ reading.notes }}</p><div class="actions"><a href="{% url 'garage:baseline-edit' reading.pk %}">Corregir lectura</a></div></article>{% empty %}<p>Uso previo desconocido: no hay lecturas.</p>{% endfor %}
+  <h2>Historial completo de montajes</h2>{% if periods %}<p class="muted">Horas en la zona {{ user_tz }}.</p>{% endif %}{% include 'garage/periods.html' %}
   <h2>Material montado sobre este objeto</h2>{% include 'garage/periods.html' with periods=children %}
 </details>
 

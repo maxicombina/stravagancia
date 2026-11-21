@@ -620,3 +620,48 @@ class TestQueryCount:
         html, after = self.measure(client, url)
         assert len(self.rule_rows(html)) == rows + 8
         assert after == before, (before, after)
+
+
+class TestDaysLeft:
+    """garage-047 F17 (D20): days gone are rounded down and days left up, so that the two add up to the threshold."""
+
+    @staticmethod
+    def days(value, threshold="365", status="current"):
+        return wear(due_of(metric(value, name="calendar_days", threshold=threshold, status=status))).headline
+
+    @pytest.mark.parametrize("value,gone,left", [
+        ("184.6", "184", "181"),
+        ("184", "184", "181"),  # whole days: nothing to round
+        ("0", "0", "365"),
+        ("0.2", "0", "365"),
+    ])
+    def test_days_left_and_days_gone_add_up_to_the_threshold(self, value, gone, left):
+        headline = self.days(value)
+        assert (headline.value_text, headline.remaining_text, headline.big) == (gone, left, left)
+        assert int(gone) + int(left) == 365
+
+    @pytest.mark.parametrize("value", ["364.5", "364.999"])
+    def test_half_a_day_left_is_one_day(self, value):
+        headline = self.days(value, status="soon")
+        assert headline.remaining_text == headline.big == "1"
+        assert visible_text(find_all(find_all(rendered_row(wear(due_of(headline.metric))), "span", cls="big")[0], "b")[0]) == "1"
+
+    @pytest.mark.parametrize("value,big", [("397.27", "+32"), ("400", "+35")])
+    def test_a_due_calendar_rule_is_unchanged(self, value, big):
+        headline = self.days(value, status="due")
+        assert (headline.state, headline.big, headline.remaining_text) == ("due", big, "0")
+
+    def test_other_figures_keep_their_rounding(self):
+        # Complete km are rounded to the nearest tenth, a minimum's remaining up: only days change (F17).
+        assert wear(due_of(metric("950060", status="soon"))).headline.remaining_text == "49,9"
+        assert wear(due_of(metric("950060", status="unknown", coverage="partial"))).headline.remaining_text == "50"
+        assert wear(due_of(metric("17496", name="moving_time_s", threshold="36000", status="current"))).headline.remaining_text == "5,1"
+
+    def test_on_the_ring_and_on_the_row_of_a_real_rule(self, garage, client):
+        item, _ = rule_at(garage, 95)  # 95 days and a half of 100
+        client.force_login(garage.owner)
+        root = parse(client.get(item_url(item)).content.decode())
+        assert [visible_text(one) for one in find_all(root, "text", cls="g-num")] == ["5"]
+        assert [visible_text(one) for one in find_all(find_all(root, "div", cls="trio")[0], "b")] == ["95"]
+        row = ring_row(client.get(reverse("garage:maintenance")).content.decode(), item_url(item))
+        assert visible_text(find_all(find_all(row, "span", cls="big")[0], "b")[0]) == "5"

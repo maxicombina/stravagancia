@@ -17,6 +17,7 @@ from .services.installations import create_installation
 from .services.maintenance import save_maintenance
 from .services.maintenance_due import MaintenanceDue, MaintenanceMetric, maintenance_due
 from .services.ownership import create_inventory
+from .services.retirement import retire_one
 from .services.rides import create_manual_ride
 from .services.snoozes import snooze_rule
 from .services.usage import rebuild_usage
@@ -446,3 +447,96 @@ class TestGarageScreen:
         circles = find_all(row, cls="ring-ic")
         assert "st-review" in classes(row) and len(circles) == 1
         assert [use.attrs["href"] for use in find_all(circles[0], "use")] == ["#i-route"]
+
+
+class TestGearWithNothingLoose:
+    """garage-047 F11 (D22): with nothing loose, the gear card says why, not always «Todo tu material está montado.»."""
+
+    @pytest.fixture
+    def owner(self, db):
+        owner = get_user_model().objects.create_user("gear-owner", password="test-only-password")
+        return SimpleNamespace(owner=owner, category=create_inventory(owner, Category, name="Cadenas"),
+                               bike=create_inventory(owner, Bike, name="Carretera"))
+
+    def item(self, g, name, **values):
+        return create_inventory(g.owner, Item, name=name, category=g.category, **values)
+
+    def mount(self, g, item, **values):
+        create_installation(g.owner, item=item, bike=g.bike, parent_item=None, **{"started_at": days_ago(30), "ended_at": None, "slot": None, **values})
+
+    def empty_row(self, g, client):
+        """The only row of the gear card, which must be its empty text."""
+        client.force_login(g.owner)
+        response = client.get(reverse("garage:index"))
+        assert response.status_code == 200
+        card = find_all(parse(response.content.decode()), "section", aria_labelledby="gear-title")[0]
+        rows = find_all(card, "li")
+        assert len(rows) == 1 and "empty" in classes(rows[0]), [visible_text(row) for row in rows]
+        return rows[0]
+
+    def links(self, node):
+        return [(visible_text(link), link.attrs["href"]) for link in find_all(node, "a")]
+
+    def retired_list(self):
+        return f'{reverse("garage:item-list")}?state=retired'
+
+    def test_an_empty_garage_offers_to_add_material(self, owner, client):
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Aún no tienes material. Añadir material."
+        assert self.links(row) == [("Añadir material", reverse("garage:item-create"))]
+
+    def test_only_retired_material_says_so(self, owner, client):
+        self.item(owner, "Cadena vieja", retired_at=days_ago(10))
+        self.item(owner, "Cadena rota", retired_at=days_ago(400))
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Todo tu material está retirado. Ver los retirados."
+        assert self.links(row) == [("Ver los retirados", self.retired_list())]
+
+    def test_mounted_and_retired_says_all_active_is_mounted(self, owner, client):
+        self.mount(owner, self.item(owner, "Cadena 11v"))
+        self.item(owner, "Cadena vieja", retired_at=days_ago(10))
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Todo tu material activo está montado. Ver los retirados."
+        assert self.links(row) == [("Ver los retirados", self.retired_list())]
+
+    def test_a_piece_retired_while_mounted_counts_as_retired(self, owner, client):
+        """Retiring it closed its mount: it is not mounted any more."""
+        self.mount(owner, self.item(owner, "Cadena 11v"))
+        old = self.item(owner, "Cadena vieja")
+        self.mount(owner, old, started_at=days_ago(300), slot="spare")
+        retire_one(owner.owner, old, at=days_ago(100))
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Todo tu material activo está montado. Ver los retirados."
+
+    def test_all_mounted_keeps_its_text(self, owner, client):
+        self.mount(owner, self.item(owner, "Cadena 11v"))
+        self.mount(owner, self.item(owner, "Cassette"), slot="cassette")
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Todo tu material está montado."
+        assert self.links(row) == []
+
+    def test_a_retirement_still_to_come_is_not_retired_yet(self, owner, client):
+        """Mounted until its scheduled retirement, tomorrow: today it is mounted, and nothing is retired."""
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.mount(owner, self.item(owner, "Cadena 11v", retired_at=tomorrow), ended_at=tomorrow)
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Todo tu material está montado."
+        assert self.links(row) == []
+
+    def test_something_loose_is_listed_and_no_empty_text_is_shown(self, owner, client):
+        self.mount(owner, self.item(owner, "Cadena 11v"))
+        self.item(owner, "Cadena vieja", retired_at=days_ago(10))
+        self.item(owner, "Casco")
+        client.force_login(owner.owner)
+        card = find_all(parse(client.get(reverse("garage:index")).content.decode()), "section", aria_labelledby="gear-title")[0]
+        assert [visible_text(name) for name in find_all(card, cls="entry-name")] == ["Casco"]
+        assert find_all(card, cls="empty") == []
+        assert home_snapshot(owner.owner).items_state == "loose"  # nothing to explain: no empty state is claimed
+
+    def test_another_owner_does_not_change_the_text(self, owner, client):
+        stranger = get_user_model().objects.create_user("gear-stranger", password="test-only-password")
+        category = create_inventory(stranger, Category, name="X")
+        create_inventory(stranger, Item, name="SECRET retired", category=category, retired_at=days_ago(10))
+        create_inventory(stranger, Item, name="SECRET loose", category=category)
+        row = self.empty_row(owner, client)
+        assert visible_text(row) == "Aún no tienes material. Añadir material."

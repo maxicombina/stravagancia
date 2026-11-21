@@ -247,7 +247,8 @@ class TestMountedNow:
 class TestSectionsInCards:
     """Spec F3b, §4.3: the same sections, in the same order, in cards."""
 
-    TITLES = ["Registrado en Garage", "Requiere atención", "Km por mes", "Montado ahora", "Últimas salidas", "Intervenciones en la bici", "Fotos privadas"]
+    TITLES = ["Registrado en Garage", "Requiere atención", "Km por mes", "Montado ahora", "Últimas salidas", "Intervenciones en la bici", "Fotos privadas",
+              "Más acciones"]  # garage-047 F14
 
     def test_each_section_is_a_card(self, garage, client):
         client.force_login(garage.owner)
@@ -694,3 +695,43 @@ class TestAListWithNoRows:
         client.force_login(garage.owner)
         page = salidas(client, bike=garage.gravel.pk)
         assert page.names == ["Pista"] and NO_MATCH not in page.html and NO_RIDES not in page.html
+
+
+class TestRetireInSight:
+    """garage-047 F14 (D17): a bike gets the card «Más acciones» of a piece, with «Retirar» or «Reactivar», out of «Detalles»."""
+
+    @staticmethod
+    def card_and_details(html):
+        root = parse(html)
+        cards = [section for section in find_all(root, "section", cls="sec card")
+                 if find_all(section, "h2") and visible_text(find_all(section, "h2")[0]) == "Más acciones"]
+        folds = [fold for fold in find_all(root, "details", cls="more") if visible_text(find_all(fold, "summary")[0]).startswith("Detalles")]
+        assert len(cards) == 1 and len(folds) == 1, (cards, folds)
+        return root, cards[0], folds[0]
+
+    def test_retire_is_visible_without_opening_details(self, garage, client):
+        client.force_login(garage.owner)
+        root, card, details = self.card_and_details(page(client, garage.road)[0])
+        href = reverse("garage:bike-retire", args=[garage.road.pk])
+        assert [visible_text(link) for link in find_all(card, "a") if link.attrs.get("href") == href] == ["Retirar"]
+        assert [link for link in find_all(root, "a") if link.attrs.get("href") == href] == [link for link in find_all(card, "a")]
+        assert not [link for link in find_all(details, "a") if link.attrs.get("href") == href]
+
+    def test_a_retired_bike_reactivates_from_the_card(self, garage, client):
+        client.force_login(garage.owner)
+        root, card, details = self.card_and_details(page(client, garage.retired)[0])
+        action = reverse("garage:bike-reactivate", args=[garage.retired.pk])
+        forms = [form for form in find_all(root, "form") if form.attrs.get("action") == action]
+        assert len(forms) == 1 and forms[0].attrs.get("method") == "post"
+        assert [form for form in find_all(card, "form")] == forms and not find_all(details, "form")
+        assert [visible_text(button) for button in find_all(forms[0], "button")] == ["Reactivar"]
+        assert not [link for link in find_all(root, "a") if link.attrs.get("href") == reverse("garage:bike-retire", args=[garage.retired.pk])]
+
+    def test_the_details_keep_their_data_list_and_no_row_of_actions(self, garage, client):
+        # What spaces their blocks now (tests_ui_guards): a data list right inside, and no `.actions` row left there.
+        client.force_login(garage.owner)
+        for bike in (garage.road, garage.retired):
+            _, _, details = self.card_and_details(page(client, bike)[0])
+            direct = [child for child in details.children if not isinstance(child, str)]
+            assert [child.tag for child in direct].count("dl") == 1
+            assert not [child for child in direct if "actions" in classes(child)]

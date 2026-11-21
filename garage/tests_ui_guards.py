@@ -672,6 +672,12 @@ class WhatUnfoldsSaysSoTests(SimpleTestCase):
         # In the detail of a piece, «Categoría», «Montar» and «Lecturas de uso» stood 0 px apart.
         self.assertEqual(contrast.declared(stylesheet(), "details.more:has(> .actions) > * + *").get("margin-top"), "var(--s3)")
 
+    def test_the_details_of_a_bike_keep_their_distance_with_no_row_of_actions(self):
+        # garage-047 F14 took «Retirar» out to «Más acciones»: with no `.actions` left, the summary, the data, the heading and its
+        # note of a bike's details measured 0 px apart (CDP, 320 and 390 px). Its data list, the one a piece has too, keeps them apart;
+        # with `.page`, also before its first period, a `.card` whose `margin: 0` (`.page .card`) a selector without a class lost to.
+        self.assertEqual(contrast.declared(stylesheet(), ".page details.more:has(> dl) > * + *").get("margin-top"), "var(--s3)")
+
 
 class TitlesOfARowTests(SimpleTestCase):
     NAMES = (".entry-name.bike-name", ".entry-name.ride-name")

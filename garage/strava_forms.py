@@ -13,10 +13,18 @@ from .services.ownership import scoped_inventory
 class StravaImportForm(SpanishWebMixin, forms.Form):
     after = forms.DateField(label="Importar histórico desde", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
                             help_text="Fecha local. Se piden a Strava sus salidas en bici desde ese día, en páginas de 50.")
+    # Drawn only with the warning it answers, when a recent job already covers the date (garage-047 F21).
+    again = forms.BooleanField(required=False, label="Importar de nuevo igualmente")
 
     def __init__(self, *args, zone, **kwargs):
         super().__init__(*args, **kwargs)
         self.zone = zone
+        self.asks_again = False
+
+    def ask_again(self, warning):
+        """Back with `warning` under «Importar de nuevo igualmente»: only with it ticked is the job created."""
+        self.asks_again = True
+        self.add_error("again", warning)
 
     def clean_after(self):
         value = self.cleaned_data["after"]

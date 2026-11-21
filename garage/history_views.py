@@ -86,14 +86,14 @@ RUN_ERROR_LABELS = {
 
 def _strava_run(request, run):
     """A Strava history job resumes without any file (garage-030)."""
-    from .services.strava_sync import STEP_BUDGET, resume_strava_import
+    from .services.strava_sync import STEP_BUDGET, SYNC_DAYS, resume_strava_import
     if request.method == 'POST':
         try:
             run = resume_strava_import(request.user, run.pk, budget=STEP_BUDGET)
         except ValidationError as error:
             messages.error(request, ' '.join(error.messages))
         return redirect('garage:history-run', pk=run.pk)
-    return render(request, 'garage/history_run.html', {'title': 'Trabajo de importación', 'run': run, 'strava': True,
+    return render(request, 'garage/history_run.html', {'title': 'Trabajo de importación', 'run': run, 'strava': True, 'sync_days': SYNC_DAYS,
                   'back_url': reverse('garage:strava'), 'back_label': 'Strava',
                   'run_errors': [{'label': RUN_ERROR_LABELS.get(entry['code'], RUN_ERROR_LABELS['unexpected_failure'])} for entry in run.errors]})
 

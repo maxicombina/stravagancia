@@ -256,8 +256,10 @@ class UsageBaselineForm(OwnedInventoryForm):
         obj = forms.ModelForm.save(self, commit=False)
         if not commit:
             return obj
+        # A web form may fill a model field from another one (BaselineWebForm: `value` from `amount`), as MaintenanceForm does.
+        written = set(self.fields) | set(getattr(self, "converted_fields", ()))
         values = {field.name: getattr(obj, field.name) for field in obj._meta.fields
-                  if field.editable and not field.primary_key and field.name in self.fields}
+                  if field.editable and not field.primary_key and field.name in written}
         try:
             self.instance = record_baseline(self.actor, **values) if self._resource_id is None else update_baseline(
                 self.actor, self._resource_id, **values)

@@ -27,6 +27,15 @@ NAMES = {"distance_m": "Distancia", "moving_time_s": "Tiempo en movimiento", "ri
          "calendar_days": "Calendario", "elevation_gain_m": "Desnivel"}
 # Elevation metres are marked «↑» wherever a figure stands alone, so they never read as a distance.
 MARKS = {"elevation_gain_m": "↑ "}
+# The words of a usage reading (UsageBaseline): its metrics (NAMES), its scopes and its declared sources (garage-047 F05).
+# One source for the reading forms in web_forms and for the screens that show a reading (templatetags.garage_ui).
+SCOPES = [("lifetime", "Toda la vida"), ("acquisition", "Desde mi adquisición"), ("service", "Desde una intervención concreta")]
+# The reading form takes km, hours or rides (web_forms.BaselineWebForm), so each option names its unit.
+METRICS = [("distance_m", f"{NAMES['distance_m']} (km)"), ("moving_time_s", f"{NAMES['moving_time_s']} (horas)"),
+           ("ride_count", NAMES["ride_count"])]
+# When it shows the exact field instead, whose label says «metros o segundos», no option names km or hours.
+EXACT_METRICS = [(key, NAMES[key]) for key, _ in METRICS]
+SOURCE_CHOICES = [("manual", "Lectura manual propia"), ("manual_garmin_reading", "Lectura manual de Garmin")]
 SMALL_RING, LARGE_RING = 22, 62
 
 
@@ -169,7 +178,8 @@ class WearMetric:
     @property
     def remaining_text(self):
         # With a lower-bound value the remaining figure is an upper bound: never understate it.
-        return quantity(self.name, self.metric.display_remaining, up=self.lower_bound)
+        # Days left are rounded up, as the days gone are rounded down, so the two add up to the threshold (garage-047 F17).
+        return quantity(self.name, self.metric.display_remaining, up=self.lower_bound or self.name == "calendar_days")
 
     @property
     def overrun_text(self):

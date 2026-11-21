@@ -133,8 +133,36 @@ class TestText:
         assert span_short(span(3240500, 1, 1)) == "≥ 3.240 km" and span_short(span(None, None, None, days=40)) == "40 días"
         assert span_text(None) == span_short(None) == ""
 
+    def test_a_minimum_shown_as_zero_shows_days(self):
+        # garage-047 F18 (D21): «≥ 0 km» says nothing. Decided on the figure shown: a minimum of 0,04 km is drawn «0».
+        assert span_short(span(0, 0, 0, days=30)) == "30 días"
+        assert span_short(span(40, 3600, 1, days=12)) == "12 días"
+        assert span_short(span(99, days=1)) == "1 día"
+        assert span_short(span(100, days=12)) == "≥ 0,1 km"
+
+    def test_known_zero_km_is_kept(self):
+        assert span_short(span(0, days=30, complete=True)) == "0 km"  # a reading that says 0
+        assert span_short(span(0, days=30, estimated=True)) == "≈ 0 km"
+
+    def test_km_are_shown_when_there_are_some(self):
+        assert span_short(span(47000, days=30)) == "≥ 47 km"
+
+    def test_the_long_line_is_unchanged(self):
+        # Only the short line changes (spec garage-047 §7): the intervention screen keeps every figure.
+        assert span_text(span(40, days=12)) == "≥ 0 km · 12 días"
+
 
 class TestScreens:
+    def test_no_rides_between_shows_days(self, garage, client, now):
+        kind = save_maintenance(garage.owner, ServiceType, name="Engrase")
+        for days in (45, 15):  # the chain is mounted on the road bike, whose rides are 50 and 10 days ago: none in between
+            save_maintenance(garage.owner, ServiceEvent, item=garage.chain, service_type=kind, performed_at=at(days))
+            save_maintenance(garage.owner, ServiceEvent, bike=garage.road, service_type=kind, performed_at=at(days))
+        client.force_login(garage.owner)
+        for url in (reverse("garage:item-detail", args=[garage.chain.pk]), reverse("garage:bike-detail", args=[garage.road.pk])):
+            text = visible_text(parse(client.get(url).content.decode()))
+            assert text.count("a 30 días de la anterior") == 1 and "≥ 0 km" not in text, (url, text)
+
     def test_event_detail(self, garage, history, client, now):
         client.force_login(garage.owner)
         with CaptureQueriesContext(connection) as queries:

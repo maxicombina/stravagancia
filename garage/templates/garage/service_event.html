@@ -20,7 +20,7 @@
   <div class="sec-h"><h2 id="readings-title">Lecturas desde aquí</h2>{% if event.item_id %}<a class="link" href="{% url 'garage:baseline-create' event.item_id %}">Registrar lectura</a>{% endif %}</div>
   <ul class="rows">{% for reading in readings %}
     <li><a class="entry compact" href="{% url 'garage:baseline-edit' reading.pk %}"><span class="glyph"><svg class="ic"><use href="#i-gauge"/></svg></span>
-      <span><span class="entry-name">{{ reading.get_metric_display }}</span><span class="entry-sub">{% local_date reading.cut_at %}{% if reading.is_estimated %} · estimada{% endif %}</span></span>
+      <span><span class="entry-name">{{ reading.metric|reading_metric }}</span><span class="entry-sub">{% local_date reading.cut_at %}{% if reading.is_estimated %} · estimada{% endif %}</span></span>
       <span class="num">{% if reading.metric == "distance_m" %}{{ reading.value|km }} km{% elif reading.metric == "moving_time_s" %}{{ reading.value|hours }} h{% else %}{{ reading.value|num }}{% endif %}</span></a></li>
     {% empty %}<li class="empty">Lecturas desconocidas; no se asume cero.</li>{% endfor %}
   </ul>

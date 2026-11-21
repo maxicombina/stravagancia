@@ -7,6 +7,8 @@ from django.contrib.staticfiles import finders
 from django.test import TestCase
 from django.urls import reverse
 
+from test_support import contrast
+
 from .assets import asset_version
 from .models import Bike, Category, Item, Ride
 from .services.ownership import create_inventory
@@ -122,7 +124,8 @@ class ShellTests(TestCase):
             "more-data": [reverse("garage:strava"), reverse("garage:export"), "#instalar"],
         })
         data = find_all(page, "section", aria_labelledby="more-data")[0]
-        self.assertEqual([visible_text(button) for button in find_all(data, "button")], ["Cerrar sesión"])
+        # Its name, then its second line (garage-047 F12): who is signed in.
+        self.assertEqual([visible_text(button) for button in find_all(data, "button")], ["Cerrar sesiónHas entrado como shell-user"])
 
     def test_the_install_row_still_lands_on_its_group(self):
         page = parse(self.get("more").content.decode())
@@ -146,6 +149,44 @@ class ShellTests(TestCase):
         self.assertEqual(len(menus), 1)
         names = ("bike-create", "item-create", "item-used-create", "history-manual-create", "history", "service-event-create", "category-create")
         self.assertEqual([link.attrs["href"] for link in find_all(menus[0], "a")], [reverse("garage:" + name) for name in names])
+
+    def logout_button(self, html):
+        """The only button of «Datos y app»: «Cerrar sesión»."""
+        data = find_all(parse(html), "section", aria_labelledby="more-data")[0]
+        forms = find_all(data, "form", action="/accounts/logout/")
+        self.assertEqual(len(forms), 1)
+        buttons = find_all(forms[0], "button")
+        self.assertEqual(len(buttons), 1)
+        return buttons[0]
+
+    def test_more_says_who_is_signed_in(self):
+        """garage-047 F12 (D23): under «Cerrar sesión», as the other rows of the menu carry their second line."""
+        button = self.logout_button(self.get("more").content.decode())
+        lines = find_all(button, "small")
+        self.assertEqual([visible_text(line) for line in lines], ["Has entrado como shell-user"])
+        self.assertEqual(accessible_text(button), "Cerrar sesiónHas entrado como shell-user")
+
+    def test_more_names_whoever_is_signed_in_now(self):
+        other = get_user_model().objects.create_user("otra-persona", password="test-only-password")
+        self.client.force_login(other)
+        html = self.get("more").content.decode()
+        self.assertEqual(visible_text(find_all(self.logout_button(html), "small")[0]), "Has entrado como otra-persona")
+        self.assertNotIn("shell-user", html)
+
+    def test_the_name_signed_in_is_escaped(self):
+        # The username validator would refuse it; a user made by hand or by the admin's shell would not.
+        user = get_user_model().objects.create_user('<b>"x"</b>&amp;', password="test-only-password")
+        self.client.force_login(user)
+        html = self.get("more").content.decode()
+        self.assertNotIn('<b>"x"</b>', html)
+        self.assertIn("Has entrado como &lt;b&gt;&quot;x&quot;&lt;/b&gt;&amp;amp;", html)
+        self.assertEqual(find_all(self.logout_button(html), "b"), [])
+
+    def test_a_long_name_signed_in_does_not_widen_the_page(self):
+        # A username takes up to 150 characters with no space: measured at 320 px, the page grew to 1164 px; a
+        # 50-character address, by 1 px. The second line of a menu row breaks anywhere rather than widen the page.
+        with open(finders.find("garage/garage.css"), encoding="utf-8") as sheet:
+            self.assertEqual(contrast.declared(sheet.read(), ".menu small").get("overflow-wrap"), "anywhere")
 
     def test_menus_require_a_session_and_get(self):
         self.client.logout()

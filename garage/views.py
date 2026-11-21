@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .models import Bike, Category, Installation, Item, UsageBaseline
-from .ordering import by_name
+from .ordering import by_name, name_key
 from .services.ownership import get_inventory, scoped_inventory, reactivate_inventory
 from .services.installations import close_installation, replace_installation, transfer_installation
 from .web_forms import (CategoryWebForm, BikeWebForm, ItemWebForm, UsedItemWebForm,
@@ -57,17 +57,17 @@ def show_errors(form, error):
             form.add_error(field, fresh)
 
 
-def form_page(request, form, title, back, explanation='', back_label='la página anterior', extra=None):
-    # Every form page shows times in the viewer's zone with native pickers (garage-032).
-    return render(request, 'garage/form.html', {'form': local(request, form), 'title': title, 'back': back, 'explanation': explanation,
+def form_page(request, form, title, back, explanation='', back_label='la página anterior', extra=None, zone=None):
+    # Every form page shows times in the viewer's zone with native pickers (garage-032), or in `zone` when given.
+    return render(request, 'garage/form.html', {'form': local(request, form, zone), 'title': title, 'back': back, 'explanation': explanation,
                                                 'back_url': back, 'back_label': back_label, **(extra or {})})
 
 
-def local(request, form):
-    """Viewer's zone preselected and native date-time pickers (garage-032)."""
+def local(request, form, zone=None):
+    """Viewer's zone preselected and native date-time pickers (garage-032); `zone`, when given, instead of the viewer's."""
     from .local_forms import localize
     from .timezones import user_time_zone
-    return localize(form, user_time_zone(request))
+    return localize(form, zone or user_time_zone(request))
 
 
 @never_cache
@@ -137,9 +137,10 @@ def inventory_detail(request, kind, pk):
         context['periods'] = periods.filter(bike=obj) if kind == 'bike' else periods.filter(item=obj)
         context['periods'] = context['periods'].order_by('-started_at', '-pk')
         if kind == 'item':
-            context['children'] = periods.filter(parent_item=obj).order_by('-started_at', '-pk')
+            # A list: «Piezas» (the parts it had, garage-047 F16) and «Material montado sobre este objeto» read it once.
+            context['children'] = list(periods.filter(parent_item=obj).order_by('-started_at', '-pk'))
             context['readings'] = scoped_inventory(request.user, UsageBaseline).filter(item=obj).order_by('-cut_at', '-pk')
-            context.update(item_dashboard(request, obj))
+            context.update(item_dashboard(request, obj, children=context['children']))
             return render(request, 'garage/item_detail.html', context)
         context.update(bike_dashboard(request, obj))
         context['cover'] = photos[0] if photos else None  # The first uploaded: Photo.Meta.ordering.
@@ -147,8 +148,8 @@ def inventory_detail(request, kind, pk):
     return render(request, 'garage/detail.html', context)
 
 
-def item_dashboard(request, item):
-    """Read-only blocks of the mobile component screen (garage-031.3)."""
+def item_dashboard(request, item, children=()):
+    """Read-only blocks of the mobile component screen (garage-031.3); `children`, its periods as a parent."""
     from django.utils import timezone
     from .charts import line_chart
     from .presentation import by_severity, wear
@@ -179,12 +180,35 @@ def item_dashboard(request, item):
     # mounted (one query), in use, available or never used (up to three). A retirement still to come is not «retirado».
     from .services.lifecycle import item_lifecycles
     lifecycle = item_lifecycles(request.user, [item], at=now)[item.pk]
+    previous, previous_more = ((), 0) if parts else _previous_parts(children, at=now)
     return {'wears': wears, 'lifecycle': lifecycle, 'life': next((w for w in wears if is_life(w.rule)), None),
             'parts': [{'mount': mount, 'wear': worst.get(mount.item_id)} for mount in parts],
+            'previous_parts': previous, 'previous_more': previous_more,
             'stats': row, 'usage_current': report.materialization_current, 'monthly': series,
             'chart': line_chart(series.buckets), 'mounts': mounts, 'current_mount': current,
             'interventions': _with_previous(row.interventions if row else ()), 'user_tz': zone,
             'back_url': reverse('garage:index'), 'back_label': 'Garaje'}
+
+
+PREVIOUS_PARTS = 5
+
+
+def _previous_parts(children, *, at):
+    """The parts an item held before `at` and no longer holds (garage-047 F16), and how many more there are.
+
+    Each part once, by the end of its last period inside; the most recent first, at most PREVIOUS_PARTS.
+    A period still to come is not one it had. On the same end the newest start goes first, and on the same start
+    too (a retirement closes every part at once, and a set is often mounted together) the name, in Spanish order:
+    `children` are not sorted by name, so `name_key`, and what it ties keeps the order of `children`.
+    """
+    last = {}
+    for period in children:
+        if period.ended_at is not None and period.ended_at <= at:
+            if period.item_id not in last or period.ended_at > last[period.item_id].ended_at:
+                last[period.item_id] = period
+    ordered = sorted(last.values(), key=lambda period: name_key(period.item.name))
+    ordered.sort(key=lambda period: (period.ended_at, period.started_at), reverse=True)  # stable: the names stay in order
+    return tuple(ordered[:PREVIOUS_PARTS]), max(0, len(ordered) - PREVIOUS_PARTS)
 
 
 def _with_previous(blocks):
@@ -459,6 +483,10 @@ def baseline_edit(request, item_pk=None, pk=None):
         else:
             messages.success(request, 'Lectura guardada.')
             return redirect(detail_url('item', item))
+    from .timezones import parse_zone
+    # The interventions are named in the hours of the form (garage-047 F05): sent back, those of the zone it was sent
+    # with, if that is one, as retire() does; else the viewer's.
+    zone = parse_zone(getattr(form, 'cleaned_data', {}).get('time_zone'))
     return form_page(request, form, 'Lectura de ' + item.name, detail_url('item', item),
         'Una métrica, un ámbito y un instante. Cero es conocido; una métrica sin lectura permanece desconocida. Una nueva lectura no se suma a la anterior.',
-        back_label=item.name)
+        back_label=item.name, zone=zone)

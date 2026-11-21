@@ -74,7 +74,7 @@
       <span class="big">{% if entry.distance_m is None %}<b>—</b><small>uso pendiente</small>{% else %}<b>{{ entry.distance_m|km }}</b><small>km registrados</small>{% endif %}</span>
     </a></li>
     {% empty %}
-    <li class="empty">Todo tu material está montado.</li>
+    <li class="empty">{% if home.items_state == "none" %}Aún no tienes material. <a href="{% url 'garage:item-create' %}">Añadir material</a>.{% elif home.items_state == "retired" %}Todo tu material está retirado. <a href="{% url 'garage:item-list' %}?state=retired">Ver los retirados</a>.{% elif home.items_state == "mounted_retired" %}Todo tu material activo está montado. <a href="{% url 'garage:item-list' %}?state=retired">Ver los retirados</a>.{% else %}Todo tu material está montado.{% endif %}</li>
     {% endfor %}
   </ul>
 </section>

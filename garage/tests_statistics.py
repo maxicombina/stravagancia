@@ -17,7 +17,8 @@ from .services.statistics import statistics
 from .services.usage import rebuild_usage
 from .services.usage_profiles import create_profile_history
 from .statistics_forms import StatisticsForm
-from .tests_maintenance import at, data
+from .test_html import find_all, parse, visible_text
+from .tests_maintenance import at, data, event
 from .tests_maintenance_due import facts, initialized
 
 
@@ -269,7 +270,7 @@ def test_baseline_source_estimated_and_scope_visible_html(data):
     response=client.get(reverse('garage:statistics'),{'time_zone':'UTC','started_to':'2026-01-03'})
     assert response.status_code==200
     text=response.content.decode()
-    assert 'manual_garmin_reading' in text and 'Lectura estimada' in text
+    assert 'Lectura manual de Garmin' in text and 'Lectura estimada' in text  # garage-047 F05: the source in Spanish
     assert 'todas las bicis' in text and 'no se reparte entre períodos ni bicis' in text
 
 
@@ -327,3 +328,23 @@ def test_metric_specific_latest_baselines_do_not_cross_scopes(data):
     assert row.totals[0].metrics[1].value==10800
     assert row.totals[0].metrics[2].value is None
     assert all(m.value is None for m in row.totals[1].metrics)
+
+
+def test_the_intervention_and_statistics_pages_name_the_metric_and_scope_in_spanish(data):
+    """garage-047 F05: neither the stored keys nor the model's English labels of a reading reach these pages."""
+    performed = event(data)
+    reading(data, cut=3, source='manual_garmin_reading')
+    reading(data, cut=3, scope='service', service_event=performed, metric='moving_time_s', value='7200')
+    client = Client()
+    client.force_login(data.owner)
+    client.cookies['garage_tz'] = 'UTC'
+    stats = client.get(reverse('garage:statistics'), {'time_zone': 'UTC', 'started_to': '2026-01-03'}).content.decode()
+    lines = [visible_text(p) for p in find_all(parse(stats), 'p', cls='help') if 'Lectura acumulada' in visible_text(p)]
+    assert any(' · Toda la vida · Lectura manual de Garmin.' in line for line in lines), lines
+    assert any(' · Desde una intervención concreta · Lectura manual propia.' in line for line in lines), lines
+    for english in ('Lifetime', 'Since intervention', 'manual_garmin_reading', '· manual.'):
+        assert english not in stats, english
+    page = client.get(reverse('garage:service-event-detail', args=[performed.pk])).content.decode()
+    [section] = find_all(parse(page), 'section', aria_labelledby='readings-title')
+    assert [visible_text(name) for name in find_all(section, cls='entry-name')] == ['Tiempo en movimiento']
+    assert 'Moving time' not in page and '(seconds)' not in page

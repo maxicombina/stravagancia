@@ -402,7 +402,7 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 .menu a, .menu button { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 64px; padding: 10px 0;
   border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; width: 100%; text-align: left; cursor: pointer; font-size: 16.5px; line-height: 1.3; font-weight: 650; }
 .menu .ic.go { color: var(--ink-2); }
-.menu small { display: block; color: var(--ink-2); font-size: 14px; line-height: 1.4; font-weight: 400; }
+.menu small { display: block; color: var(--ink-2); font-size: 14px; line-height: 1.4; font-weight: 400; overflow-wrap: anywhere; } /* «Has entrado como …»: a username has up to 150 characters and no space. */
 :is(.card, .panel) .menu > li:last-child :is(a, button) { border-bottom: 0; } /* As the last row of .rows: the edge of the card closes it. */
 
 /* Tab bar */
@@ -473,7 +473,7 @@ details.more > summary { cursor: pointer; color: var(--primary); font-weight: 60
 .page .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .page .grid > div { padding: 10px 12px; min-width: 0; border-radius: var(--r-md); background: var(--surface-2); } /* The figures of the detailed report, as the other small boxes of figures. */
 .page h4 { margin: var(--s3) 0 var(--s2); font-size: 15px; line-height: 1.25; } /* With the browser's 21 px, the title of a set of figures stood as near the set before as its own. */
-details.more:has(> .note + form.card) > * + *, details.more:has(> .actions) > * + * { margin-top: var(--s3); } /* The detailed report of Estadísticas and the details of a bike or a piece: the blocks touched the text around them. */
+details.more:has(> .note + form.card) > * + *, details.more:has(> .actions) > * + *, .page details.more:has(> dl) > * + * { margin-top: var(--s3); } /* The detailed report of Estadísticas and the details of a bike or a piece: the blocks touched the text around them. A bike's has no `.actions` row since garage-047 F14: its data list, with `.page` to outweigh the `margin: 0` of `.page .card`. */
 .page .actions, .page .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .page input:not([type="checkbox"]):not([type="radio"]):not(.sw), .page select, .page textarea {
